@@ -1,0 +1,25 @@
+services:
+  webhook:
+    build: .
+    ports:
+      - "8082:3002"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.aws:/root/.aws:ro
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - n8n_default
+
+networks:
+  n8n_default:
+    external: true

@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Claude Webhook CLI Wrapper
+# Usage: ./claude-webhook repo "command" or ./claude-webhook owner/repo "command"
+
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <repo> \"<command>\" [options]"
+    echo "  or:  $0 <owner/repo> \"<command>\" [options]"
+    echo ""
+    echo "Options:"
+    echo "  -i, --issue <number>   Issue number (default: 1)"
+    echo "  -p, --pr              Treat as pull request"
+    echo "  -b, --branch <branch>  Branch name for PR"
+    echo "  -v, --verbose         Verbose output"
+    echo ""
+    echo "Examples:"
+    echo "  $0 myrepo \"Analyze the code structure\"           # Uses DEFAULT_GITHUB_OWNER/myrepo"
+    echo "  $0 myorg/myrepo \"Analyze the code structure\"     # Uses myorg/myrepo"
+    echo "  $0 myrepo \"Review this PR\" -p -b feature-branch  # PR review in DEFAULT_GITHUB_OWNER/myrepo"
+    exit 1
+fi
+
+REPO=$1
+COMMAND=$2
+shift 2
+
+# Run the CLI with the provided arguments
+node "$(dirname "$0")/cli/webhook-cli.js" --repo "$REPO" --command "$COMMAND" "$@"

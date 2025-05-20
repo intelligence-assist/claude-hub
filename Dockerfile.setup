@@ -1,0 +1,20 @@
+# First stage: Interactive setup for Claude Code authentication
+FROM node:20
+
+# Install Claude Code  
+RUN npm install -g @anthropic-ai/claude-code
+
+# Set up environment for Bedrock
+ENV CLAUDE_CODE_USE_BEDROCK=1
+ENV ANTHROPIC_MODEL='us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+# Enable prompt caching for better performance
+# ENV DISABLE_PROMPT_CACHING=1
+
+# We'll use AWS profiles, not env vars
+ENV AWS_PROFILE=claude-webhook
+ENV AWS_REGION=us-east-2
+
+WORKDIR /workspace
+
+# Entry point for manual setup
+ENTRYPOINT ["bash"]

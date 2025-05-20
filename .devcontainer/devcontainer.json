@@ -1,0 +1,37 @@
+{
+  "name": "Claude Code",
+  "build": {
+    "dockerfile": "../Dockerfile.claudecode",
+    "args": {
+      "TZ": "America/New_York"
+    }
+  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "runArgs": [
+    "--privileged",
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW",
+    "--cap-add=SYS_TIME",
+    "--cap-add=DAC_OVERRIDE",
+    "--cap-add=AUDIT_WRITE",
+    "--cap-add=SYS_ADMIN"
+  ],
+  "containerUser": "root",
+  "remoteUser": "node",
+  "postCreateCommand": "/usr/local/bin/init-firewall.sh",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": false,
+      "installDockerBuildx": false
+    }
+  }
+}

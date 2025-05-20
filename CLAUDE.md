@@ -1,0 +1,134 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Claude GitHub Webhook
+
+This repository contains a webhook service that integrates Claude with GitHub, allowing Claude to respond to mentions in GitHub comments and help with repository tasks. When someone mentions `@MCPClaude` in a GitHub issue or PR comment, the system processes the command with Claude Code and returns a helpful response.
+
+## Documentation Structure
+
+- `/docs/complete-workflow.md` - Comprehensive workflow documentation
+- `/docs/github-workflow.md` - GitHub-specific integration details
+- `/docs/container-setup.md` - Docker container configuration
+- `/docs/container-limitations.md` - Container execution constraints
+- `/docs/aws-authentication-best-practices.md` - AWS credential management
+- `/docs/aws-profile-quickstart.md` - Quick setup for AWS profiles
+- `/docs/aws-profile-setup.md` - Detailed AWS profile configuration
+
+## Build & Run Commands
+
+### Setup and Installation
+- Initial setup: `./scripts/setup.sh`
+- Start the server: `npm start`
+- Development mode with auto-restart: `npm run dev`
+- Start on specific port: `./start-api.sh` (uses port 3003)
+- Run tests: `npm test`
+- Run specific test types:
+  - Unit tests: `npm run test:unit`
+  - Integration tests: `npm run test:integration`
+  - End-to-end tests: `npm run test:e2e`
+  - Test with coverage: `npm run test:coverage`
+  - Watch mode: `npm run test:watch`
+
+### Docker Commands
+- Build Claude container: `./build-claude-container.sh`
+- Build Claude Code container: `./build-claudecode.sh`
+- Build and start with Docker Compose: `docker compose up -d`
+- Stop Docker Compose services: `docker compose down`
+- View logs: `docker compose logs -f webhook`
+- Update production image: `./update-production-image.sh`
+
+### AWS Credential Management
+- Create AWS profile: `./scripts/create-aws-profile.sh`
+- Migrate from static credentials: `./scripts/migrate-aws-credentials.sh`
+- Setup AWS profiles: `./scripts/setup-aws-profiles.sh`
+- Setup Claude authentication: `./setup-claude-auth.sh`
+
+### Testing Utilities
+- Test Claude API directly: `node test/test-claude-api.js owner/repo`
+- Test with container execution: `node test/test-claude-api.js owner/repo container "Your command here"`
+- Test outgoing webhook: `node test/test-outgoing-webhook.js`
+- Test pre-commit hooks: `pre-commit run --all-files`
+- Test AWS credential provider: `node test/test-aws-credential-provider.js`
+- Test Claude container: `./test/test-claudecode-docker.sh`
+- Test full workflow: `./test/test-full-flow.sh`
+
+### CLI Commands
+- Basic usage: `./claude-webhook myrepo "Your command for Claude"`
+- With explicit owner: `./claude-webhook owner/repo "Your command for Claude"`
+- Pull request review: `./claude-webhook myrepo "Review this PR" -p -b feature-branch`
+- Specific issue: `./claude-webhook myrepo "Fix issue" -i 42`
+- Advanced usage: `node cli/webhook-cli.js --repo myrepo --command "Your command" --verbose`
+- Secure mode: `node cli/webhook-cli-secure.js` (uses AWS profile authentication)
+
+## Architecture Overview
+
+### Core Components
+1. **Express Server** (`src/index.js`): Main application entry point that sets up middleware, routes, and error handling
+2. **Routes**:
+   - GitHub Webhook: `/api/webhooks/github` - Processes GitHub webhook events
+   - Claude API: `/api/claude` - Direct API access to Claude
+   - Health Check: `/health` - Service status monitoring
+3. **Controllers**:
+   - `githubController.js` - Handles webhook verification and processing
+4. **Services**:
+   - `claudeService.js` - Interfaces with Claude Code CLI
+   - `githubService.js` - Handles GitHub API interactions
+5. **Utilities**:
+   - `logger.js` - Logging functionality with redaction capability
+   - `awsCredentialProvider.js` - Secure AWS credential management
+   - `sanitize.js` - Input sanitization and security
+
+### Execution Modes
+- **Direct mode**: Runs Claude Code CLI locally
+- **Container mode**: Runs Claude in isolated Docker containers with elevated privileges
+
+### DevContainer Configuration
+The repository includes a `.devcontainer` configuration that allows Claude Code to run with:
+- Privileged mode for system-level access
+- Network capabilities (NET_ADMIN, NET_RAW) for firewall management
+- System capabilities (SYS_TIME, DAC_OVERRIDE, AUDIT_WRITE, SYS_ADMIN)
+- Docker socket mounting for container management
+- Automatic firewall initialization via post-create command
+
+This configuration enables the use of `--dangerously-skip-permissions` flag when running Claude Code CLI.
+
+### Workflow
+1. GitHub comment with `@MCPClaude` triggers a webhook event
+2. Express server receives the webhook at `/api/webhooks/github`
+3. Service extracts the command and processes it with Claude in a Docker container
+4. Claude analyzes the repository and responds to the command
+5. Response is returned via the webhook HTTP response
+
+## AWS Authentication
+The service supports multiple AWS authentication methods, with a focus on security:
+- **Profile-based authentication**: Uses AWS profiles from `~/.aws/credentials`
+- **Instance Profiles** (EC2): Automatically uses instance metadata
+- **Task Roles** (ECS): Automatically uses container credentials
+- **Direct credentials**: Not recommended, but supported for backward compatibility
+
+The `awsCredentialProvider.js` utility handles credential retrieval and rotation.
+
+## Security Features
+- Webhook signature verification using HMAC
+- Credential scanning in pre-commit hooks
+- Container isolation for Claude execution
+- AWS profile-based authentication
+- Input sanitization and validation
+- Docker capability restrictions
+- Firewall initialization for container networking
+
+## Configuration
+- Environment variables are loaded from `.env` file
+- AWS Bedrock credentials for Claude access
+- GitHub tokens and webhook secrets
+- Container execution settings
+- Webhook URL and port configuration
+
+## Code Style Guidelines
+- JavaScript with Node.js
+- Use async/await for asynchronous operations
+- Comprehensive error handling and logging
+- camelCase variable and function naming
+- Input validation and sanitization for security

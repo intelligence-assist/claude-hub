@@ -1,0 +1,106 @@
+#!/bin/bash
+if [ ! -d "./claude-config" ]; then
+    echo "Error: claude-config directory not found."
+    echo "Please run ./setup-claude-auth.sh first and copy the config."
+    exit 1
+fi
+
+echo "Updating Dockerfile.claudecode to include pre-authenticated config..."
+
+# Create a backup of the original Dockerfile
+cp Dockerfile.claudecode Dockerfile.claudecode.backup
+
+# Update the Dockerfile to copy the claude config
+cat > Dockerfile.claudecode.tmp << 'EOF'
+FROM node:20
+
+# Install dependencies
+RUN apt update && apt install -y less \
+  git \
+  procps \
+  sudo \
+  fzf \
+  zsh \
+  man-db \
+  unzip \
+  gnupg2 \
+  gh \
+  iptables \
+  ipset \
+  iproute2 \
+  dnsutils \
+  aggregate \
+  jq
+
+# Set up npm global directory
+RUN mkdir -p /usr/local/share/npm-global && \
+  chown -R node:node /usr/local/share
+
+# Configure zsh and command history
+ENV USERNAME=node
+RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+  && mkdir /commandhistory \
+  && touch /commandhistory/.bash_history \
+  && chown -R $USERNAME /commandhistory
+
+# Create workspace and config directories
+RUN mkdir -p /workspace /home/node/.claude && \
+  chown -R node:node /workspace /home/node/.claude
+
+# Switch to node user temporarily for npm install
+USER node
+ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
+ENV PATH=$PATH:/usr/local/share/npm-global/bin
+
+# Install Claude Code  
+RUN npm install -g @anthropic-ai/claude-code
+
+# Switch back to root
+USER root
+
+# Copy the pre-authenticated Claude config
+COPY claude-config /root/.claude
+
+# Copy the rest of the setup
+WORKDIR /workspace
+
+# Install delta and zsh
+RUN ARCH=$(dpkg --print-architecture) && \
+  wget "https://github.com/dandavison/delta/releases/download/0.18.2/git-delta_0.18.2_${ARCH}.deb" && \
+  sudo dpkg -i "git-delta_0.18.2_${ARCH}.deb" && \
+  rm "git-delta_0.18.2_${ARCH}.deb"
+
+RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v1.2.0/zsh-in-docker.sh)" -- \
+  -p git \
+  -p fzf \
+  -a "source /usr/share/doc/fzf/examples/key-bindings.zsh" \
+  -a "source /usr/share/doc/fzf/examples/completion.zsh" \
+  -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+  -x
+
+# Copy firewall and entrypoint scripts
+COPY init-firewall.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/init-firewall.sh && \
+  echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
+  chmod 0440 /etc/sudoers.d/node-firewall
+
+COPY claudecode-entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Set the default shell to bash
+ENV SHELL /bin/zsh
+ENV DEVCONTAINER=true
+
+# Run as root to allow permission management
+USER root
+
+# Use the custom entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+EOF
+
+mv Dockerfile.claudecode.tmp Dockerfile.claudecode
+
+echo "Building new production image..."
+docker build -f Dockerfile.claudecode -t claude-code-runner:latest .
+
+echo "Production image updated successfully!"

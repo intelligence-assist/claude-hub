@@ -118,6 +118,7 @@ jobs:
         context: .
         file: ./Dockerfile
         push: false
+        load: true
         tags: claude-github-webhook:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
@@ -128,6 +129,7 @@ jobs:
         context: .
         file: ./Dockerfile.claudecode
         push: false
+        load: true
         tags: claude-code-runner:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
@@ -135,7 +137,7 @@ jobs:
     - name: Test Docker containers
       run: |
         # Test main container starts correctly
-        docker run --name test-webhook -d -p 3003:3003 \
+        docker run --name test-webhook -d -p 3003:3002 \
           -e NODE_ENV=test \
           -e BOT_USERNAME=@TestBot \
           -e GITHUB_WEBHOOK_SECRET=test-secret \

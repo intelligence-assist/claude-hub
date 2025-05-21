@@ -6,11 +6,11 @@ This document describes the workflow for how GitHub comments trigger Claude resp
 
 ```mermaid
 graph TD
-    A[GitHub Comment with @MCPClaude] -->|Triggers| B[GitHub Webhook Event]
+    A[GitHub Comment with bot mention] -->|Triggers| B[GitHub Webhook Event]
     B -->|POST Request| C[claude.jonathanflatt.org API]
     C -->|/api/webhooks/github| D[Express Server]
     D -->|githubController.handleWebhook| E[Webhook Verification]
-    E -->|issue_comment event| F[Check for @MCPClaude mention]
+    E -->|issue_comment event| F[Check for bot mention]
     F -->|Extract command| G[claudeService.processCommand]
     G -->|Clone repository| H[Create temporary directory]
     H -->|Run Claude Code CLI| I[claude --print command]
@@ -22,7 +22,7 @@ graph TD
 ## Detailed Flow
 
 1. **GitHub Comment Trigger**
-   - User creates a GitHub comment mentioning "@MCPClaude" with a command
+   - User creates a GitHub comment mentioning the bot with a command
    - GitHub detects the comment creation event
 
 2. **Webhook Delivery**
@@ -38,7 +38,7 @@ graph TD
    - Validates the event type is `issue_comment` and action is `created`
 
 5. **Command Extraction**
-   - For issue comments, the code checks for "@MCPClaude" mentions
+   - For issue comments, the code checks for mentions of the configured bot username
    - If found, it extracts the command text that follows the mention
 
 6. **Claude Service Processing**

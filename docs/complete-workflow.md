@@ -35,8 +35,8 @@ GitHub → Webhook Service → Docker Container → Claude API
 
 ### 3. Command Extraction
 
-1. Checks for `@MCPClaude` mention in comment body
-2. Extracts command using regex: `/@MCPClaude\s+(.*)/s`
+1. Checks for bot mention in comment body (using BOT_USERNAME env variable)
+2. Extracts command using regex pattern based on configured bot username
 3. Captures:
    - Repository full name
    - Issue/PR number

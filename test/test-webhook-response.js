@@ -19,7 +19,7 @@ const payload = {
   },
   comment: {
     id: 123,
-    body: '@MCPClaude Test command for webhook response',
+    body: `${process.env.BOT_USERNAME || '@ClaudeBot'} Test command for webhook response`,
     user: {
       login: 'testuser'
     }

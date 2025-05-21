@@ -34,5 +34,5 @@ echo "2. Run the CLI with: ./claude-webhook myrepo \"Your command\""
 echo
 echo "Examples:"
 echo "  ./claude-webhook myrepo \"List all files\""
-echo "  ./claude-webhook Cheffromspace/myrepo \"Analyze code structure\""
+echo "  ./claude-webhook owner/myrepo \"Analyze code structure\""
 echo "  ./claude-webhook myrepo \"Review PR\" -p -b feature-branch"

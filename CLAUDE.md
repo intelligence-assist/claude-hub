@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Claude GitHub Webhook
 
-This repository contains a webhook service that integrates Claude with GitHub, allowing Claude to respond to mentions in GitHub comments and help with repository tasks. When someone mentions `@MCPClaude` in a GitHub issue or PR comment, the system processes the command with Claude Code and returns a helpful response.
+This repository contains a webhook service that integrates Claude with GitHub, allowing Claude to respond to mentions in GitHub comments and help with repository tasks. When someone mentions the configured bot username (configured via environment variables) in a GitHub issue or PR comment, the system processes the command with Claude Code and returns a helpful response.
 
 ## Documentation Structure
 
@@ -95,7 +95,7 @@ The repository includes a `.devcontainer` configuration that allows Claude Code 
 This configuration enables the use of `--dangerously-skip-permissions` flag when running Claude Code CLI.
 
 ### Workflow
-1. GitHub comment with `@MCPClaude` triggers a webhook event
+1. GitHub comment with bot mention (configured via BOT_USERNAME) triggers a webhook event
 2. Express server receives the webhook at `/api/webhooks/github`
 3. Service extracts the command and processes it with Claude in a Docker container
 4. Claude analyzes the repository and responds to the command
@@ -125,6 +125,15 @@ The `awsCredentialProvider.js` utility handles credential retrieval and rotation
 - GitHub tokens and webhook secrets
 - Container execution settings
 - Webhook URL and port configuration
+
+### Required Environment Variables
+- `BOT_USERNAME`: GitHub username that the bot responds to (e.g., `@ClaudeBot`)
+- `DEFAULT_AUTHORIZED_USER`: Default GitHub username authorized to use the bot (if AUTHORIZED_USERS is not set)
+- `AUTHORIZED_USERS`: Comma-separated list of GitHub usernames authorized to use the bot
+- `BOT_EMAIL`: Email address used for git commits made by the bot
+- `GITHUB_WEBHOOK_SECRET`: Secret for validating GitHub webhook payloads
+- `GITHUB_TOKEN`: GitHub token for API access
+- `ANTHROPIC_API_KEY`: Anthropic API key for Claude access
 
 ## Code Style Guidelines
 - JavaScript with Node.js

@@ -89,10 +89,15 @@ For comprehensive documentation, see:
    - This setting is required to prevent infinite loops
    - Example: `BOT_USERNAME=@MyBot`
    - No default is provided - this must be explicitly configured
+   - Set `BOT_EMAIL` for the email address used in git commits made by the bot
+   - Set `DEFAULT_AUTHORIZED_USER` to specify the default GitHub username authorized to use the bot
+   - Use `AUTHORIZED_USERS` for a comma-separated list of GitHub usernames allowed to use the bot
 
    **e. Server Port and Other Settings**
    - By default, the server runs on port 3000
    - To use a different port, set the `PORT` environment variable in your `.env` file
+   - Set `DEFAULT_GITHUB_OWNER` and `DEFAULT_GITHUB_USER` for CLI defaults when using the webhook CLI
+   - Set `TEST_REPO_FULL_NAME` to configure the default repository for test scripts
    - Review other settings in the `.env` file for customization options
 
    **AWS Credentials**: The service now supports multiple AWS authentication methods:
@@ -264,6 +269,7 @@ To enable container-based execution:
    CLAUDE_CONTAINER_IMAGE=claudecode:latest
    REPO_CACHE_DIR=/path/to/cache  # Optional
    REPO_CACHE_MAX_AGE_MS=3600000  # Optional, defaults to 1 hour (in milliseconds)
+   CONTAINER_LIFETIME_MS=7200000  # Optional, container execution timeout in milliseconds (defaults to 2 hours)
    ```
 
 ### Container Test Utility

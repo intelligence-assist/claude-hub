@@ -2,7 +2,7 @@
   "action": "created",
   "comment": {
     "id": 1234567890,
-    "body": "@MCPClaude What is the purpose of the authentication function in this repo?",
+    "body": "@ClaudeBot What is the purpose of the authentication function in this repo?",
     "user": {
       "login": "testuser"
     }

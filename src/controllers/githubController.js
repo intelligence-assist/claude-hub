@@ -105,7 +105,7 @@ async function handleWebhook(req, res) {
         // Check if the comment author is authorized
         const authorizedUsers = process.env.AUTHORIZED_USERS ? 
           process.env.AUTHORIZED_USERS.split(',').map(user => user.trim()) :
-          ['Cheffromspace']; // Default authorized users
+          [process.env.DEFAULT_AUTHORIZED_USER || 'admin']; // Default authorized user
         const commentAuthor = comment.user.login;
         
         if (!authorizedUsers.includes(commentAuthor)) {

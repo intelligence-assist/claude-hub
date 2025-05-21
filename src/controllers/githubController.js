@@ -129,10 +129,12 @@ Return ONLY a JSON object with suggested labels in this format:
 
         // Parse Claude's response and apply labels
         try {
-          // Extract JSON from Claude's response (it might have additional text)
-          const jsonMatch = claudeResponse.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const labelSuggestion = JSON.parse(jsonMatch[0]);
+          // Extract JSON from Claude's response (it might have additional text) using safer approach
+          const jsonStart = claudeResponse.indexOf('{');
+          const jsonEnd = claudeResponse.lastIndexOf('}');
+          if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+            const jsonString = claudeResponse.substring(jsonStart, jsonEnd + 1);
+            const labelSuggestion = JSON.parse(jsonString);
             
             if (labelSuggestion.labels && Array.isArray(labelSuggestion.labels)) {
               // Apply the suggested labels
@@ -170,7 +172,8 @@ _If you feel these labels are incorrect, please adjust them manually._`;
         } catch (parseError) {
           logger.warn({
             err: parseError,
-            claudeResponse: claudeResponse.substring(0, 200)
+            claudeResponseLength: claudeResponse.length,
+            claudeResponsePreview: '[RESPONSE_CONTENT_REDACTED]'
           }, 'Failed to parse Claude response for auto-tagging');
           
           // Fall back to basic tagging based on keywords

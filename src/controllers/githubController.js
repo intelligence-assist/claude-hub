@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const claudeService = require('../services/claudeService');
 const githubService = require('../services/githubService');
 const { createLogger } = require('../utils/logger');
-const { sanitizeBotMentions } = require('../utils/sanitize');
+const { sanitizeBotMentions, sanitizeLabels } = require('../utils/sanitize');
 
 const logger = createLogger('githubController');
 
@@ -159,10 +159,11 @@ _If you feel these labels are incorrect, please adjust them manually._`;
                 body: autoTagComment
               });
 
+              const sanitizedLabels = sanitizeLabels(labelSuggestion.labels);
               logger.info({
                 repo: repo.full_name,
                 issue: issue.number,
-                labels: labelSuggestion.labels
+                labels: sanitizedLabels
               }, 'Auto-tagging completed successfully');
             }
           }

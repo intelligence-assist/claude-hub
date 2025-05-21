@@ -39,6 +39,16 @@ function sanitizeBotMentions(text) {
   return sanitized;
 }
 
+/**
+ * Sanitizes an array of labels to remove potentially sensitive or invalid characters.
+ * @param {string[]} labels - The array of labels to sanitize.
+ * @returns {string[]} - The sanitized array of labels.
+ */
+function sanitizeLabels(labels) {
+  return labels.map(label => label.replace(/[^a-zA-Z0-9:_-]/g, ''));
+}
+
 module.exports = {
-  sanitizeBotMentions
+  sanitizeBotMentions,
+  sanitizeLabels
 };

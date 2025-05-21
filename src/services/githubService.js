@@ -199,8 +199,10 @@ async function getFallbackLabels(title, body) {
   const content = `${title} ${body || ''}`.toLowerCase();
   const labels = [];
 
-  // Type detection
-  if (content.includes('bug') || content.includes('error') || content.includes('issue') || content.includes('problem')) {
+  // Type detection - check documentation first for specificity
+  if (content.includes(' doc ') || content.includes('docs') || content.includes('readme') || content.includes('documentation')) {
+    labels.push('type:documentation');
+  } else if (content.includes('bug') || content.includes('error') || content.includes('issue') || content.includes('problem')) {
     labels.push('type:bug');
   } else if (content.includes('feature') || content.includes('add') || content.includes('new')) {
     labels.push('type:feature');
@@ -208,8 +210,6 @@ async function getFallbackLabels(title, body) {
     labels.push('type:enhancement');
   } else if (content.includes('question') || content.includes('help') || content.includes('how')) {
     labels.push('type:question');
-  } else if (content.includes('doc') || content.includes('readme') || content.includes('documentation')) {
-    labels.push('type:documentation');
   }
 
   // Priority detection

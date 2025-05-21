@@ -54,8 +54,15 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Test Claude container: `./test/test-claudecode-docker.sh`
 - Test full workflow: `./test/test-full-flow.sh`
 
+### End-to-End Testing
+Use the demo repository for testing auto-tagging and webhook functionality:
+- Demo repository: `https://github.com/intelligence-assist/demo-repository`
+- Test auto-tagging: `./cli/webhook-cli.js --repo "intelligence-assist/demo-repository" --command "Auto-tag this issue" --issue 1 --url "http://localhost:8082"`
+- Test with specific issue content: Create a new issue in the demo repository to trigger auto-tagging webhook
+- Verify labels are applied based on issue content analysis
+
 ### Label Management
-- Setup repository labels: `node scripts/utils/setup-repository-labels.js owner/repo`
+- Setup repository labels: `GITHUB_TOKEN=your_token node scripts/utils/setup-repository-labels.js owner/repo`
 
 ### CLI Commands
 - Basic usage: `./claude-webhook myrepo "Your command for Claude"`

@@ -25,7 +25,7 @@ GITHUB_TOKEN=your-github-token
 ### Basic Usage
 
 ```bash
-# Using the wrapper script (defaults to Cheffromspace user)
+# Using the wrapper script (defaults to the DEFAULT_GITHUB_OWNER env variable)
 ./claude-webhook myrepo "Your command for Claude"
 
 # With explicit owner
@@ -38,7 +38,7 @@ node cli/webhook-cli.js --repo myrepo --command "Your command"
 ### Options
 
 - `-r, --repo <repo>`: GitHub repository (format: owner/repo or repo) [required]
-  - If only repo name is provided, defaults to `Cheffromspace/repo`
+  - If only repo name is provided, defaults to `${DEFAULT_GITHUB_OWNER}/repo`
 - `-c, --command <command>`: Command to send to Claude [required]
 - `-i, --issue <number>`: Issue number (default: 1)
 - `-p, --pr`: Treat as pull request instead of issue
@@ -51,7 +51,7 @@ node cli/webhook-cli.js --repo myrepo --command "Your command"
 ### Examples
 
 ```bash
-# Basic issue comment (defaults to Cheffromspace user)
+# Basic issue comment (uses default owner)
 ./claude-webhook myrepo "Analyze the code structure"
 
 # With explicit owner
@@ -79,7 +79,7 @@ The CLI will display:
 
 Example output:
 ```
-🚀 Sending command to Claude for Cheffromspace/myrepo...
+🚀 Sending command to Claude for owner/myrepo...
 📋 Command: Analyze the code structure
 📄 Type: Issue
 
@@ -93,7 +93,7 @@ Here's an analysis of the code structure...
 
 📍 Context:
 {
-  "repo": "Cheffromspace/myrepo",
+  "repo": "owner/myrepo",
   "issue": 1,
   "type": "issue_comment"
 }

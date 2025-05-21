@@ -27,8 +27,9 @@ function sanitizeBotMentions(text) {
   // Look for the username with @ symbol anywhere in the text
   const botMentionRegex = new RegExp(escapedUsername, 'gi');
   
-  // Replace mentions with a sanitized version (remove @ symbol)
-  const sanitized = text.replace(botMentionRegex, 'MCPControl');
+  // Replace mentions with a sanitized version (remove @ symbol if present)
+  const sanitizedName = BOT_USERNAME.startsWith('@') ? BOT_USERNAME.substring(1) : BOT_USERNAME;
+  const sanitized = text.replace(botMentionRegex, sanitizedName);
   
   // If sanitization occurred, log it
   if (sanitized !== text) {

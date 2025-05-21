@@ -1,14 +1,14 @@
-# GitHub Workflow with MCPClaude
+# GitHub Workflow with Claude Webhook
 
 This document describes how the GitHub webhook integration works with Claude Code CLI.
 
 ## Overview
 
-When someone mentions `@MCPClaude` in a GitHub issue or pull request comment, the following workflow is triggered:
+When someone mentions the configured bot (via BOT_USERNAME environment variable) in a GitHub issue or pull request comment, the following workflow is triggered:
 
 1. GitHub sends a webhook to our service
 2. The service validates the webhook signature
-3. If valid, it extracts the command after `@MCPClaude`
+3. If valid, it extracts the command after the bot username
 4. A Docker container is spun up with Claude Code CLI
 5. The repository is cloned and the correct branch is checked out
 6. Claude Code executes the command with full GitHub CLI access
@@ -38,9 +38,9 @@ Each request runs in an isolated Docker container with:
 
 ## Supported Events
 
-- **Issue Comments**: When `@MCPClaude` is mentioned in an issue comment
-- **Pull Request Comments**: When `@MCPClaude` is mentioned in a PR comment
-- **Pull Request Review Comments**: When `@MCPClaude` is mentioned in a PR review
+- **Issue Comments**: When the bot is mentioned in an issue comment
+- **Pull Request Comments**: When the bot is mentioned in a PR comment
+- **Pull Request Review Comments**: When the bot is mentioned in a PR review
 
 ## Authentication
 
@@ -54,7 +54,7 @@ The following credentials are required:
 In a GitHub issue or PR comment:
 
 ```
-@MCPClaude Please analyze the performance of the current implementation and suggest optimizations.
+@ClaudeBot Please analyze the performance of the current implementation and suggest optimizations.
 ```
 
 Claude will:

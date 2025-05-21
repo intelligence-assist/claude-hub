@@ -41,9 +41,9 @@ else
     sudo -u node git checkout main >&2 || sudo -u node git checkout master >&2
 fi
 
-# Configure git for commits
-sudo -u node git config --global user.email "claude@mcp.ai"
-sudo -u node git config --global user.name "MCPClaude"
+# Configure git for commits using environment variables (with defaults)
+sudo -u node git config --global user.email "${BOT_EMAIL:-claude@example.com}"
+sudo -u node git config --global user.name "${BOT_USERNAME:-ClaudeBot}"
 
 # Configure Anthropic API key
 export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"

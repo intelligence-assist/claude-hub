@@ -195,9 +195,13 @@ Please complete this task fully and autonomously.`;
         }
       };
       
+      // Get container lifetime from environment variable or use default (2 hours)
+      const containerLifetimeMs = parseInt(process.env.CONTAINER_LIFETIME_MS, 10) || 7200000; // 2 hours in milliseconds
+      logger.info({ containerLifetimeMs }, 'Setting container lifetime');
+      
       const result = await execAsync(dockerCommand, {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-        timeout: 600000 // 10 minute timeout
+        timeout: containerLifetimeMs // Container lifetime in milliseconds
       });
 
       // Clean up temporary files used for command passing

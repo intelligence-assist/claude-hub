@@ -3,7 +3,7 @@ echo "Testing full entrypoint flow..."
 
 docker run --rm -i \
   -v $HOME/.aws:/home/node/.aws:ro \
-  -e REPO_FULL_NAME="Cheffromspace/MCPControl" \
+  -e REPO_FULL_NAME="${TEST_REPO_FULL_NAME:-owner/repo}" \
   -e ISSUE_NUMBER="1" \
   -e IS_PULL_REQUEST="false" \
   -e COMMAND="echo 'test'" \

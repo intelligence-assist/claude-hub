@@ -31,6 +31,10 @@ These issues may be related to:
 - Docker engine configuration
 - Claude CLI output mechanism
 
+### Container Execution Timeout
+
+By default, containers have a 2-hour lifetime before being terminated. This can be configured via the `CONTAINER_LIFETIME_MS` environment variable (in milliseconds). For complex tasks requiring more time, you can increase this value.
+
 ### Claude Authentication
 
 Another issue was authentication for the Claude CLI inside the container:
@@ -63,7 +67,7 @@ To properly enable full Claude execution in containers, consider:
 
 The current workaround, as implemented in `claudeService.js`, provides a reliable and useful service while addressing these limitations:
 
-1. For known repositories (like MCPControl), we provide curated responses
+1. For known repositories (configured via environment variables), we provide curated responses
 2. For other repositories, we automatically:
    - Clone the repository (or use cache)
    - Analyze its structure
@@ -77,8 +81,8 @@ This approach provides value while the container execution issues are resolved.
 You can test the current implementation using the provided test utilities:
 
 ```bash
-# Test with MCPControl repository (uses predefined response)
-./test-container.js Cheffromspace/MCPControl "What is this repository about?"
+# Test with a repository (uses predefined response if known)
+./test-container.js owner/repo "What is this repository about?"
 
 # Test with any other repository (uses automatic analysis)
 ./test-container.js n8n-io/n8n "What is this repository about?"

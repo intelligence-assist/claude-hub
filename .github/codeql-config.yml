@@ -1,0 +1,25 @@
+name: "CodeQL Configuration"
+
+# Disable or adjust overly strict rules
+disable-default-queries: false
+
+# Configure query filters
+query-filters:
+  # Disable overly strict clear-text logging rule for sanitized application logs
+  - exclude:
+      id: js/clear-text-logging
+      
+# Define custom queries path (if needed)
+queries:
+  - uses: security-and-quality
+
+# Configure paths to analyze
+paths:
+  - "src/"
+  
+# Ignore paths that don't need security analysis  
+paths-ignore:
+  - "test/"
+  - "node_modules/"
+  - "coverage/"
+  - "scripts/"

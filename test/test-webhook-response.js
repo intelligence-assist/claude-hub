@@ -62,7 +62,7 @@ async function testWebhookResponse() {
     
   } catch (error) {
     console.error('\nError:', error.response ? error.response.data : error.message);
-    process.exit(1);
+    throw error;
   }
 }
 

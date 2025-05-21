@@ -12,6 +12,7 @@ For comprehensive documentation, see:
 - [Container Setup](./docs/container-setup.md) - Docker container configuration
 - [Container Limitations](./docs/container-limitations.md) - Known constraints and workarounds
 - [AWS Authentication Best Practices](./docs/aws-authentication-best-practices.md) - Secure AWS credential management
+- [Scripts Documentation](./SCRIPTS.md) - Organized scripts and their usage
 
 ## Use Cases
 
@@ -39,7 +40,7 @@ For comprehensive documentation, see:
 
 2. **Run the setup script**
    ```
-   ./scripts/setup.sh
+   ./scripts/setup/setup.sh
    ```
    This will create necessary directories, copy the environment template, install dependencies, and set up pre-commit hooks for credential scanning.
 
@@ -108,7 +109,7 @@ For comprehensive documentation, see:
    
    For migration from static credentials, run:
    ```
-   ./scripts/migrate-aws-credentials.sh
+   ./scripts/aws/migrate-aws-credentials.sh
    ```
 
 4. **Start the server**
@@ -161,7 +162,7 @@ For comprehensive documentation, see:
      ```
    - To test the container-based execution:
      ```
-     ./build-claude-container.sh  # First build the container
+     ./scripts/build/build.sh claudecode  # First build the container
      node test-claude-api.js owner/repo container "Your command here"
      ```
 
@@ -187,7 +188,7 @@ This project includes pre-commit hooks that automatically scan for credentials a
 
 ### Usage
 
-Pre-commit hooks are automatically installed when you run `./scripts/setup.sh`. They run automatically on every commit.
+Pre-commit hooks are automatically installed when you run `./scripts/setup/setup.sh`. They run automatically on every commit.
 
 To manually run the hooks:
 ```bash
@@ -260,7 +261,7 @@ To enable container-based execution:
 
 1. Build the Claude container:
    ```
-   ./build-claude-container.sh
+   ./scripts/build/build.sh claude
    ```
 
 2. Set the environment variables:
@@ -277,7 +278,7 @@ To enable container-based execution:
 A dedicated test script is provided for testing container execution directly:
 
 ```bash
-./test-container.js owner/repo "Your command here"
+./test/container/test-container.sh
 ```
 
 This utility will:

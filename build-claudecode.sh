@@ -1,7 +1,4 @@
 #!/bin/bash
-# Build the Claude Code runner Docker image
-
-echo "Building Claude Code runner Docker image..."
-docker build -f Dockerfile.claudecode -t claude-code-runner:latest .
-
-echo "Build complete!"
+# Wrapper script for backward compatibility
+echo "This script is now located at scripts/build/build.sh"
+exec scripts/build/build.sh claudecode "$@"

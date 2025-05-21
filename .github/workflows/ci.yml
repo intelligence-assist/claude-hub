@@ -65,7 +65,7 @@ jobs:
         GITHUB_TOKEN: 'test-token'
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage/lcov.info
         flags: unittests

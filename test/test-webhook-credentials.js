@@ -2,8 +2,9 @@
  * Test script to verify that webhook responses don't expose credentials
  */
 
-const fs = require('fs');
-const path = require('path');
+// Not used in this test
+// const fs = require('fs');
+// const path = require('path');
 
 // Mock environment variables with sensitive data
 process.env.GITHUB_TOKEN = 'ghp_verySecretGitHubToken123456789';

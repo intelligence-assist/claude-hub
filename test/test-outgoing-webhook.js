@@ -1,5 +1,5 @@
 const http = require('http');
-const { promisify } = require('util');
+// const { promisify } = require('util');
 const crypto = require('crypto');
 const fs = require('fs');
 const axios = require('axios');
@@ -73,7 +73,7 @@ server.listen(port, async () => {
     console.log('GITHUB_WEBHOOK_SECRET=testing_webhook_secret');
     console.log('OUTGOING_WEBHOOK_SECRET=testing_webhook_secret');
     console.log(`OUTGOING_WEBHOOK_URLS=http://localhost:${port},https://claude.jonathanflatt.org/webhook`);
-    console.log(`COMMENT_WEBHOOK_URLS=https://claude.jonathanflatt.org/comment-webhook`);
+    console.log('COMMENT_WEBHOOK_URLS=https://claude.jonathanflatt.org/comment-webhook');
     
     console.log('\nYou can now manually test the webhook by running:');
     console.log(`curl -X POST \\

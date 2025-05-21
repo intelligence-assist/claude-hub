@@ -32,7 +32,7 @@ function verifyWebhookSignature(req) {
 
   logger.debug({
     signature: signature,
-    secret: process.env.GITHUB_WEBHOOK_SECRET ? '[SECRET REDACTED]' : 'missing',
+    secret: process.env.GITHUB_WEBHOOK_SECRET ? '[SECRET REDACTED]' : 'missing'
   }, 'Verifying webhook signature');
 
   const payload = req.rawBody || JSON.stringify(req.body);
@@ -73,7 +73,7 @@ async function handleWebhook(req, res) {
       event,
       delivery,
       sender: req.body.sender?.login,
-      repo: req.body.repository?.full_name,
+      repo: req.body.repository?.full_name
     }, `Received GitHub ${event} webhook`);
 
     // Verify the webhook signature

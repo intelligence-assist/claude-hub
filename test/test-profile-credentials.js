@@ -28,7 +28,7 @@ async function testProfileCredentials() {
     
   } catch (error) {
     console.error('✗ Test failed:', error.message);
-    process.exit(1);
+    throw error;
   }
 }
 

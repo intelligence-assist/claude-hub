@@ -165,7 +165,7 @@ _If you feel these labels are incorrect, please adjust them manually._`;
               logger.info({
                 repo: repo.full_name,
                 issue: issue.number,
-                labels: sanitizedLabels
+                labelCount: sanitizedLabels.length
               }, 'Auto-tagging completed successfully');
             }
           }
@@ -198,7 +198,10 @@ _If you feel these labels are incorrect, please adjust them manually._`;
           }
         });
       } catch (error) {
-        logger.error({ err: error }, 'Error processing issue for auto-tagging');
+        logger.error({ 
+          errorMessage: error.message || 'Unknown error',
+          errorType: error.constructor.name
+        }, 'Error processing issue for auto-tagging');
         
         // Return success anyway to not block webhook
         return res.status(200).json({
@@ -479,12 +482,13 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
             logger.info({
               repo: repo.full_name,
               pr: pr.number,
-              responseLength: claudeResponse.length
+              responseLength: claudeResponse ? claudeResponse.length : 0
             }, 'Automated PR review completed successfully');
 
           } catch (error) {
             logger.error({
-              err: error,
+              errorMessage: error.message || 'Unknown error',
+              errorType: error.constructor.name,
               repo: repo.full_name,
               pr: pr.number,
               checkSuite: checkSuite.id

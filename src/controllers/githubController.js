@@ -87,6 +87,128 @@ async function handleWebhook(req, res) {
     const payload = req.body;
 
 
+    // Handle issues being opened for auto-tagging
+    if (event === 'issues' && payload.action === 'opened') {
+      const issue = payload.issue;
+      const repo = payload.repository;
+
+      logger.info({
+        repo: repo.full_name,
+        issue: issue.number,
+        title: issue.title,
+        user: issue.user.login
+      }, 'Processing new issue for auto-tagging');
+
+      try {
+        // Process the issue with Claude for automatic tagging
+        const tagCommand = `Analyze this issue and suggest appropriate labels based on the title and description:
+
+Title: ${issue.title}
+Description: ${issue.body || 'No description provided'}
+
+Available label categories and options:
+- Priority: critical, high, medium, low
+- Type: bug, feature, enhancement, documentation, question, security
+- Complexity: trivial, simple, moderate, complex
+- Component: api, frontend, backend, database, auth, webhook, docker
+
+Return ONLY a JSON object with suggested labels in this format:
+{
+  "labels": ["priority:medium", "type:feature", "complexity:simple", "component:api"],
+  "reasoning": "Brief explanation of why these labels were chosen"
+}`;
+
+        logger.info('Sending issue to Claude for auto-tagging analysis');
+        const claudeResponse = await claudeService.processCommand({
+          repoFullName: repo.full_name,
+          issueNumber: issue.number,
+          command: tagCommand,
+          isPullRequest: false,
+          branchName: null
+        });
+
+        // Parse Claude's response and apply labels
+        try {
+          // Extract JSON from Claude's response (it might have additional text)
+          const jsonMatch = claudeResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const labelSuggestion = JSON.parse(jsonMatch[0]);
+            
+            if (labelSuggestion.labels && Array.isArray(labelSuggestion.labels)) {
+              // Apply the suggested labels
+              await githubService.addLabelsToIssue({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                issueNumber: issue.number,
+                labels: labelSuggestion.labels
+              });
+
+              // Post a comment explaining the auto-tagging
+              const autoTagComment = `🏷️ **Auto-tagged by Claude:**
+
+${labelSuggestion.reasoning || 'Labels applied based on issue analysis.'}
+
+Applied labels: ${labelSuggestion.labels.map(label => `\`${label}\``).join(', ')}
+
+_If you feel these labels are incorrect, please adjust them manually._`;
+
+              await githubService.postComment({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                issueNumber: issue.number,
+                body: autoTagComment
+              });
+
+              logger.info({
+                repo: repo.full_name,
+                issue: issue.number,
+                labels: labelSuggestion.labels
+              }, 'Auto-tagging completed successfully');
+            }
+          }
+        } catch (parseError) {
+          logger.warn({
+            err: parseError,
+            claudeResponse: claudeResponse.substring(0, 200)
+          }, 'Failed to parse Claude response for auto-tagging');
+          
+          // Fall back to basic tagging based on keywords
+          const fallbackLabels = await githubService.getFallbackLabels(issue.title, issue.body);
+          if (fallbackLabels.length > 0) {
+            await githubService.addLabelsToIssue({
+              repoOwner: repo.owner.login,
+              repoName: repo.name,
+              issueNumber: issue.number,
+              labels: fallbackLabels
+            });
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Issue auto-tagged successfully',
+          context: {
+            repo: repo.full_name,
+            issue: issue.number,
+            type: 'issues_opened'
+          }
+        });
+      } catch (error) {
+        logger.error({ err: error }, 'Error processing issue for auto-tagging');
+        
+        // Return success anyway to not block webhook
+        return res.status(200).json({
+          success: true,
+          message: 'Issue received but auto-tagging failed',
+          context: {
+            repo: repo.full_name,
+            issue: issue.number,
+            type: 'issues_opened'
+          }
+        });
+      }
+    }
+
     // Handle issue comment events
     if (event === 'issue_comment' && payload.action === 'created') {
       const comment = payload.comment;

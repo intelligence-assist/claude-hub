@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
-const { logger, createLogger } = require('./utils/logger');
+const { createLogger } = require('./utils/logger');
 const { StartupMetrics } = require('./utils/startup-metrics');
 const githubRoutes = require('./routes/github');
 const claudeRoutes = require('./routes/claude');
@@ -114,7 +114,7 @@ app.get('/api/test-tunnel', (req, res) => {
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   appLogger.error({
     err: {
       message: err.message,

@@ -1,6 +1,6 @@
 // Import required modules but we'll use mocks for tests
 // const { setupTestContainer } = require('../scripts/setupTestContainer');
-const axios = require('axios');
+// const axios = require('axios');
 
 // Mock the setupTestContainer module
 jest.mock('../scripts/setupTestContainer', () => ({

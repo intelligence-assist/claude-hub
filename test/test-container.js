@@ -9,9 +9,8 @@
 
 require('dotenv').config();
 const { processCommand } = require('./src/services/claudeService');
-const { createLogger } = require('./src/utils/logger');
-
-const logger = createLogger('test-container');
+// Uncomment if logging is needed
+// const { createLogger } = require('./src/utils/logger');
 
 // Configuration
 const repoFullName = process.argv[2] || 'test-org/test-repo';
@@ -24,13 +23,13 @@ process.env.CLAUDE_USE_CONTAINERS = '1';
 const issueNumber = 0;
 
 async function testContainer() {
-  console.log(`\nClaude Container Test`);
-  console.log(`====================`);
+  console.log('\nClaude Container Test');
+  console.log('====================');
   console.log(`Repository: ${repoFullName}`);
   console.log(`Command: "${command}"`);
-  console.log(`Container Mode: Enabled`);
+  console.log('Container Mode: Enabled');
   console.log(`Container Image: ${process.env.CLAUDE_CONTAINER_IMAGE || 'claudecode:latest'}`);
-  console.log(`\nExecuting Claude in container...`);
+  console.log('\nExecuting Claude in container...');
   
   try {
     console.time('Execution time');
@@ -49,7 +48,7 @@ async function testContainer() {
     
     return 0;
   } catch (error) {
-    console.error(`\nError during container execution:`);
+    console.error('\nError during container execution:');
     console.error(error.message);
     
     if (error.stack) {
@@ -63,8 +62,12 @@ async function testContainer() {
 
 // Run the test
 testContainer()
-  .then(exitCode => process.exit(exitCode))
+  .then(exitCode => {
+    if (exitCode !== 0) {
+      throw new Error(`Test failed with exit code ${exitCode}`);
+    }
+  })
   .catch(error => {
     console.error('Unexpected error:', error);
-    process.exit(1);
+    throw error;
   });

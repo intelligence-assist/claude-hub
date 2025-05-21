@@ -61,7 +61,7 @@ router.post('/', async (req, res) => {
 
       // Force a default response if empty
       if (!claudeResponse || claudeResponse.trim() === '') {
-        claudeResponse = "No output received from Claude container. This is a placeholder response.";
+        claudeResponse = 'No output received from Claude container. This is a placeholder response.';
       }
     } catch (processingError) {
       logger.error({ error: processingError }, 'Error during Claude processing');

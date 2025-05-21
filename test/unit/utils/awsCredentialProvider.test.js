@@ -1,6 +1,4 @@
 const fs = require('fs');
-const os = require('os');
-const path = require('path');
 
 // Mock dependencies
 jest.mock('fs');
@@ -24,11 +22,11 @@ describe('AWS Credential Provider', () => {
   const mockCredentialsFile = `
 [default]
 aws_access_key_id = default-access-key
-aws_secret_key = example-default-secret-key
+aws_secret_access_key = example-default-secret-key
 
 [test-profile]
 aws_access_key_id = test-access-key
-aws_secret_key = example-test-secret-key
+aws_secret_access_key = example-test-secret-key
   `;
 
   const mockConfigFile = `
@@ -61,7 +59,7 @@ region = us-west-2
     
     expect(credentials).toEqual({
       accessKeyId: 'test-access-key',
-      secretAccessKey: 'test-secret-key',
+      secretAccessKey: 'example-test-secret-key',
       region: 'us-west-2'
     });
     
@@ -142,7 +140,7 @@ region = us-west-2
     process.env.AWS_PROFILE = 'non-existent-profile';
     
     await expect(awsCredentialProvider.getCredentials()).rejects.toThrow(
-      "Profile 'non-existent-profile' not found"
+      'Profile \'non-existent-profile\' not found'
     );
     
     // Restore AWS_PROFILE
@@ -160,7 +158,7 @@ aws_access_key_id = test-access-key
     fs.readFileSync.mockImplementationOnce(() => mockConfigFile);
     
     await expect(awsCredentialProvider.getCredentials()).rejects.toThrow(
-      "Incomplete credentials for profile 'test-profile'"
+      'Incomplete credentials for profile \'test-profile\''
     );
   });
 });

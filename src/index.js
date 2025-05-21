@@ -2,12 +2,18 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const { logger, createLogger } = require('./utils/logger');
+const { StartupMetrics } = require('./utils/startup-metrics');
 const githubRoutes = require('./routes/github');
 const claudeRoutes = require('./routes/claude');
 
 const app = express();
 const PORT = process.env.PORT || 3003;
 const appLogger = createLogger('app');
+const startupMetrics = new StartupMetrics();
+
+// Record initial milestones
+startupMetrics.recordMilestone('env_loaded', 'Environment variables loaded');
+startupMetrics.recordMilestone('express_initialized', 'Express app initialized');
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -27,6 +33,8 @@ app.use((req, res, next) => {
 });
 
 // Middleware
+app.use(startupMetrics.metricsMiddleware());
+
 app.use(bodyParser.json({
   verify: (req, res, buf) => {
     // Store the raw body buffer for webhook signature verification
@@ -34,26 +42,36 @@ app.use(bodyParser.json({
   }
 }));
 
+startupMetrics.recordMilestone('middleware_configured', 'Express middleware configured');
+
 // Routes
 app.use('/api/webhooks/github', githubRoutes);
 app.use('/api/claude', claudeRoutes);
 
+startupMetrics.recordMilestone('routes_configured', 'API routes configured');
+
 // Health check endpoint
 app.get('/health', async (req, res) => {
+  const healthCheckStart = Date.now();
+  
   const checks = {
     status: 'ok',
     timestamp: new Date().toISOString(),
+    startup: req.startupMetrics,
     docker: {
       available: false,
-      error: null
+      error: null,
+      checkTime: null
     },
     claudeCodeImage: {
       available: false,
-      error: null
+      error: null,
+      checkTime: null
     }
   };
 
   // Check Docker availability
+  const dockerCheckStart = Date.now();
   try {
     const { execSync } = require('child_process');
     execSync('docker ps', { stdio: 'ignore' });
@@ -61,8 +79,10 @@ app.get('/health', async (req, res) => {
   } catch (error) {
     checks.docker.error = error.message;
   }
+  checks.docker.checkTime = Date.now() - dockerCheckStart;
 
   // Check Claude Code runner image
+  const imageCheckStart = Date.now();
   try {
     const { execSync } = require('child_process');
     execSync('docker image inspect claude-code-runner:latest', { stdio: 'ignore' });
@@ -70,12 +90,14 @@ app.get('/health', async (req, res) => {
   } catch (error) {
     checks.claudeCodeImage.error = 'Image not found';
   }
+  checks.claudeCodeImage.checkTime = Date.now() - imageCheckStart;
 
   // Set overall status
   if (!checks.docker.available || !checks.claudeCodeImage.available) {
     checks.status = 'degraded';
   }
 
+  checks.healthCheckDuration = Date.now() - healthCheckStart;
   res.status(200).json(checks);
 });
 
@@ -106,5 +128,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  appLogger.info(`Server running on port ${PORT}`);
+  startupMetrics.recordMilestone('server_listening', `Server listening on port ${PORT}`);
+  const totalStartupTime = startupMetrics.markReady();
+  appLogger.info(`Server running on port ${PORT} (startup took ${totalStartupTime}ms)`);
 });

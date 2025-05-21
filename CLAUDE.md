@@ -54,6 +54,13 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Test Claude container: `./test/test-claudecode-docker.sh`
 - Test full workflow: `./test/test-full-flow.sh`
 
+### CI/CD Commands
+- Run linting: `npm run lint` (auto-fix) or `npm run lint:check` (check only)
+- Run formatting: `npm run format` (auto-fix) or `npm run format:check` (check only)
+- Run security audit: `npm run security:audit`
+- Fix security vulnerabilities: `npm run security:fix`
+- All CI tests: `npm run test:ci` (includes coverage)
+
 ### End-to-End Testing
 Use the demo repository for testing auto-tagging and webhook functionality:
 - Demo repository: `https://github.com/intelligence-assist/demo-repository`
@@ -82,6 +89,14 @@ The system automatically analyzes new issues and applies appropriate labels base
 - **Component**: api, frontend, backend, database, auth, webhook, docker
 
 When an issue is opened, Claude analyzes the title and description to suggest intelligent labels, with keyword-based fallback for reliability.
+
+### Automated PR Review
+The system automatically triggers comprehensive PR reviews when all checks pass:
+- **Trigger**: `check_suite` webhook event with `conclusion: 'success'`
+- **Scope**: Reviews all PRs associated with the successful check suite
+- **Process**: Claude performs security, logic, performance, and code quality analysis
+- **Output**: Detailed review comments, line-specific feedback, and approval/change requests
+- **Integration**: Uses GitHub CLI (`gh`) commands for seamless review workflow
 
 ## Architecture Overview
 

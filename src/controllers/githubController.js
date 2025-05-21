@@ -365,6 +365,149 @@ Please check with an administrator to review the logs for more details.`
       }
     }
 
+    // Handle check suite completion for automated PR review
+    if (event === 'check_suite' && payload.action === 'completed') {
+      const checkSuite = payload.check_suite;
+      const repo = payload.repository;
+      
+      // Only proceed if the check suite is for a pull request and conclusion is success
+      if (checkSuite.conclusion === 'success' && checkSuite.pull_requests && checkSuite.pull_requests.length > 0) {
+        for (const pr of checkSuite.pull_requests) {
+          logger.info({
+            repo: repo.full_name,
+            pr: pr.number,
+            checkSuite: checkSuite.id,
+            conclusion: checkSuite.conclusion
+          }, 'All checks passed - triggering automated PR review');
+
+          try {
+            // Create the PR review prompt
+            const prReviewPrompt = `## PR Review Workflow Instructions
+
+You are Claude, acting as a professional code reviewer through Claude Code CLI. Your task is to review GitHub pull requests and provide constructive feedback.
+
+### Initial Setup
+1. Review the PR that has been checked out for you
+
+### Review Process
+1. First, get an overview of the PR:
+   \`\`\`bash
+   gh pr view ${pr.number} --json title,body,additions,deletions,changedFiles
+   \`\`\`
+
+2. Examine the changed files:
+   \`\`\`bash
+   gh pr diff ${pr.number}
+   \`\`\`
+
+3. For each file, check:
+   - Security vulnerabilities
+   - Logic errors or edge cases
+   - Performance issues
+   - Code organization
+   - Error handling
+   - Test coverage
+
+4. When needed, examine specific files:
+   \`\`\`bash
+   gh pr view ${pr.number} --json files
+   cat [FILE_PATH]
+   \`\`\`
+
+### Providing Feedback
+For each significant issue:
+1. Add a comment to the specific line:
+   \`\`\`bash
+   gh pr comment ${pr.number} --body "YOUR COMMENT" --file [FILE] --line [LINE_NUMBER]
+   \`\`\`
+
+2. For general feedback, add a PR comment:
+   \`\`\`bash
+   gh pr comment ${pr.number} --body "YOUR REVIEW SUMMARY"
+   \`\`\`
+
+3. Complete your review with an approval or change request:
+   \`\`\`bash
+   # For approval:
+   gh pr review ${pr.number} --approve --body "APPROVAL MESSAGE"
+   
+   # For requesting changes:
+   gh pr review ${pr.number} --request-changes --body "CHANGE REQUEST SUMMARY"
+   \`\`\`
+
+### Review Focus Areas
+1. Potential security vulnerabilities (injection attacks, authentication issues, etc.)
+2. Logic bugs or edge cases
+3. Performance issues (inefficient algorithms, unnecessary computations)
+4. Code organization and maintainability
+5. Error handling and edge cases
+6. Test coverage and effectiveness
+7. Documentation quality
+
+### Comment Style Guidelines
+- Be specific and actionable
+- Explain why issues matter, not just what they are
+- Suggest concrete improvements
+- Balance criticism with positive reinforcement
+- Group related issues
+- Use a professional, constructive tone
+
+### Review Summary Format
+1. Brief summary of changes and overall assessment
+2. Key issues organized by file
+3. Positive aspects of the implementation
+4. Conclusion with recommended next steps
+
+After completing the review, all output from this process will be automatically saved as comments in the workflow. No additional logging is required.
+
+Please perform a comprehensive review of PR #${pr.number} in repository ${repo.full_name}.`;
+
+            // Process the PR review with Claude
+            logger.info('Sending PR for automated Claude review');
+            const claudeResponse = await claudeService.processCommand({
+              repoFullName: repo.full_name,
+              issueNumber: pr.number,
+              command: prReviewPrompt,
+              isPullRequest: true,
+              branchName: pr.head.ref
+            });
+
+            logger.info({
+              repo: repo.full_name,
+              pr: pr.number,
+              responseLength: claudeResponse.length
+            }, 'Automated PR review completed successfully');
+
+          } catch (error) {
+            logger.error({
+              err: error,
+              repo: repo.full_name,
+              pr: pr.number,
+              checkSuite: checkSuite.id
+            }, 'Error processing automated PR review');
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Check suite completion processed - PR review triggered',
+          context: {
+            repo: repo.full_name,
+            checkSuite: checkSuite.id,
+            conclusion: checkSuite.conclusion,
+            pullRequests: checkSuite.pull_requests.map(pr => pr.number)
+          }
+        });
+      } else {
+        logger.info({
+          repo: repo.full_name,
+          checkSuite: checkSuite.id,
+          conclusion: checkSuite.conclusion,
+          pullRequestCount: checkSuite.pull_requests?.length || 0
+        }, 'Check suite completed but not triggering PR review (not success or no PRs)');
+      }
+    }
+
     // Handle pull request comment events
     if ((event === 'pull_request_review_comment' || event === 'pull_request') && payload.action === 'created') {
       const pr = payload.pull_request;

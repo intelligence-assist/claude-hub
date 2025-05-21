@@ -42,10 +42,8 @@ RUN npm install --omit=dev
 # Copy application code
 COPY . .
 
-# Copy scripts
-COPY claude-wrapper.sh /app/
-COPY startup.sh /app/
-RUN chmod +x /app/claude-wrapper.sh /app/startup.sh
+# Make startup script executable
+RUN chmod +x /app/scripts/runtime/startup.sh
 
 # Note: Docker socket will be mounted at runtime, no need to create it here
 
@@ -63,4 +61,4 @@ ENV NODE_ENV=production \
 # (The container will need to run with Docker socket mounted)
 
 # Run the startup script
-CMD ["/app/startup.sh"]
+CMD ["bash", "/app/scripts/runtime/startup.sh"]

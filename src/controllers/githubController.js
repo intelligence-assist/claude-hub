@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const claudeService = require('../services/claudeService');
 const githubService = require('../services/githubService');
 const { createLogger } = require('../utils/logger');
-const { sanitizeBotMentions } = require('../utils/sanitize');
+const { sanitizeBotMentions, sanitizeLabels } = require('../utils/sanitize');
 
 const logger = createLogger('githubController');
 
@@ -32,7 +32,7 @@ function verifyWebhookSignature(req) {
 
   logger.debug({
     signature: signature,
-    secret: process.env.GITHUB_WEBHOOK_SECRET ? '[SECRET REDACTED]' : 'missing',
+    secret: process.env.GITHUB_WEBHOOK_SECRET ? '[SECRET REDACTED]' : 'missing'
   }, 'Verifying webhook signature');
 
   const payload = req.rawBody || JSON.stringify(req.body);
@@ -73,7 +73,7 @@ async function handleWebhook(req, res) {
       event,
       delivery,
       sender: req.body.sender?.login,
-      repo: req.body.repository?.full_name,
+      repo: req.body.repository?.full_name
     }, `Received GitHub ${event} webhook`);
 
     // Verify the webhook signature
@@ -86,6 +86,135 @@ async function handleWebhook(req, res) {
 
     const payload = req.body;
 
+
+    // Handle issues being opened for auto-tagging
+    if (event === 'issues' && payload.action === 'opened') {
+      const issue = payload.issue;
+      const repo = payload.repository;
+
+      logger.info({
+        repo: repo.full_name,
+        issue: issue.number,
+        title: issue.title,
+        user: issue.user.login
+      }, 'Processing new issue for auto-tagging');
+
+      try {
+        // Process the issue with Claude for automatic tagging
+        const tagCommand = `Analyze this issue and suggest appropriate labels based on the title and description:
+
+Title: ${issue.title}
+Description: ${issue.body || 'No description provided'}
+
+Available label categories and options:
+- Priority: critical, high, medium, low
+- Type: bug, feature, enhancement, documentation, question, security
+- Complexity: trivial, simple, moderate, complex
+- Component: api, frontend, backend, database, auth, webhook, docker
+
+Return ONLY a JSON object with suggested labels in this format:
+{
+  "labels": ["priority:medium", "type:feature", "complexity:simple", "component:api"],
+  "reasoning": "Brief explanation of why these labels were chosen"
+}`;
+
+        logger.info('Sending issue to Claude for auto-tagging analysis');
+        const claudeResponse = await claudeService.processCommand({
+          repoFullName: repo.full_name,
+          issueNumber: issue.number,
+          command: tagCommand,
+          isPullRequest: false,
+          branchName: null
+        });
+
+        // Parse Claude's response and apply labels
+        try {
+          // Extract JSON from Claude's response (it might have additional text) using safer approach
+          const jsonStart = claudeResponse.indexOf('{');
+          const jsonEnd = claudeResponse.lastIndexOf('}');
+          if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+            const jsonString = claudeResponse.substring(jsonStart, jsonEnd + 1);
+            const labelSuggestion = JSON.parse(jsonString);
+            
+            if (labelSuggestion.labels && Array.isArray(labelSuggestion.labels)) {
+              // Apply the suggested labels
+              await githubService.addLabelsToIssue({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                issueNumber: issue.number,
+                labels: labelSuggestion.labels
+              });
+
+              // Post a comment explaining the auto-tagging
+              const autoTagComment = `🏷️ **Auto-tagged by Claude:**
+
+${labelSuggestion.reasoning || 'Labels applied based on issue analysis.'}
+
+Applied labels: ${labelSuggestion.labels.map(label => `\`${label}\``).join(', ')}
+
+_If you feel these labels are incorrect, please adjust them manually._`;
+
+              await githubService.postComment({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                issueNumber: issue.number,
+                body: autoTagComment
+              });
+
+              const sanitizedLabels = sanitizeLabels(labelSuggestion.labels);
+              logger.info({
+                repo: repo.full_name,
+                issue: issue.number,
+                labelCount: sanitizedLabels.length
+              }, 'Auto-tagging completed successfully');
+            }
+          }
+        } catch (parseError) {
+          logger.warn({
+            err: parseError,
+            claudeResponseLength: claudeResponse.length,
+            claudeResponsePreview: '[RESPONSE_CONTENT_REDACTED]'
+          }, 'Failed to parse Claude response for auto-tagging');
+          
+          // Fall back to basic tagging based on keywords
+          const fallbackLabels = await githubService.getFallbackLabels(issue.title, issue.body);
+          if (fallbackLabels.length > 0) {
+            await githubService.addLabelsToIssue({
+              repoOwner: repo.owner.login,
+              repoName: repo.name,
+              issueNumber: issue.number,
+              labels: fallbackLabels
+            });
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Issue auto-tagged successfully',
+          context: {
+            repo: repo.full_name,
+            issue: issue.number,
+            type: 'issues_opened'
+          }
+        });
+      } catch (error) {
+        logger.error({ 
+          errorMessage: error.message || 'Unknown error',
+          errorType: error.constructor.name
+        }, 'Error processing issue for auto-tagging');
+        
+        // Return success anyway to not block webhook
+        return res.status(200).json({
+          success: true,
+          message: 'Issue received but auto-tagging failed',
+          context: {
+            repo: repo.full_name,
+            issue: issue.number,
+            type: 'issues_opened'
+          }
+        });
+      }
+    }
 
     // Handle issue comment events
     if (event === 'issue_comment' && payload.action === 'created') {
@@ -240,6 +369,150 @@ Please check with an administrator to review the logs for more details.`
             });
           }
         }
+      }
+    }
+
+    // Handle check suite completion for automated PR review
+    if (event === 'check_suite' && payload.action === 'completed') {
+      const checkSuite = payload.check_suite;
+      const repo = payload.repository;
+      
+      // Only proceed if the check suite is for a pull request and conclusion is success
+      if (checkSuite.conclusion === 'success' && checkSuite.pull_requests && checkSuite.pull_requests.length > 0) {
+        for (const pr of checkSuite.pull_requests) {
+          logger.info({
+            repo: repo.full_name,
+            pr: pr.number,
+            checkSuite: checkSuite.id,
+            conclusion: checkSuite.conclusion
+          }, 'All checks passed - triggering automated PR review');
+
+          try {
+            // Create the PR review prompt
+            const prReviewPrompt = `## PR Review Workflow Instructions
+
+You are Claude, acting as a professional code reviewer through Claude Code CLI. Your task is to review GitHub pull requests and provide constructive feedback.
+
+### Initial Setup
+1. Review the PR that has been checked out for you
+
+### Review Process
+1. First, get an overview of the PR:
+   \`\`\`bash
+   gh pr view ${pr.number} --json title,body,additions,deletions,changedFiles
+   \`\`\`
+
+2. Examine the changed files:
+   \`\`\`bash
+   gh pr diff ${pr.number}
+   \`\`\`
+
+3. For each file, check:
+   - Security vulnerabilities
+   - Logic errors or edge cases
+   - Performance issues
+   - Code organization
+   - Error handling
+   - Test coverage
+
+4. When needed, examine specific files:
+   \`\`\`bash
+   gh pr view ${pr.number} --json files
+   cat [FILE_PATH]
+   \`\`\`
+
+### Providing Feedback
+For each significant issue:
+1. Add a comment to the specific line:
+   \`\`\`bash
+   gh pr comment ${pr.number} --body "YOUR COMMENT" --file [FILE] --line [LINE_NUMBER]
+   \`\`\`
+
+2. For general feedback, add a PR comment:
+   \`\`\`bash
+   gh pr comment ${pr.number} --body "YOUR REVIEW SUMMARY"
+   \`\`\`
+
+3. Complete your review with an approval or change request:
+   \`\`\`bash
+   # For approval:
+   gh pr review ${pr.number} --approve --body "APPROVAL MESSAGE"
+   
+   # For requesting changes:
+   gh pr review ${pr.number} --request-changes --body "CHANGE REQUEST SUMMARY"
+   \`\`\`
+
+### Review Focus Areas
+1. Potential security vulnerabilities (injection attacks, authentication issues, etc.)
+2. Logic bugs or edge cases
+3. Performance issues (inefficient algorithms, unnecessary computations)
+4. Code organization and maintainability
+5. Error handling and edge cases
+6. Test coverage and effectiveness
+7. Documentation quality
+
+### Comment Style Guidelines
+- Be specific and actionable
+- Explain why issues matter, not just what they are
+- Suggest concrete improvements
+- Balance criticism with positive reinforcement
+- Group related issues
+- Use a professional, constructive tone
+
+### Review Summary Format
+1. Brief summary of changes and overall assessment
+2. Key issues organized by file
+3. Positive aspects of the implementation
+4. Conclusion with recommended next steps
+
+After completing the review, all output from this process will be automatically saved as comments in the workflow. No additional logging is required.
+
+Please perform a comprehensive review of PR #${pr.number} in repository ${repo.full_name}.`;
+
+            // Process the PR review with Claude
+            logger.info('Sending PR for automated Claude review');
+            const claudeResponse = await claudeService.processCommand({
+              repoFullName: repo.full_name,
+              issueNumber: pr.number,
+              command: prReviewPrompt,
+              isPullRequest: true,
+              branchName: pr.head.ref
+            });
+
+            logger.info({
+              repo: repo.full_name,
+              pr: pr.number,
+              responseLength: claudeResponse ? claudeResponse.length : 0
+            }, 'Automated PR review completed successfully');
+
+          } catch (error) {
+            logger.error({
+              errorMessage: error.message || 'Unknown error',
+              errorType: error.constructor.name,
+              repo: repo.full_name,
+              pr: pr.number,
+              checkSuite: checkSuite.id
+            }, 'Error processing automated PR review');
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Check suite completion processed - PR review triggered',
+          context: {
+            repo: repo.full_name,
+            checkSuite: checkSuite.id,
+            conclusion: checkSuite.conclusion,
+            pullRequests: checkSuite.pull_requests.map(pr => pr.number)
+          }
+        });
+      } else {
+        logger.info({
+          repo: repo.full_name,
+          checkSuite: checkSuite.id,
+          conclusion: checkSuite.conclusion,
+          pullRequestCount: checkSuite.pull_requests?.length || 0
+        }, 'Check suite completed but not triggering PR review (not success or no PRs)');
       }
     }
 

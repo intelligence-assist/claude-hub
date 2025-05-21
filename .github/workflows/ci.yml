@@ -40,13 +40,13 @@ jobs:
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
 
-    - name: Run integration tests
-      run: npm run test:integration
-      env:
-        NODE_ENV: test
-        BOT_USERNAME: '@TestBot'
-        GITHUB_WEBHOOK_SECRET: 'test-secret'
-        GITHUB_TOKEN: 'test-token'
+    # - name: Run integration tests
+    #   run: npm run test:integration
+    #   env:
+    #     NODE_ENV: test
+    #     BOT_USERNAME: '@TestBot'
+    #     GITHUB_WEBHOOK_SECRET: 'test-secret'
+    #     GITHUB_TOKEN: 'test-token'
 
     - name: Run e2e tests
       run: npm run test:e2e

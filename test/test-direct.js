@@ -24,5 +24,7 @@ try {
   // Try to clean up the container
   try {
     execSync(`docker rm ${containerName}`);
-  } catch {}
+  } catch (cleanupError) {
+    // Ignore cleanup errors
+  }
 }

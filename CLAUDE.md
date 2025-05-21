@@ -54,6 +54,9 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Test Claude container: `./test/test-claudecode-docker.sh`
 - Test full workflow: `./test/test-full-flow.sh`
 
+### Label Management
+- Setup repository labels: `node scripts/utils/setup-repository-labels.js owner/repo`
+
 ### CLI Commands
 - Basic usage: `./claude-webhook myrepo "Your command for Claude"`
 - With explicit owner: `./claude-webhook owner/repo "Your command for Claude"`
@@ -61,6 +64,17 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Specific issue: `./claude-webhook myrepo "Fix issue" -i 42`
 - Advanced usage: `node cli/webhook-cli.js --repo myrepo --command "Your command" --verbose`
 - Secure mode: `node cli/webhook-cli-secure.js` (uses AWS profile authentication)
+
+## Features
+
+### Auto-Tagging
+The system automatically analyzes new issues and applies appropriate labels based on:
+- **Priority**: critical, high, medium, low
+- **Type**: bug, feature, enhancement, documentation, question, security  
+- **Complexity**: trivial, simple, moderate, complex
+- **Component**: api, frontend, backend, database, auth, webhook, docker
+
+When an issue is opened, Claude analyzes the title and description to suggest intelligent labels, with keyword-based fallback for reliability.
 
 ## Architecture Overview
 

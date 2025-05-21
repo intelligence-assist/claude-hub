@@ -138,8 +138,10 @@ Please complete this task fully and autonomously.`;
         const stringValue = String(value);
         // Write complex values to files for safer handling
         if (key === 'COMMAND' && stringValue.length > 500) {
-          const tmpFile = `/tmp/claude-command-${Date.now()}.txt`;
-          fsSync.writeFileSync(tmpFile, stringValue);
+          const crypto = require('crypto');
+          const randomSuffix = crypto.randomBytes(16).toString('hex');
+          const tmpFile = `/tmp/claude-command-${Date.now()}-${randomSuffix}.txt`;
+          fsSync.writeFileSync(tmpFile, stringValue, { mode: 0o600 }); // Secure file permissions
           return `-e ${key}="$(cat ${tmpFile})"`;
         }
         // Escape for shell with double quotes (more reliable than single quotes)

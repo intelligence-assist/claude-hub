@@ -215,6 +215,19 @@ _If you feel these labels are incorrect, please adjust them manually._`;
       const comment = payload.comment;
       const issue = payload.issue;
       const repo = payload.repository;
+      
+      // Validate the required objects
+      if (!comment || !issue || !repo || 
+          typeof comment !== 'object' || typeof issue !== 'object' || typeof repo !== 'object') {
+        logger.warn({
+          event: 'issue_comment',
+          action: payload.action,
+          hasComment: !!comment,
+          hasIssue: !!issue,
+          hasRepo: !!repo
+        }, 'Invalid issue_comment webhook payload');
+        return res.status(400).json({ error: 'Invalid webhook payload' });
+      }
 
       logger.info({
         repo: repo.full_name,
@@ -371,8 +384,21 @@ Please check with an administrator to review the logs for more details.`
       const checkSuite = payload.check_suite;
       const repo = payload.repository;
       
+      // Validate checkSuite and repo objects
+      if (!checkSuite || typeof checkSuite !== 'object' || !repo || typeof repo !== 'object') {
+        logger.warn({
+          event: 'check_suite',
+          action: payload.action,
+          hasCheckSuite: !!checkSuite,
+          hasRepo: !!repo
+        }, 'Invalid check_suite webhook payload');
+        return res.status(400).json({ error: 'Invalid webhook payload' });
+      }
+      
       // Only proceed if the check suite is for a pull request and conclusion is success
-      if (checkSuite.conclusion === 'success' && checkSuite.pull_requests && checkSuite.pull_requests.length > 0) {
+      if (checkSuite.conclusion === 'success' && 
+          Array.isArray(checkSuite.pull_requests) && 
+          checkSuite.pull_requests.length > 0) {
         for (const pr of checkSuite.pull_requests) {
           logger.info({
             repo: repo.full_name,
@@ -463,6 +489,16 @@ After completing the review, all output from this process will be automatically 
 
 Please perform a comprehensive review of PR #${pr.number} in repository ${repo.full_name}.`;
 
+            // Validate PR object has required properties
+            if (!pr || !pr.number || !pr.head || !pr.head.ref) {
+              logger.warn({
+                repo: repo.full_name,
+                prDetails: pr,
+                checkSuite: checkSuite.id
+              }, 'Invalid PR object in check_suite webhook');
+              continue; // Skip this PR and try the next one
+            }
+            
             // Process the PR review with Claude
             logger.info('Sending PR for automated Claude review');
             const claudeResponse = await claudeService.processCommand({

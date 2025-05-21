@@ -30,16 +30,29 @@ if (!BOT_USERNAME) {
  * @param {string} options.command - The command to process with Claude
  * @param {boolean} [options.isPullRequest=false] - Whether this is a pull request
  * @param {string} [options.branchName] - The branch name for pull requests
+ * @param {Object} [options.issueDetails] - Details of the issue or PR (title, body, etc.)
+ * @param {Array} [options.recentComments] - Recent comments on the issue or PR
  * @returns {Promise<string>} - Claude's response
  */
-async function processCommand({ repoFullName, issueNumber, command, isPullRequest = false, branchName = null }) {
+async function processCommand({ 
+  repoFullName, 
+  issueNumber, 
+  command, 
+  isPullRequest = false, 
+  branchName = null,
+  issueDetails = null,
+  recentComments = []
+}) {
   try {
     logger.info({
       repo: repoFullName,
       issue: issueNumber,
       isPullRequest,
       branchName,
-      commandLength: command.length
+      commandLength: command.length,
+      hasIssueDetails: !!issueDetails,
+      issueTitle: issueDetails?.title,
+      commentCount: recentComments?.length || 0
     }, 'Processing command with Claude');
 
     // In test mode, skip execution and return a mock response
@@ -57,6 +70,11 @@ Since this is a test environment, I'm providing a simulated response. In product
 2. ${isPullRequest ? `Checkout PR branch: ${branchName}` : 'Use the main branch'}
 3. Analyze the codebase and execute: "${command}"
 4. Use GitHub CLI to interact with issues, PRs, and comments
+
+Context included in this request:
+- ${isPullRequest ? 'PR' : 'Issue'} #${issueNumber}: ${issueDetails?.title || 'N/A'}
+- Description: ${issueDetails?.body ? 'Included' : 'Not available'}
+- Comments: ${recentComments?.length || 0} recent comments included
 
 For real functionality, please configure valid GitHub and Claude API tokens.`;
       
@@ -86,8 +104,16 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
 **Context:**
 - Repository: ${repoFullName}
 - ${isPullRequest ? 'Pull Request' : 'Issue'} Number: #${issueNumber}
+- ${isPullRequest ? 'Pull Request' : 'Issue'} Title: ${issueDetails?.title || 'N/A'}
 - Current Branch: ${branchName || 'main'}
 - Running in: Unattended mode
+
+**${isPullRequest ? 'Pull Request' : 'Issue'} Description:**
+${issueDetails?.body ? issueDetails.body.trim() : 'No description provided'}
+
+${recentComments && recentComments.length > 0 ? `**Recent Comments:**
+${recentComments.map(comment => `### ${comment.user.login} commented on ${new Date(comment.created_at).toLocaleString()}:
+${comment.body.trim()}`).join('\n\n')}` : ''}
 
 **Important Instructions:**
 1. You have full GitHub CLI access via the 'gh' command

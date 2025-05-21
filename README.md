@@ -93,6 +93,7 @@ For comprehensive documentation, see:
    - Set `BOT_EMAIL` for the email address used in git commits made by the bot
    - Set `DEFAULT_AUTHORIZED_USER` to specify the default GitHub username authorized to use the bot
    - Use `AUTHORIZED_USERS` for a comma-separated list of GitHub usernames allowed to use the bot
+   - Set `MAX_COMMENTS` to specify the number of recent comments to include in Claude's context (default: 5)
 
    **e. Server Port and Other Settings**
    - By default, the server runs on port 3000

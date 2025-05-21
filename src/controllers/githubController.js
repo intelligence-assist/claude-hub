@@ -9,6 +9,9 @@ const logger = createLogger('githubController');
 // Get bot username from environment variables - required
 const BOT_USERNAME = process.env.BOT_USERNAME;
 
+// Set the maximum number of comments to include in the Claude prompt
+const MAX_COMMENTS = parseInt(process.env.MAX_COMMENTS || '5', 10);
+
 // Validate bot username is set to prevent accidental infinite loops
 if (!BOT_USERNAME) {
   logger.error('BOT_USERNAME environment variable is not set. This is required to prevent infinite loops.');
@@ -160,14 +163,33 @@ async function handleWebhook(req, res) {
           const command = commandMatch[1].trim();
 
           try {
+            // Fetch additional context for Claude
+            logger.info('Fetching issue details and recent comments');
+            const [issueDetails, recentComments] = await Promise.all([
+              githubService.getIssueOrPrDetails({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                issueNumber: issue.number,
+                isPullRequest: false
+              }),
+              githubService.getRecentComments({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                issueNumber: issue.number,
+                count: MAX_COMMENTS
+              })
+            ]);
+            
             // Process the command with Claude
-            logger.info('Sending command to Claude service');
+            logger.info('Sending command to Claude service with additional context');
             const claudeResponse = await claudeService.processCommand({
               repoFullName: repo.full_name,
               issueNumber: issue.number,
               command: command,
               isPullRequest: false,
-              branchName: null
+              branchName: null,
+              issueDetails,
+              recentComments
             });
 
             // Post Claude's response as a comment on the issue
@@ -272,14 +294,33 @@ Please check with an administrator to review the logs for more details.`
           const command = commandMatch[1].trim();
 
           try {
+            // Fetch additional context for Claude
+            logger.info('Fetching PR details and recent comments');
+            const [issueDetails, recentComments] = await Promise.all([
+              githubService.getIssueOrPrDetails({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                issueNumber: pr.number,
+                isPullRequest: true
+              }),
+              githubService.getRecentComments({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                issueNumber: pr.number,
+                count: MAX_COMMENTS
+              })
+            ]);
+            
             // Process the command with Claude
-            logger.info('Sending command to Claude service');
+            logger.info('Sending command to Claude service with additional context');
             const claudeResponse = await claudeService.processCommand({
               repoFullName: repo.full_name,
               issueNumber: pr.number,
               command: command,
               isPullRequest: true,
-              branchName: pr.head.ref
+              branchName: pr.head.ref,
+              issueDetails,
+              recentComments
             });
 
             // Return Claude's response in the webhook response

@@ -12,7 +12,27 @@ jest.mock('../../../src/services/claudeService', () => ({
 }));
 
 jest.mock('../../../src/services/githubService', () => ({
-  postComment: jest.fn().mockResolvedValue({ id: 456 })
+  postComment: jest.fn().mockResolvedValue({ id: 456 }),
+  getIssueOrPrDetails: jest.fn().mockResolvedValue({
+    title: 'Test Issue Title',
+    body: 'Test issue description',
+    user: { login: 'testuser' },
+    created_at: new Date().toISOString()
+  }),
+  getRecentComments: jest.fn().mockResolvedValue([
+    {
+      id: 'comment-1',
+      user: { login: 'testuser' },
+      body: 'Test comment 1',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 'comment-2',
+      user: { login: 'otheruser' },
+      body: 'Test comment 2',
+      created_at: new Date().toISOString()
+    }
+  ])
 }));
 
 // Now require modules after environment and mocks are set up
@@ -80,13 +100,38 @@ describe('GitHub Controller', () => {
   test('should process a valid webhook with @TestBot mention', async () => {
     await githubController.handleWebhook(req, res);
     
-    // Verify that Claude service was called with correct parameters
+    // Verify that GitHub service was called to fetch issue details and comments
+    expect(githubService.getIssueOrPrDetails).toHaveBeenCalledWith({
+      repoOwner: 'owner',
+      repoName: 'repo',
+      issueNumber: 123,
+      isPullRequest: false
+    });
+
+    expect(githubService.getRecentComments).toHaveBeenCalledWith({
+      repoOwner: 'owner',
+      repoName: 'repo',
+      issueNumber: 123,
+      count: expect.any(Number)
+    });
+
+    // Verify that Claude service was called with correct parameters including issue details and comments
     expect(claudeService.processCommand).toHaveBeenCalledWith({
       repoFullName: 'owner/repo',
       issueNumber: 123,
       command: 'Tell me about this repository',
       isPullRequest: false,
-      branchName: null
+      branchName: null,
+      issueDetails: expect.objectContaining({
+        title: 'Test Issue Title',
+        body: 'Test issue description'
+      }),
+      recentComments: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'comment-1',
+          body: 'Test comment 1'
+        })
+      ])
     });
     
     // Verify that GitHub service was called to post a comment

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="26" failures="0" errors="0" time="0.481">
-  <testsuite name="AWS Credential Provider" errors="0" failures="0" skipped="1" timestamp="2025-05-21T04:24:00" time="0.236" tests="7">
+<testsuites name="jest tests" tests="26" failures="0" errors="0" time="0.651">
+  <testsuite name="AWS Credential Provider" errors="0" failures="0" skipped="1" timestamp="2025-05-21T05:00:55" time="0.231" tests="7">
     <testcase classname="AWS Credential Provider should get credentials from AWS profile" name="AWS Credential Provider should get credentials from AWS profile" time="0.003">
     </testcase>
     <testcase classname="AWS Credential Provider should cache credentials" name="AWS Credential Provider should cache credentials" time="0">
@@ -8,19 +8,19 @@
     </testcase>
     <testcase classname="AWS Credential Provider should clear credential cache" name="AWS Credential Provider should clear credential cache" time="0.001">
     </testcase>
-    <testcase classname="AWS Credential Provider should get Docker environment variables" name="AWS Credential Provider should get Docker environment variables" time="0">
+    <testcase classname="AWS Credential Provider should get Docker environment variables" name="AWS Credential Provider should get Docker environment variables" time="0.001">
     </testcase>
-    <testcase classname="AWS Credential Provider should throw error if AWS_PROFILE is not set" name="AWS Credential Provider should throw error if AWS_PROFILE is not set" time="0.014">
+    <testcase classname="AWS Credential Provider should throw error if AWS_PROFILE is not set" name="AWS Credential Provider should throw error if AWS_PROFILE is not set" time="0.008">
     </testcase>
     <testcase classname="AWS Credential Provider should throw error for non-existent profile" name="AWS Credential Provider should throw error for non-existent profile" time="0.001">
     </testcase>
     <testcase classname="AWS Credential Provider should throw error for incomplete credentials" name="AWS Credential Provider should throw error for incomplete credentials" time="0.001">
     </testcase>
   </testsuite>
-  <testsuite name="GitHub Controller - Check Suite Events" errors="0" failures="0" skipped="0" timestamp="2025-05-21T04:24:00" time="0.101" tests="5">
+  <testsuite name="GitHub Controller - Check Suite Events" errors="0" failures="0" skipped="0" timestamp="2025-05-21T05:00:56" time="0.279" tests="5">
     <testcase classname="GitHub Controller - Check Suite Events should trigger PR review when check suite succeeds with PRs" name="GitHub Controller - Check Suite Events should trigger PR review when check suite succeeds with PRs" time="0.002">
     </testcase>
-    <testcase classname="GitHub Controller - Check Suite Events should not trigger PR review when check suite fails" name="GitHub Controller - Check Suite Events should not trigger PR review when check suite fails" time="0.001">
+    <testcase classname="GitHub Controller - Check Suite Events should not trigger PR review when check suite fails" name="GitHub Controller - Check Suite Events should not trigger PR review when check suite fails" time="0">
     </testcase>
     <testcase classname="GitHub Controller - Check Suite Events should not trigger PR review when check suite succeeds but has no PRs" name="GitHub Controller - Check Suite Events should not trigger PR review when check suite succeeds but has no PRs" time="0.001">
     </testcase>
@@ -29,32 +29,32 @@
     <testcase classname="GitHub Controller - Check Suite Events should handle Claude service errors gracefully" name="GitHub Controller - Check Suite Events should handle Claude service errors gracefully" time="0.005">
     </testcase>
   </testsuite>
-  <testsuite name="GitHub Controller" errors="0" failures="0" skipped="0" timestamp="2025-05-21T04:24:00" time="0.048" tests="4">
-    <testcase classname="GitHub Controller should process a valid webhook with @TestBot mention" name="GitHub Controller should process a valid webhook with @TestBot mention" time="0.001">
+  <testsuite name="GitHub Controller" errors="0" failures="0" skipped="0" timestamp="2025-05-21T05:00:56" time="0.042" tests="4">
+    <testcase classname="GitHub Controller should process a valid webhook with @TestBot mention" name="GitHub Controller should process a valid webhook with @TestBot mention" time="0.002">
     </testcase>
-    <testcase classname="GitHub Controller should reject a webhook with invalid signature" name="GitHub Controller should reject a webhook with invalid signature" time="0.009">
+    <testcase classname="GitHub Controller should reject a webhook with invalid signature" name="GitHub Controller should reject a webhook with invalid signature" time="0.006">
     </testcase>
     <testcase classname="GitHub Controller should ignore comments without @TestBot mention" name="GitHub Controller should ignore comments without @TestBot mention" time="0">
     </testcase>
-    <testcase classname="GitHub Controller should handle errors from Claude service" name="GitHub Controller should handle errors from Claude service" time="0.005">
+    <testcase classname="GitHub Controller should handle errors from Claude service" name="GitHub Controller should handle errors from Claude service" time="0.007">
     </testcase>
   </testsuite>
-  <testsuite name="githubService" errors="0" failures="0" skipped="0" timestamp="2025-05-21T04:24:00" time="0.041" tests="10">
-    <testcase classname="githubService getFallbackLabels should identify bug labels correctly" name="githubService getFallbackLabels should identify bug labels correctly" time="0.001">
+  <testsuite name="githubService" errors="0" failures="0" skipped="0" timestamp="2025-05-21T05:00:56" time="0.037" tests="10">
+    <testcase classname="githubService getFallbackLabels should identify bug labels correctly" name="githubService getFallbackLabels should identify bug labels correctly" time="0">
     </testcase>
     <testcase classname="githubService getFallbackLabels should identify feature labels correctly" name="githubService getFallbackLabels should identify feature labels correctly" time="0">
     </testcase>
-    <testcase classname="githubService getFallbackLabels should identify enhancement labels correctly" name="githubService getFallbackLabels should identify enhancement labels correctly" time="0.001">
+    <testcase classname="githubService getFallbackLabels should identify enhancement labels correctly" name="githubService getFallbackLabels should identify enhancement labels correctly" time="0">
     </testcase>
     <testcase classname="githubService getFallbackLabels should identify question labels correctly" name="githubService getFallbackLabels should identify question labels correctly" time="0">
     </testcase>
-    <testcase classname="githubService getFallbackLabels should identify documentation labels correctly" name="githubService getFallbackLabels should identify documentation labels correctly" time="0">
+    <testcase classname="githubService getFallbackLabels should identify documentation labels correctly" name="githubService getFallbackLabels should identify documentation labels correctly" time="0.001">
     </testcase>
     <testcase classname="githubService getFallbackLabels should default to medium priority when no specific priority keywords found" name="githubService getFallbackLabels should default to medium priority when no specific priority keywords found" time="0">
     </testcase>
     <testcase classname="githubService getFallbackLabels should handle empty descriptions gracefully" name="githubService getFallbackLabels should handle empty descriptions gracefully" time="0">
     </testcase>
-    <testcase classname="githubService addLabelsToIssue - test mode should return mock data in test mode" name="githubService addLabelsToIssue - test mode should return mock data in test mode" time="0">
+    <testcase classname="githubService addLabelsToIssue - test mode should return mock data in test mode" name="githubService addLabelsToIssue - test mode should return mock data in test mode" time="0.001">
     </testcase>
     <testcase classname="githubService createRepositoryLabels - test mode should return labels array in test mode" name="githubService createRepositoryLabels - test mode should return labels array in test mode" time="0">
     </testcase>

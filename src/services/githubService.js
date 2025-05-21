@@ -8,6 +8,8 @@ const logger = createLogger('githubService');
  */
 async function postComment({ repoOwner, repoName, issueNumber, body }) {
   try {
+    // Validate parameters to prevent SSRF
+    const validated = validateGitHubParams(repoOwner, repoName, issueNumber);
     logger.info({
       repo: `${repoOwner}/${repoName}`,
       issue: issueNumber,
@@ -29,7 +31,7 @@ async function postComment({ repoOwner, repoName, issueNumber, body }) {
       };
     }
 
-    const url = `https://api.github.com/repos/${repoOwner}/${repoName}/issues/${issueNumber}/comments`;
+    const url = `https://api.github.com/repos/${validated.repoOwner}/${validated.repoName}/issues/${validated.issueNumber}/comments`;
 
     const response = await axios.post(
       url,
@@ -67,14 +69,35 @@ async function postComment({ repoOwner, repoName, issueNumber, body }) {
 
 
 /**
+ * Validates GitHub repository and issue parameters to prevent SSRF
+ */
+function validateGitHubParams(repoOwner, repoName, issueNumber) {
+  // Validate repoOwner and repoName contain only safe characters
+  const repoPattern = /^[a-zA-Z0-9._-]+$/;
+  if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
+    throw new Error('Invalid repository owner or name - contains unsafe characters');
+  }
+  
+  // Validate issueNumber is a positive integer
+  const issueNum = parseInt(issueNumber, 10);
+  if (!Number.isInteger(issueNum) || issueNum <= 0) {
+    throw new Error('Invalid issue number - must be a positive integer');
+  }
+  
+  return { repoOwner, repoName, issueNumber: issueNum };
+}
+
+/**
  * Adds labels to a GitHub issue
  */
 async function addLabelsToIssue({ repoOwner, repoName, issueNumber, labels }) {
   try {
+    // Validate parameters to prevent SSRF
+    const validated = validateGitHubParams(repoOwner, repoName, issueNumber);
     logger.info({
       repo: `${repoOwner}/${repoName}`,
       issue: issueNumber,
-      labels: labels
+      labelCount: labels.length
     }, 'Adding labels to GitHub issue');
 
     // In test mode, just log the labels instead of applying to GitHub
@@ -82,7 +105,7 @@ async function addLabelsToIssue({ repoOwner, repoName, issueNumber, labels }) {
       logger.info({
         repo: `${repoOwner}/${repoName}`,
         issue: issueNumber,
-        labels: labels
+        labelCount: labels.length
       }, 'TEST MODE: Would add labels to GitHub issue');
 
       return {
@@ -91,7 +114,7 @@ async function addLabelsToIssue({ repoOwner, repoName, issueNumber, labels }) {
       };
     }
 
-    const url = `https://api.github.com/repos/${repoOwner}/${repoName}/issues/${issueNumber}/labels`;
+    const url = `https://api.github.com/repos/${validated.repoOwner}/${validated.repoName}/issues/${validated.issueNumber}/labels`;
 
     const response = await axios.post(
       url,
@@ -121,7 +144,7 @@ async function addLabelsToIssue({ repoOwner, repoName, issueNumber, labels }) {
       },
       repo: `${repoOwner}/${repoName}`,
       issue: issueNumber,
-      labels: labels
+      labelCount: labels.length
     }, 'Error adding labels to GitHub issue');
 
     throw new Error(`Failed to add labels: ${error.message}`);
@@ -133,6 +156,11 @@ async function addLabelsToIssue({ repoOwner, repoName, issueNumber, labels }) {
  */
 async function createRepositoryLabels({ repoOwner, repoName, labels }) {
   try {
+    // Validate repository parameters to prevent SSRF
+    const repoPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
+      throw new Error('Invalid repository owner or name - contains unsafe characters');
+    }
     logger.info({
       repo: `${repoOwner}/${repoName}`,
       labelCount: labels.length

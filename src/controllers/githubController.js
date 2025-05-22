@@ -427,13 +427,19 @@ Please check with an administrator to review the logs for more details.`
       // Only proceed if the check suite is for a pull request and conclusion is success
       if (checkSuite.conclusion === 'success' && checkSuite.pull_requests && checkSuite.pull_requests.length > 0) {
         try {
-          for (const pr of checkSuite.pull_requests) {
-            // Verify ALL required status checks have passed using Combined Status API
-            let combinedStatus;
-            try {
-            // Use the check suite's head_sha if pr.head.sha is not available
-              const commitSha = pr.head?.sha || checkSuite.head_sha;
+          // Process PRs in parallel for better performance
+          const prPromises = checkSuite.pull_requests.map(async (pr) => {
+            const prResult = {
+              prNumber: pr.number,
+              success: false,
+              error: null,
+              skippedReason: null
+            };
             
+            try {
+              // Extract SHA from PR data first, only fall back to check suite SHA if absolutely necessary
+              const commitSha = pr.head?.sha;
+              
               if (!commitSha) {
                 logger.error(
                   {
@@ -446,27 +452,44 @@ Please check with an administrator to review the logs for more details.`
                       head_branch: checkSuite.head_branch
                     }
                   },
-                  'No commit SHA available for PR - cannot check combined status'
+                  'No commit SHA available for PR - cannot verify status'
                 );
-                continue;
+                prResult.skippedReason = 'No commit SHA available';
+                prResult.error = 'Missing PR head SHA';
+                return prResult;
               }
-            
+              
               logger.info(
                 {
                   repo: repo.full_name,
                   pr: pr.number,
-                  prHeadSha: pr.head?.sha,
-                  checkSuiteHeadSha: checkSuite.head_sha,
-                  usingSha: commitSha
+                  commitSha: commitSha
                 },
-                'Getting combined status for PR'
+                'Verifying combined status for PR'
               );
 
-              combinedStatus = await githubService.getCombinedStatus({
-                repoOwner: repo.owner.login,
-                repoName: repo.name,
-                ref: commitSha
-              });
+              // Verify ALL required status checks have passed using Combined Status API
+              let combinedStatus;
+              try {
+                combinedStatus = await githubService.getCombinedStatus({
+                  repoOwner: repo.owner.login,
+                  repoName: repo.name,
+                  ref: commitSha
+                });
+              } catch (statusError) {
+                logger.error(
+                  {
+                    err: statusError.message,
+                    repo: repo.full_name,
+                    pr: pr.number,
+                    commitSha: commitSha
+                  },
+                  'Failed to retrieve combined status for PR'
+                );
+                prResult.error = `Failed to check status: ${statusError.message}`;
+                prResult.skippedReason = 'Status check failed';
+                return prResult;
+              }
 
               // Only proceed if ALL status checks are successful
               if (combinedStatus.state !== 'success') {
@@ -476,39 +499,32 @@ Please check with an administrator to review the logs for more details.`
                     pr: pr.number,
                     checkSuite: checkSuite.id,
                     combinedState: combinedStatus.state,
-                    totalChecks: combinedStatus.total_count
+                    totalChecks: combinedStatus.total_count,
+                    failedStatuses: combinedStatus.statuses?.filter(s => s.state !== 'success').map(s => ({
+                      context: s.context,
+                      state: s.state,
+                      description: s.description
+                    }))
                   },
                   'Skipping PR review - not all required status checks have passed'
                 );
-                continue;
+                prResult.skippedReason = `Combined status is ${combinedStatus.state}`;
+                return prResult;
               }
-            } catch (error) {
-              logger.error(
+
+              logger.info(
                 {
-                  err: error.message,
                   repo: repo.full_name,
                   pr: pr.number,
-                  checkSuite: checkSuite.id
+                  checkSuite: checkSuite.id,
+                  conclusion: checkSuite.conclusion,
+                  combinedState: combinedStatus.state,
+                  totalChecks: combinedStatus.total_count
                 },
-                'Error checking combined status - skipping PR review'
+                'All checks passed - triggering automated PR review'
               );
-              continue;
-            }
 
-            logger.info(
-              {
-                repo: repo.full_name,
-                pr: pr.number,
-                checkSuite: checkSuite.id,
-                conclusion: checkSuite.conclusion,
-                combinedState: combinedStatus.state,
-                totalChecks: combinedStatus.total_count
-              },
-              'All checks passed - triggering automated PR review'
-            );
-
-            try {
-            // Create the PR review prompt
+              // Create the PR review prompt
               const prReviewPrompt = `## PR Review Workflow Instructions
 
 You are Claude, acting as a professional code reviewer through Claude Code CLI. Your task is to review GitHub pull requests and provide constructive feedback.
@@ -607,28 +623,58 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
                 },
                 'Automated PR review completed successfully'
               );
-            } catch (error) {
+              
+              prResult.success = true;
+              return prResult;
+            } catch (reviewError) {
               logger.error(
                 {
-                  errorMessage: error.message || 'Unknown error',
-                  errorType: error.constructor.name,
+                  errorMessage: reviewError.message || 'Unknown error',
+                  errorType: reviewError.constructor.name,
                   repo: repo.full_name,
                   pr: pr.number,
                   checkSuite: checkSuite.id
                 },
                 'Error processing automated PR review'
               );
+              prResult.error = reviewError.message || 'Unknown error during review';
+              return prResult;
             }
-          }
-          // Return success after processing all PRs
+          });
+          
+          // Wait for all PR reviews to complete
+          const results = await Promise.allSettled(prPromises);
+          const prResults = results.map(result => 
+            result.status === 'fulfilled' ? result.value : { success: false, error: result.reason }
+          );
+          
+          // Count successes and failures (mutually exclusive)
+          const successCount = prResults.filter(r => r.success).length;
+          const failureCount = prResults.filter(r => !r.success && r.error && !r.skippedReason).length;
+          const skippedCount = prResults.filter(r => !r.success && r.skippedReason).length;
+          
+          logger.info(
+            {
+              repo: repo.full_name,
+              checkSuite: checkSuite.id,
+              totalPRs: prResults.length,
+              successCount,
+              failureCount,
+              skippedCount,
+              results: prResults
+            },
+            'Check suite PR review processing completed'
+          );
+          
+          // Return detailed status
           return res.status(200).json({
             success: true,
-            message: 'Check suite completion processed - PR review triggered',
+            message: `Check suite processed: ${successCount} reviewed, ${failureCount} failed, ${skippedCount} skipped`,
             context: {
               repo: repo.full_name,
               checkSuite: checkSuite.id,
               conclusion: checkSuite.conclusion,
-              pullRequests: checkSuite.pull_requests.map(pr => pr.number)
+              results: prResults
             }
           });
         } catch (error) {

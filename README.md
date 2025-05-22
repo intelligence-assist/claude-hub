@@ -27,31 +27,37 @@ For comprehensive documentation, see:
 - Stateless container execution mode for isolation and scalability
 - Optionally permit Claude to make code changes when requested
 
-## Setup Guide
+## 🚀 Setup Guide
 
 ### Prerequisites
 
 - Node.js 16 or higher
-- npm or yarn
+- Docker and Docker Compose
 - GitHub account with access to the repositories you want to use
 
-### Step-by-Step Installation
+### Quick Setup
 
 1. **Clone this repository**
-   ```
+   ```bash
    git clone https://github.com/yourusername/claude-github-webhook.git
    cd claude-github-webhook
    ```
 
-2. **Run the setup script**
+2. **Setup secure credentials**
+   ```bash
+   ./scripts/setup/setup-secure-credentials.sh
    ```
-   ./scripts/setup/setup.sh
+   This creates secure credential files with proper permissions.
+
+3. **Start the service**
+   ```bash
+   docker compose up -d
    ```
-   This will create necessary directories, copy the environment template, install dependencies, and set up pre-commit hooks for credential scanning.
+   The service will be available at `http://localhost:8082`
 
-3. **Configure Credentials**
+### Manual Configuration (Alternative)
 
-   Copy the `.env.example` file to `.env` and edit with your credentials:
+If you prefer to configure manually instead of using the setup script:
    ```
    cp .env.example .env
    nano .env  # or use your preferred editor

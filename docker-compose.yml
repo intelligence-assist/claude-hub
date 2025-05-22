@@ -8,8 +8,24 @@ services:
       - /app/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.aws:/root/.aws:ro
-    env_file:
-      - .env
+    secrets:
+      - github_token
+      - anthropic_api_key
+      - webhook_secret
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - AUTHORIZED_USERS=${AUTHORIZED_USERS:-Cheffromspace}
+      - BOT_USERNAME=${BOT_USERNAME:-@MCPClaude}
+      - DEFAULT_GITHUB_OWNER=${DEFAULT_GITHUB_OWNER:-Cheffromspace}
+      - DEFAULT_GITHUB_USER=${DEFAULT_GITHUB_USER:-Cheffromspace}
+      - DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
+      - CLAUDE_USE_CONTAINERS=1
+      - CLAUDE_CONTAINER_IMAGE=claudecode:latest
+      # Point to secret files instead of env vars
+      - GITHUB_TOKEN_FILE=/run/secrets/github_token
+      - ANTHROPIC_API_KEY_FILE=/run/secrets/anthropic_api_key
+      - GITHUB_WEBHOOK_SECRET_FILE=/run/secrets/webhook_secret
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
@@ -19,6 +35,14 @@ services:
       start_period: 10s
     networks:
       - n8n_default
+
+secrets:
+  github_token:
+    file: ./secrets/github_token.txt
+  anthropic_api_key:
+    file: ./secrets/anthropic_api_key.txt
+  webhook_secret:
+    file: ./secrets/webhook_secret.txt
 
 networks:
   n8n_default:

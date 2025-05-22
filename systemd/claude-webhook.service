@@ -1,0 +1,28 @@
+[Unit]
+Description=Claude GitHub Webhook Service
+After=network.target
+Requires=network.target
+
+[Service]
+Type=simple
+User=node
+WorkingDirectory=/opt/claude-webhook
+ExecStart=/usr/bin/node src/index.js
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/claude-webhook/.env.secure
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/claude-webhook/logs
+PrivateTmp=true
+
+# Resource limits
+LimitNOFILE=4096
+LimitNPROC=256
+
+[Install]
+WantedBy=multi-user.target

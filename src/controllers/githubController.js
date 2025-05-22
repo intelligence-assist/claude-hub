@@ -413,12 +413,50 @@ Please check with an administrator to review the logs for more details.`
         checkSuite.pull_requests.length > 0
       ) {
         for (const pr of checkSuite.pull_requests) {
+          // Verify ALL required status checks have passed using Combined Status API
+          let combinedStatus;
+          try {
+            combinedStatus = await githubService.getCombinedStatus({
+              repoOwner: repo.owner.login,
+              repoName: repo.name,
+              ref: pr.head.sha
+            });
+
+            // Only proceed if ALL status checks are successful
+            if (combinedStatus.state !== 'success') {
+              logger.info(
+                {
+                  repo: repo.full_name,
+                  pr: pr.number,
+                  checkSuite: checkSuite.id,
+                  combinedState: combinedStatus.state,
+                  totalChecks: combinedStatus.total_count
+                },
+                'Skipping PR review - not all required status checks have passed'
+              );
+              continue;
+            }
+          } catch (error) {
+            logger.error(
+              {
+                err: error.message,
+                repo: repo.full_name,
+                pr: pr.number,
+                checkSuite: checkSuite.id
+              },
+              'Error checking combined status - skipping PR review'
+            );
+            continue;
+          }
+
           logger.info(
             {
               repo: repo.full_name,
               pr: pr.number,
               checkSuite: checkSuite.id,
-              conclusion: checkSuite.conclusion
+              conclusion: checkSuite.conclusion,
+              combinedState: combinedStatus.state,
+              totalChecks: combinedStatus.total_count
             },
             'All checks passed - triggering automated PR review'
           );

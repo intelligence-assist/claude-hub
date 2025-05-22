@@ -67,37 +67,33 @@ region = us-west-2
     expect(fs.readFileSync).toHaveBeenCalledTimes(2);
   });
 
-  // TODO: Fix this test to properly check caching behavior
-  test.skip('should cache credentials', async () => {
-    // Mock specific implementation for this test only
-    const mockImplementation = jest.fn().mockImplementation(filePath => {
-      if (filePath.endsWith('credentials')) {
-        return mockCredentialsFile;
-      } else if (filePath.endsWith('config')) {
-        return mockConfigFile;
-      }
-      throw new Error(`Unexpected file path: ${filePath}`);
-    });
-
-    // Override the mock with our instrumented version
-    fs.readFileSync.mockImplementation(mockImplementation);
-
-    // Clear cache to ensure fresh test
+  test('should cache credentials', async () => {
+    // First clear any existing cache
     awsCredentialProvider.clearCache();
-
+    
+    // Reset mock counters
+    fs.readFileSync.mockClear();
+    
     // First call should read from files
     const credentials1 = await awsCredentialProvider.getCredentials();
-
-    // Second call should not read files again if caching works
+    
+    // Count how many times readFileSync was called on first request
+    const firstCallCount = fs.readFileSync.mock.calls.length;
+    
+    // Should be exactly 2 calls (credentials and config files)
+    expect(firstCallCount).toBe(2);
+    
+    // Reset counter to clearly see calls for second request
+    fs.readFileSync.mockClear();
+    
+    // Second call should use cached credentials and not read files again
     const credentials2 = await awsCredentialProvider.getCredentials();
-
-    // Verify credentials are equal
-    expect(credentials1).toEqual(credentials2);
-
-    // Check the number of calls to our mock implementation
-    // If caching works, this should be called exactly twice (once for each file)
-    // and not called again on the second getCredentials() call
-    expect(mockImplementation).toHaveBeenCalledTimes(2);
+    
+    // Verify credentials are the same object (cached)
+    expect(credentials1).toBe(credentials2);
+    
+    // Verify no additional file reads occurred on second call
+    expect(fs.readFileSync).not.toHaveBeenCalled();
   });
 
   test('should clear credential cache', async () => {

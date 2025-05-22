@@ -15,10 +15,30 @@ class AWSCredentialProvider {
 
   /**
    * Get AWS credentials - PROFILES ONLY
+   * 
+   * This method implements a caching mechanism to avoid repeatedly reading 
+   * credential files. It checks for cached credentials first, and only reads
+   * from the filesystem if necessary.
+   * 
+   * The cached credentials are cleared when:
+   * 1. clearCache() is called explicitly
+   * 2. When credentials expire (for temporary credentials)
+   * 
+   * Static credentials from profiles don't expire, so they remain cached
+   * until the process ends or cache is explicitly cleared.
+   * 
+   * @returns {Promise<Object>} Credential object with accessKeyId, secretAccessKey, and region
+   * @throws {Error} If AWS_PROFILE is not set or credential retrieval fails
    */
   async getCredentials() {
     if (!process.env.AWS_PROFILE) {
       throw new Error('AWS_PROFILE must be set. Direct credential passing is not supported.');
+    }
+
+    // Return cached credentials if available and not expired
+    if (this.credentials && !this.isExpired()) {
+      logger.info('Using cached credentials');
+      return this.credentials;
     }
 
     logger.info('Using AWS profile authentication only');

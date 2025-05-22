@@ -3,8 +3,8 @@
 
 const config = {
   // These should be detected by the scanner
-  awsKey: 'AKIAIOSFODNN7EXAMPLE',
-  awsSecret: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+  awsKey: 'EXAMPLE_KEY_ID',
+  awsSecret: 'EXAMPLE_SECRET_KEY',
   githubToken: 'github_token_example_1234567890',
   npmToken: 'npm_abcdefghijklmnopqrstuvwxyz0123456789',
   

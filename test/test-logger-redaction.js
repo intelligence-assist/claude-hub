@@ -13,22 +13,22 @@ console.log('Testing logger redaction...\n');
 const testData = {
   // Direct sensitive fields
   GITHUB_TOKEN: 'github_token_example_1234567890',
-  AWS_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE',
-  AWS_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+  AWS_ACCESS_KEY_ID: 'EXAMPLE_KEY_ID',
+  AWS_SECRET_ACCESS_KEY: 'EXAMPLE_SECRET_KEY',
   
   // Nested in envVars
   envVars: {
     GITHUB_TOKEN: 'github_token_example_nested',
     AWS_ACCESS_KEY_ID: 'EXAMPLE_NESTED_KEY_ID',
-    AWS_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/NESTED/KEY'
+    AWS_SECRET_ACCESS_KEY: 'EXAMPLE_NESTED_SECRET_KEY'
   },
   
   // Docker command
   dockerCommand: 'docker run -e GITHUB_TOKEN="github_token_example_command" -e AWS_SECRET_ACCESS_KEY="secretInCommand"',
   
   // Error outputs
-  stderr: 'Error: Failed with token github_token_example_error and key AKIAIOSFODNN7ERROR',
-  stdout: 'Output contains secret wJalrXUtnFEMI/OUTPUT/KEY',
+  stderr: 'Error: Failed with token github_token_example_error and key EXAMPLE_ERROR_KEY_ID',
+  stdout: 'Output contains secret EXAMPLE_OUTPUT_SECRET_KEY',
   
   // Other fields that should pass through
   normalField: 'This is normal data',

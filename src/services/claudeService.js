@@ -8,6 +8,7 @@ const path = require('path');
 const { createLogger } = require('../utils/logger');
 // const awsCredentialProvider = require('../utils/awsCredentialProvider');
 const { sanitizeBotMentions } = require('../utils/sanitize');
+const secureCredentials = require('../utils/secureCredentials');
 
 const logger = createLogger('claudeService');
 
@@ -43,8 +44,10 @@ async function processCommand({ repoFullName, issueNumber, command, isPullReques
       commandLength: command.length
     }, 'Processing command with Claude');
 
+    const githubToken = secureCredentials.get('GITHUB_TOKEN');
+    
     // In test mode, skip execution and return a mock response
-    if (process.env.NODE_ENV === 'test' || !process.env.GITHUB_TOKEN.includes('ghp_')) {
+    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
       logger.info({
         repo: repoFullName,
         issue: issueNumber
@@ -126,8 +129,8 @@ Please complete this task fully and autonomously.`;
       IS_PULL_REQUEST: isPullRequest ? 'true' : 'false',
       BRANCH_NAME: branchName || '',
       COMMAND: fullPrompt,
-      GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY
+      GITHUB_TOKEN: githubToken,
+      ANTHROPIC_API_KEY: secureCredentials.get('ANTHROPIC_API_KEY')
     };
 
     // Build docker run command - properly escape values for shell
@@ -271,8 +274,8 @@ Please complete this task fully and autonomously.`;
         
         // Sensitive values to redact
         const sensitiveValues = [
-          process.env.GITHUB_TOKEN,
-          process.env.ANTHROPIC_API_KEY,
+          githubToken,
+          secureCredentials.get('ANTHROPIC_API_KEY'),
           envVars.AWS_ACCESS_KEY_ID,
           envVars.AWS_SECRET_ACCESS_KEY,
           envVars.AWS_SESSION_TOKEN

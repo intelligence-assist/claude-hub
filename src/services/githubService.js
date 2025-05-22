@@ -48,7 +48,7 @@ async function postComment({ repoOwner, repoName, issueNumber, body }) {
       {
         headers: {
           Accept: 'application/vnd.github.v3+json',
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          Authorization: `token ${githubToken}`,
           'Content-Type': 'application/json',
           'User-Agent': 'Claude-GitHub-Webhook'
         }
@@ -117,8 +117,10 @@ async function addLabelsToIssue({ repoOwner, repoName, issueNumber, labels }) {
       'Adding labels to GitHub issue'
     );
 
+    const githubToken = secureCredentials.get('GITHUB_TOKEN');
+
     // In test mode, just log the labels instead of applying to GitHub
-    if (process.env.NODE_ENV === 'test' || !process.env.GITHUB_TOKEN.includes('ghp_')) {
+    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
       logger.info(
         {
           repo: `${repoOwner}/${repoName}`,
@@ -142,7 +144,7 @@ async function addLabelsToIssue({ repoOwner, repoName, issueNumber, labels }) {
       {
         headers: {
           Accept: 'application/vnd.github.v3+json',
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          Authorization: `token ${githubToken}`,
           'Content-Type': 'application/json',
           'User-Agent': 'Claude-GitHub-Webhook'
         }
@@ -195,8 +197,10 @@ async function createRepositoryLabels({ repoOwner, repoName, labels }) {
       'Creating repository labels'
     );
 
+    const githubToken = secureCredentials.get('GITHUB_TOKEN');
+
     // In test mode, just log the operation
-    if (process.env.NODE_ENV === 'test' || !process.env.GITHUB_TOKEN.includes('ghp_')) {
+    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
       logger.info(
         {
           repo: `${repoOwner}/${repoName}`,
@@ -216,7 +220,7 @@ async function createRepositoryLabels({ repoOwner, repoName, labels }) {
         const response = await axios.post(url, label, {
           headers: {
             Accept: 'application/vnd.github.v3+json',
-            Authorization: `token ${process.env.GITHUB_TOKEN}`,
+            Authorization: `token ${githubToken}`,
             'Content-Type': 'application/json',
             'User-Agent': 'Claude-GitHub-Webhook'
           }
@@ -383,7 +387,7 @@ async function getCombinedStatus({ repoOwner, repoName, ref }) {
     const response = await axios.get(url, {
       headers: {
         Accept: 'application/vnd.github.v3+json',
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
+        Authorization: `token ${githubToken}`,
         'User-Agent': 'Claude-GitHub-Webhook'
       }
     });

@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM node:24-slim
 
 # Install git, Claude Code, Docker, and required dependencies
 RUN apt-get update && apt-get install -y \

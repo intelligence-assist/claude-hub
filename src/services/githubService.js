@@ -152,6 +152,15 @@ async function getIssueOrPrDetails({ repoOwner, repoName, issueNumber, isPullReq
  * @returns {Promise<Array>} - Array of recent comments
  */
 async function getRecentComments({ repoOwner, repoName, issueNumber, count = DEFAULT_COMMENT_COUNT }) {
+  // Validate inputs to prevent SSRF
+  const isValidRepoName = /^[a-zA-Z0-9-_]+$/;
+  if (!isValidRepoName.test(repoOwner) || !isValidRepoName.test(repoName)) {
+    throw new Error('Invalid repository owner or name');
+  }
+  if (!Number.isInteger(issueNumber) || issueNumber <= 0) {
+    throw new Error('Invalid issue number');
+  }
+
   try {
     logger.info({
       repo: `${repoOwner}/${repoName}`,

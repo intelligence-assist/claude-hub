@@ -1,5 +1,4 @@
-const fs = require('fs');
-const path = require('path');
+// Mock test for credential leak detection
 
 // Mock sensitive values
 const mockEnv = {
@@ -15,8 +14,8 @@ console.log('Testing credential sanitization...\n');
 // Test dockerCommand sanitization
 const dockerCommand = `docker run --rm --privileged -e GITHUB_TOKEN="${mockEnv.GITHUB_TOKEN}" -e AWS_ACCESS_KEY_ID="${mockEnv.AWS_ACCESS_KEY_ID}" -e AWS_SECRET_ACCESS_KEY="${mockEnv.AWS_SECRET_ACCESS_KEY}" claude-code-runner:latest`;
 
-const sanitizedCommand = dockerCommand.replace(/-e [A-Z_]+=\"[^\"]*\"/g, (match) => {
-  const envKey = match.match(/-e ([A-Z_]+)=\"/)[1];
+const sanitizedCommand = dockerCommand.replace(/-e [A-Z_]+="[^"]*"/g, (match) => {
+  const envKey = match.match(/-e ([A-Z_]+)="/)[1];
   const sensitiveKeys = ['GITHUB_TOKEN', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'];
   if (sensitiveKeys.includes(envKey)) {
     return `-e ${envKey}="[REDACTED]"`;

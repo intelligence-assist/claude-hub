@@ -92,7 +92,7 @@ app.get('/health', async (req, res) => {
     const { execSync } = require('child_process');
     execSync('docker image inspect claude-code-runner:latest', { stdio: 'ignore' });
     checks.claudeCodeImage.available = true;
-  } catch (error) {
+  } catch {
     checks.claudeCodeImage.error = 'Image not found';
   }
   checks.claudeCodeImage.checkTime = Date.now() - imageCheckStart;

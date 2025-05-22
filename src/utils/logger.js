@@ -128,7 +128,7 @@ if (isProduction) {
       }
     }
   } catch (error) {
-    console.error('Error rotating log file:', error);
+    logger.error({ err: error }, 'Error rotating log file');
   }
 }
 

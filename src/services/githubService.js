@@ -88,6 +88,9 @@ async function postComment({ repoOwner, repoName, issueNumber, body }) {
  * @returns {Promise<Object>} - Issue or PR details
  */
 async function getIssueOrPrDetails({ repoOwner, repoName, issueNumber, isPullRequest = false }) {
+  if (!Number.isInteger(issueNumber) || issueNumber <= 0) {
+    throw new Error(`Invalid issue number: ${issueNumber}. It must be a positive integer.`);
+  }
   try {
     logger.info({
       repo: `${repoOwner}/${repoName}`,

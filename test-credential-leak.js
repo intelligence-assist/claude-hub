@@ -4,8 +4,8 @@ const path = require('path');
 // Mock sensitive values
 const mockEnv = {
   GITHUB_TOKEN: 'github_token_example_1234567890',
-  AWS_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE',
-  AWS_SECRET_ACCESS_KEY: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+  AWS_ACCESS_KEY_ID: 'EXAMPLE_KEY_ID',
+  AWS_SECRET_ACCESS_KEY: 'EXAMPLE_SECRET_KEY',
   AWS_REGION: 'us-east-1'
 };
 

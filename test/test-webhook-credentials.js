@@ -8,8 +8,8 @@
 
 // Mock environment variables with sensitive data
 process.env.GITHUB_TOKEN = 'ghp_verySecretGitHubToken123456789';
-process.env.AWS_ACCESS_KEY_ID = 'AKIAIOSFODNN7EXAMPLE';
-process.env.AWS_SECRET_ACCESS_KEY = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY';
+process.env.AWS_ACCESS_KEY_ID = 'EXAMPLE_KEY_ID';
+process.env.AWS_SECRET_ACCESS_KEY = 'EXAMPLE_SECRET_KEY';
 process.env.AWS_REGION = 'us-east-1';
 process.env.NODE_ENV = 'test';
 

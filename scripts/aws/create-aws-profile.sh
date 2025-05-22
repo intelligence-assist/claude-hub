@@ -5,7 +5,7 @@
 
 if [ $# -lt 3 ]; then
     echo "Usage: $0 <profile-name> <access-key-id> <secret-access-key> [region] [output-format]"
-    echo "Example: $0 claude-webhook AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY us-west-2 json"
+    echo "Example: $0 claude-webhook EXAMPLE_KEY_ID EXAMPLE_SECRET_KEY us-west-2 json"
     exit 1
 fi
 

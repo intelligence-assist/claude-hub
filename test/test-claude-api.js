@@ -24,13 +24,13 @@ Command:     "${command}"
 async function testClaudeApi() {
   try {
     console.log('Sending request to Claude API...');
-    
+
     const payload = {
       repoFullName,
       command,
       useContainer
     };
-    
+
     if (authToken) {
       payload.authToken = authToken;
     }
@@ -46,7 +46,7 @@ async function testClaudeApi() {
     console.log('\n--- End Response ---\n');
   } catch (error) {
     console.error('Error calling Claude API:', error.message);
-    
+
     if (error.response) {
       console.error('Status:', error.response.status);
       console.error('Data:', error.response.data);

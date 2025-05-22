@@ -71,21 +71,27 @@ class AWSCredentialProvider {
 
     const token = await tokenResponse.text();
 
-    const roleResponse = await fetch('http://169.254.169.254/latest/meta-data/iam/security-credentials/', {
-      headers: {
-        'X-aws-ec2-metadata-token': token
-      },
-      timeout: 1000
-    });
+    const roleResponse = await fetch(
+      'http://169.254.169.254/latest/meta-data/iam/security-credentials/',
+      {
+        headers: {
+          'X-aws-ec2-metadata-token': token
+        },
+        timeout: 1000
+      }
+    );
 
     const roleName = await roleResponse.text();
 
-    const credentialsResponse = await fetch(`http://169.254.169.254/latest/meta-data/iam/security-credentials/${roleName}`, {
-      headers: {
-        'X-aws-ec2-metadata-token': token
-      },
-      timeout: 1000
-    });
+    const credentialsResponse = await fetch(
+      `http://169.254.169.254/latest/meta-data/iam/security-credentials/${roleName}`,
+      {
+        headers: {
+          'X-aws-ec2-metadata-token': token
+        },
+        timeout: 1000
+      }
+    );
 
     const credentials = await credentialsResponse.json();
 
@@ -127,42 +133,41 @@ class AWSCredentialProvider {
     const fs = require('fs');
     const path = require('path');
     const os = require('os');
-    
+
     const credentialsPath = path.join(os.homedir(), '.aws', 'credentials');
     const configPath = path.join(os.homedir(), '.aws', 'config');
-    
+
     try {
       // Read credentials file
       const credentialsContent = fs.readFileSync(credentialsPath, 'utf8');
       const configContent = fs.readFileSync(configPath, 'utf8');
-      
+
       // Parse credentials for the specific profile
       const profileRegex = new RegExp(`\\[${profileName}\\]([^\\[]*)`);
       const credentialsMatch = credentialsContent.match(profileRegex);
       const configMatch = configContent.match(new RegExp(`\\[profile ${profileName}\\]([^\\[]*)`));
-      
+
       if (!credentialsMatch && !configMatch) {
         throw new Error(`Profile '${profileName}' not found`);
       }
-      
+
       const credentialsSection = credentialsMatch ? credentialsMatch[1] : '';
       const configSection = configMatch ? configMatch[1] : '';
-      
+
       // Extract credentials
       const accessKeyMatch = credentialsSection.match(/aws_access_key_id\s*=\s*(.+)/);
       const secretKeyMatch = credentialsSection.match(/aws_secret_access_key\s*=\s*(.+)/);
       const regionMatch = configSection.match(/region\s*=\s*(.+)/);
-      
+
       if (!accessKeyMatch || !secretKeyMatch) {
         throw new Error(`Incomplete credentials for profile '${profileName}'`);
       }
-      
+
       return {
         accessKeyId: accessKeyMatch[1].trim(),
         secretAccessKey: secretKeyMatch[1].trim(),
         region: regionMatch ? regionMatch[1].trim() : process.env.AWS_REGION
       };
-      
     } catch (error) {
       logger.error({ error: error.message, profile: profileName }, 'Failed to read AWS profile');
       throw error;
@@ -177,11 +182,14 @@ class AWSCredentialProvider {
     if (!process.env.AWS_PROFILE) {
       throw new Error('AWS_PROFILE must be set. Direct credential passing is not supported.');
     }
-    
-    logger.info({ 
-      profile: process.env.AWS_PROFILE 
-    }, 'Using AWS profile authentication only');
-    
+
+    logger.info(
+      {
+        profile: process.env.AWS_PROFILE
+      },
+      'Using AWS profile authentication only'
+    );
+
     return {
       AWS_PROFILE: process.env.AWS_PROFILE,
       AWS_REGION: process.env.AWS_REGION

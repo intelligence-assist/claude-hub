@@ -7,7 +7,7 @@ const path = require('path');
 
 /**
  * Runs a shell script with the provided arguments
- * @param {string} scriptPath - Path to the shell script 
+ * @param {string} scriptPath - Path to the shell script
  * @param {string[]} args - Arguments to pass to the script
  * @returns {Promise<{stdout: string, stderr: string, exitCode: number}>}
  */
@@ -15,27 +15,27 @@ function runScript(scriptPath, args = []) {
   return new Promise((resolve, reject) => {
     const scriptAbsPath = path.resolve(__dirname, scriptPath);
     const proc = spawn('bash', [scriptAbsPath, ...args]);
-    
+
     let stdout = '';
     let stderr = '';
-    
-    proc.stdout.on('data', (data) => {
+
+    proc.stdout.on('data', data => {
       stdout += data.toString();
     });
-    
-    proc.stderr.on('data', (data) => {
+
+    proc.stderr.on('data', data => {
       stderr += data.toString();
     });
-    
-    proc.on('close', (exitCode) => {
+
+    proc.on('close', exitCode => {
       resolve({
         stdout,
         stderr,
         exitCode
       });
     });
-    
-    proc.on('error', (err) => {
+
+    proc.on('error', err => {
       reject(err);
     });
   });
@@ -51,7 +51,7 @@ function runScript(scriptPath, args = []) {
 async function setupTestContainer({ useFirewall = true, privilegedMode = true } = {}) {
   // Determine which script to run based on options
   let scriptPath;
-  
+
   if (useFirewall && privilegedMode) {
     scriptPath = '../../../test/test-full-flow.sh';
   } else if (privilegedMode) {
@@ -62,21 +62,21 @@ async function setupTestContainer({ useFirewall = true, privilegedMode = true } 
     // Fallback to basic container as minimal-claude script was removed
     scriptPath = '../../../test/test-basic-container.sh';
   }
-  
+
   // Run the setup script
   const result = await runScript(scriptPath);
-  
+
   if (result.exitCode !== 0) {
     throw new Error(`Failed to set up test container: ${result.stderr}`);
   }
-  
+
   // Parse container ID from stdout
   const containerId = result.stdout.match(/Container ID: ([a-f0-9]+)/)?.[1];
-  
+
   if (!containerId) {
     throw new Error('Failed to extract container ID from script output');
   }
-  
+
   return { containerId };
 }
 

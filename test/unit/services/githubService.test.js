@@ -1,18 +1,37 @@
-const githubService = require('../../../src/services/githubService');
-
-// Mock axios to avoid actual HTTP requests during tests
-jest.mock('axios');
-const axios = require('axios');
-
-// Mock the logger
+// Mock the logger before requiring other modules
 jest.mock('../../../src/utils/logger', () => ({
   createLogger: () => ({
     info: jest.fn(),
     error: jest.fn(),
     warn: jest.fn(),
     debug: jest.fn()
-  })
+  }),
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn()
+  }
 }));
+
+// Mock secureCredentials before requiring modules that use it
+jest.mock('../../../src/utils/secureCredentials', () => ({
+  get: jest.fn(key => {
+    const mockCredentials = {
+      GITHUB_TOKEN: 'test_token',
+      ANTHROPIC_API_KEY: 'test_anthropic_key',
+      GITHUB_WEBHOOK_SECRET: 'test_secret'
+    };
+    return mockCredentials[key] || null;
+  }),
+  has: jest.fn(() => true)
+}));
+
+// Mock axios to avoid actual HTTP requests during tests
+jest.mock('axios');
+const axios = require('axios');
+
+const githubService = require('../../../src/services/githubService');
 
 describe('githubService', () => {
   beforeEach(() => {
@@ -82,10 +101,7 @@ describe('githubService', () => {
     });
 
     it('should handle empty descriptions gracefully', async () => {
-      const labels = await githubService.getFallbackLabels(
-        'Bug in authentication',
-        null
-      );
+      const labels = await githubService.getFallbackLabels('Bug in authentication', null);
 
       expect(labels).toContain('type:bug');
       expect(labels).toContain('component:auth');

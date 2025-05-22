@@ -177,6 +177,54 @@ If you prefer to configure manually instead of using the setup script:
      node test-claude-api.js owner/repo container "Your command here"
      ```
 
+## Automated PR Review
+
+The webhook service includes an intelligent automated PR review system that triggers comprehensive code reviews when all CI checks pass successfully.
+
+### How It Works
+
+1. **Trigger**: When a `check_suite` webhook event is received with `conclusion: 'success'`
+2. **Validation**: The system queries GitHub's Combined Status API to verify **all** required status checks have passed
+3. **Review**: Only when all checks are successful, Claude performs a comprehensive PR review
+4. **Output**: Detailed review comments, line-specific feedback, and approval/change requests
+
+### Review Process
+
+When triggered, Claude automatically:
+
+- **Analyzes PR changes**: Reviews all modified files and their context
+- **Security assessment**: Checks for potential vulnerabilities, injection attacks, authentication issues
+- **Logic review**: Identifies bugs, edge cases, and potential runtime errors  
+- **Performance evaluation**: Flags inefficient algorithms and unnecessary computations
+- **Code quality**: Reviews organization, maintainability, and adherence to best practices
+- **Error handling**: Verifies proper exception handling and edge case coverage
+- **Test coverage**: Assesses test quality and effectiveness
+
+### Key Features
+
+- **Prevents duplicate reviews**: Uses Combined Status API to ensure reviews only happen once all checks complete
+- **Comprehensive analysis**: Covers security, performance, logic, and maintainability
+- **Line-specific feedback**: Provides targeted comments on specific code lines when issues are found
+- **Professional tone**: Balances constructive criticism with positive reinforcement
+- **Approval workflow**: Concludes with either approval or change requests based on findings
+
+### Configuration
+
+The automated PR review system is enabled by default and requires:
+
+- `check_suite` webhook events (included in "Send me everything")
+- `pull_request` webhook events for PR context
+- GitHub token with appropriate repository permissions
+
+### Supported Events
+
+The webhook service responds to these GitHub events:
+
+- **`issue_comment`**: Manual Claude mentions in issue/PR comments
+- **`pull_request_review_comment`**: Manual Claude mentions in PR review comments  
+- **`issues` (opened)**: Automatic issue labeling and analysis
+- **`check_suite` (completed)**: Automated PR reviews when all CI checks pass
+
 ## Troubleshooting
 
 See the [Complete Workflow Guide](./docs/complete-workflow.md#troubleshooting) for detailed troubleshooting information.

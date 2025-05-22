@@ -1,4 +1,4 @@
-const { execSync, exec } = require('child_process');
+const { execFileSync, exec } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
 // Use sync methods for file operations that need to be synchronous
@@ -85,18 +85,19 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
     // Build Docker image if it doesn't exist
     const dockerImageName = 'claude-code-runner:latest';
     try {
-      execSync(`docker inspect ${dockerImageName}`, { stdio: 'ignore' });
+      execFileSync('docker', ['inspect', dockerImageName], { stdio: 'ignore' });
       logger.info('Docker image already exists');
     } catch (e) {
       logger.info('Building Docker image for Claude Code runner');
-      execSync(`docker build -f Dockerfile.claudecode -t ${dockerImageName} .`, {
+      execFileSync('docker', ['build', '-f', 'Dockerfile.claudecode', '-t', dockerImageName, '.'], {
         cwd: path.join(__dirname, '../..'),
         stdio: 'pipe'
       });
     }
 
-    // Create unique container name
-    const containerName = `claude-${repoFullName.replace(/\//g, '-')}-${Date.now()}`;
+    // Create unique container name (sanitized to prevent command injection)
+    const sanitizedRepoName = repoFullName.replace(/[^a-zA-Z0-9\-_]/g, '-');
+    const containerName = `claude-${sanitizedRepoName}-${Date.now()}`;
 
     // Create the full prompt with context and instructions
     const fullPrompt = `You are Claude, an AI assistant responding to a GitHub ${isPullRequest ? 'pull request' : 'issue'} via the ${BOT_USERNAME} webhook.
@@ -210,7 +211,7 @@ Please complete this task fully and autonomously.`;
       // Clear any temporary command files after execution
       const cleanupTempFiles = () => {
         try {
-          const tempFiles = execSync('find /tmp -name "claude-command-*.txt" -type f')
+          const tempFiles = execFileSync('find', ['/tmp', '-name', 'claude-command-*.txt', '-type', 'f'])
             .toString()
             .split('\n');
           tempFiles
@@ -255,9 +256,10 @@ Please complete this task fully and autonomously.`;
 
         // Try to get container logs as the response instead
         try {
-          responseText = execSync(`docker logs ${containerName} 2>&1`, {
+          responseText = execFileSync('docker', ['logs', containerName], {
             encoding: 'utf8',
-            maxBuffer: 1024 * 1024
+            maxBuffer: 1024 * 1024,
+            stdio: ['pipe', 'pipe', 'pipe']
           });
           logger.info('Retrieved response from container logs');
         } catch (e) {
@@ -289,7 +291,7 @@ Please complete this task fully and autonomously.`;
     } catch (error) {
       // Clean up temporary files even when there's an error
       try {
-        const tempFiles = execSync('find /tmp -name "claude-command-*.txt" -type f')
+        const tempFiles = execFileSync('find', ['/tmp', '-name', 'claude-command-*.txt', '-type', 'f'])
           .toString()
           .split('\n');
         tempFiles
@@ -343,7 +345,7 @@ Please complete this task fully and autonomously.`;
       ) {
         logger.error('Docker image not found. Attempting to rebuild...');
         try {
-          execSync(`docker build -f Dockerfile.claudecode -t ${dockerImageName} .`, {
+          execFileSync('docker', ['build', '-f', 'Dockerfile.claudecode', '-t', dockerImageName, '.'], {
             cwd: path.join(__dirname, '../..'),
             stdio: 'pipe'
           });
@@ -371,9 +373,10 @@ Please complete this task fully and autonomously.`;
 
       // Try to get container logs for debugging
       try {
-        const logs = execSync(`docker logs ${containerName} 2>&1`, {
+        const logs = execFileSync('docker', ['logs', containerName], {
           encoding: 'utf8',
-          maxBuffer: 1024 * 1024
+          maxBuffer: 1024 * 1024,
+          stdio: ['pipe', 'pipe', 'pipe']
         });
         logger.error({ containerLogs: logs }, 'Container logs');
       } catch (e) {
@@ -382,7 +385,7 @@ Please complete this task fully and autonomously.`;
 
       // Try to clean up the container if it's still running
       try {
-        execSync(`docker kill ${containerName}`, { stdio: 'ignore' });
+        execFileSync('docker', ['kill', containerName], { stdio: 'ignore' });
       } catch (e) {
         // Container might already be stopped
       }

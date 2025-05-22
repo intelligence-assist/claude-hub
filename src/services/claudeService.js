@@ -83,12 +83,12 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
     }
 
     // Build Docker image if it doesn't exist
-    const dockerImageName = 'claude-code-runner:latest';
+    const dockerImageName = process.env.CLAUDE_CONTAINER_IMAGE || 'claude-code-runner:latest';
     try {
       execFileSync('docker', ['inspect', dockerImageName], { stdio: 'ignore' });
-      logger.info('Docker image already exists');
+      logger.info({ dockerImageName }, 'Docker image already exists');
     } catch (e) {
-      logger.info('Building Docker image for Claude Code runner');
+      logger.info({ dockerImageName }, 'Building Docker image for Claude Code runner');
       execFileSync('docker', ['build', '-f', 'Dockerfile.claudecode', '-t', dockerImageName, '.'], {
         cwd: path.join(__dirname, '../..'),
         stdio: 'pipe'
@@ -179,34 +179,100 @@ Please complete this task fully and autonomously.`;
       'Starting Claude Code container'
     );
 
-    const dockerCommand = `docker run --rm --privileged --cap-add=NET_ADMIN --cap-add=NET_RAW --cap-add=SYS_TIME --cap-add=DAC_OVERRIDE --cap-add=AUDIT_WRITE --cap-add=SYS_ADMIN --name ${containerName} ${envArgs} ${dockerImageName}`;
+    // Build docker run command as an array to prevent command injection
+    const dockerArgs = [
+      'run',
+      '--rm'
+    ];
+    
+    // Apply container security constraints based on environment variables
+    if (process.env.CLAUDE_CONTAINER_PRIVILEGED === 'true') {
+      dockerArgs.push('--privileged');
+    } else {
+      // Apply only necessary capabilities instead of privileged mode
+      const requiredCapabilities = [
+        'NET_ADMIN',   // Required for firewall setup
+        'SYS_ADMIN'    // Required for certain filesystem operations
+      ];
+      
+      // Add optional capabilities
+      const optionalCapabilities = {
+        'NET_RAW': process.env.CLAUDE_CONTAINER_CAP_NET_RAW === 'true',
+        'SYS_TIME': process.env.CLAUDE_CONTAINER_CAP_SYS_TIME === 'true',
+        'DAC_OVERRIDE': process.env.CLAUDE_CONTAINER_CAP_DAC_OVERRIDE === 'true',
+        'AUDIT_WRITE': process.env.CLAUDE_CONTAINER_CAP_AUDIT_WRITE === 'true'
+      };
+      
+      // Add required capabilities
+      requiredCapabilities.forEach(cap => {
+        dockerArgs.push(`--cap-add=${cap}`);
+      });
+      
+      // Add optional capabilities if enabled
+      Object.entries(optionalCapabilities).forEach(([cap, enabled]) => {
+        if (enabled) {
+          dockerArgs.push(`--cap-add=${cap}`);
+        }
+      });
+      
+      // Add resource limits
+      dockerArgs.push(
+        '--memory', process.env.CLAUDE_CONTAINER_MEMORY_LIMIT || '2g',
+        '--cpu-shares', process.env.CLAUDE_CONTAINER_CPU_SHARES || '1024',
+        '--pids-limit', process.env.CLAUDE_CONTAINER_PIDS_LIMIT || '256'
+      );
+    }
+    
+    // Add container name
+    dockerArgs.push('--name', containerName);
+
+    // Add environment variables as separate arguments
+    Object.entries(envVars)
+      .filter(([_, value]) => value !== undefined && value !== '')
+      .forEach(([key, value]) => {
+        // Write complex values to files for safer handling
+        if (key === 'COMMAND' && String(value).length > 500) {
+          const crypto = require('crypto');
+          const randomSuffix = crypto.randomBytes(16).toString('hex');
+          const tmpFile = `/tmp/claude-command-${Date.now()}-${randomSuffix}.txt`;
+          fsSync.writeFileSync(tmpFile, String(value), { mode: 0o600 }); // Secure file permissions
+          dockerArgs.push('-e', `${key}=@${tmpFile}`);
+        } else {
+          dockerArgs.push('-e', `${key}=${String(value)}`);
+        }
+      });
+
+    // Add the image name as the final argument
+    dockerArgs.push(dockerImageName);
 
     // Create sanitized version for logging (remove sensitive values)
-    const sanitizedCommand = dockerCommand.replace(/-e [A-Z_]+=".+?"/g, match => {
-      // Extract the environment variable name, handling both quotes and command substitution
-      const keyMatch = match.match(/-e ([A-Z_]+)=/);
-      if (!keyMatch) return match;
-
-      const envKey = keyMatch[1];
-      const sensitiveSKeys = [
-        'GITHUB_TOKEN',
-        'ANTHROPIC_API_KEY',
-        'AWS_ACCESS_KEY_ID',
-        'AWS_SECRET_ACCESS_KEY',
-        'AWS_SESSION_TOKEN'
-      ];
-      if (sensitiveSKeys.includes(envKey)) {
-        return `-e ${envKey}="[REDACTED]"`;
+    const sanitizedArgs = dockerArgs.map(arg => {
+      if (typeof arg !== 'string') return arg;
+      
+      // Check if this is an environment variable assignment
+      const envMatch = arg.match(/^([A-Z_]+)=(.*)$/);
+      if (envMatch) {
+        const envKey = envMatch[1];
+        const sensitiveSKeys = [
+          'GITHUB_TOKEN',
+          'ANTHROPIC_API_KEY',
+          'AWS_ACCESS_KEY_ID',
+          'AWS_SECRET_ACCESS_KEY',
+          'AWS_SESSION_TOKEN'
+        ];
+        if (sensitiveSKeys.includes(envKey)) {
+          return `${envKey}=[REDACTED]`;
+        }
+        // For the command, also redact to avoid logging the full command
+        if (envKey === 'COMMAND') {
+          return `${envKey}=[COMMAND_CONTENT]`;
+        }
       }
-      // For the command, also redact to avoid logging the full command
-      if (envKey === 'COMMAND') {
-        return `-e ${envKey}="[COMMAND_CONTENT]"`;
-      }
-      return match;
+      return arg;
     });
 
     try {
-      logger.info({ dockerCommand: sanitizedCommand }, 'Executing Docker command');
+      logger.info({ dockerArgs: sanitizedArgs }, 'Executing Docker command');
 
       // Clear any temporary command files after execution
       const cleanupTempFiles = () => {
@@ -233,7 +299,11 @@ Please complete this task fully and autonomously.`;
       const containerLifetimeMs = parseInt(process.env.CONTAINER_LIFETIME_MS, 10) || 7200000; // 2 hours in milliseconds
       logger.info({ containerLifetimeMs }, 'Setting container lifetime');
 
-      const result = await execAsync(dockerCommand, {
+      // Use promisified version of child_process.execFile (safer than exec)
+      const { promisify } = require('util');
+      const execFileAsync = promisify(require('child_process').execFile);
+      
+      const result = await execFileAsync('docker', dockerArgs, {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
         timeout: containerLifetimeMs // Container lifetime in milliseconds
       });
@@ -322,6 +392,7 @@ Please complete this task fully and autonomously.`;
           envVars.AWS_SESSION_TOKEN
         ].filter(val => val && val.length > 0);
 
+        // Redact specific sensitive values first
         sensitiveValues.forEach(value => {
           if (value) {
             // Convert to string and escape regex special characters
@@ -331,6 +402,20 @@ Please complete this task fully and autonomously.`;
             sanitized = sanitized.replace(new RegExp(escapedValue, 'g'), '[REDACTED]');
           }
         });
+        
+        // Then apply pattern-based redaction for any missed credentials
+        const sensitivePatterns = [
+          /AKIA[0-9A-Z]{16}/g, // AWS Access Key pattern
+          /[a-zA-Z0-9/+=]{40}/g, // AWS Secret Key pattern
+          /sk-[a-zA-Z0-9]{32,}/g, // API key pattern
+          /github_pat_[a-zA-Z0-9_]{82}/g, // GitHub fine-grained token pattern
+          /ghp_[a-zA-Z0-9]{36}/g // GitHub personal access token pattern
+        ];
+
+        sensitivePatterns.forEach(pattern => {
+          sanitized = sanitized.replace(pattern, '[REDACTED]');
+        });
+        
         return sanitized;
       };
 
@@ -366,7 +451,7 @@ Please complete this task fully and autonomously.`;
           stderr: sanitizeOutput(error.stderr),
           stdout: sanitizeOutput(error.stdout),
           containerName,
-          dockerCommand: sanitizedCommand
+          dockerArgs: sanitizedArgs
         },
         'Error running Claude Code container'
       );
@@ -406,6 +491,7 @@ Please complete this task fully and autonomously.`;
           stderr: sanitizedStderr,
           stdout: sanitizedStdout,
           containerName,
+          dockerArgs: sanitizedArgs,
           repo: repoFullName,
           issue: issueNumber
         },
@@ -429,8 +515,12 @@ Please complete this task fully and autonomously.`;
         /AWS_SECRET_ACCESS_KEY="[^"]+"/g,
         /AWS_SESSION_TOKEN="[^"]+"/g,
         /GITHUB_TOKEN="[^"]+"/g,
+        /ANTHROPIC_API_KEY="[^"]+"/g,
         /AKIA[0-9A-Z]{16}/g, // AWS Access Key pattern
-        /[a-zA-Z0-9/+=]{40}/g // AWS Secret Key pattern
+        /[a-zA-Z0-9/+=]{40}/g, // AWS Secret Key pattern
+        /sk-[a-zA-Z0-9]{32,}/g, // API key pattern
+        /github_pat_[a-zA-Z0-9_]{82}/g, // GitHub fine-grained token pattern
+        /ghp_[a-zA-Z0-9]{36}/g // GitHub personal access token pattern
       ];
 
       sensitivePatterns.forEach(pattern => {

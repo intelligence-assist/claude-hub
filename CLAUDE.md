@@ -75,10 +75,10 @@ Use the demo repository for testing auto-tagging and webhook functionality:
 - Setup repository labels: `GITHUB_TOKEN=your_token node scripts/utils/setup-repository-labels.js owner/repo`
 
 ### CLI Commands
-- Basic usage: `./claude-webhook myrepo "Your command for Claude"`
-- With explicit owner: `./claude-webhook owner/repo "Your command for Claude"`
-- Pull request review: `./claude-webhook myrepo "Review this PR" -p -b feature-branch`
-- Specific issue: `./claude-webhook myrepo "Fix issue" -i 42`
+- Basic usage: `./cli/claude-webhook myrepo "Your command for Claude"`
+- With explicit owner: `./cli/claude-webhook owner/repo "Your command for Claude"`
+- Pull request review: `./cli/claude-webhook myrepo "Review this PR" -p -b feature-branch`
+- Specific issue: `./cli/claude-webhook myrepo "Fix issue" -i 42`
 - Advanced usage: `node cli/webhook-cli.js --repo myrepo --command "Your command" --verbose`
 - Secure mode: `node cli/webhook-cli-secure.js` (uses AWS profile authentication)
 

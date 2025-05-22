@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { createLogger } = require('../utils/logger');
+const secureCredentials = require('../utils/secureCredentials');
 
 const logger = createLogger('githubService');
 
@@ -16,8 +17,10 @@ async function postComment({ repoOwner, repoName, issueNumber, body }) {
       bodyLength: body.length
     }, 'Posting comment to GitHub');
 
+    const githubToken = secureCredentials.get('GITHUB_TOKEN');
+    
     // In test mode, just log the comment instead of posting to GitHub
-    if (process.env.NODE_ENV === 'test' || !process.env.GITHUB_TOKEN.includes('ghp_')) {
+    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
       logger.info({
         repo: `${repoOwner}/${repoName}`,
         issue: issueNumber,

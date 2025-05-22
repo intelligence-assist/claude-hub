@@ -19,11 +19,13 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 ## Build & Run Commands
 
 ### Setup and Installation
-- Initial setup: `./scripts/setup.sh`
-- Start the server: `npm start`
-- Development mode with auto-restart: `npm run dev`
-- Start on specific port: `./start-api.sh` (uses port 3003)
-- Run tests: `npm test`
+- **Initial setup**: `./scripts/setup.sh`
+- **Setup secure credentials**: `./scripts/setup/setup-secure-credentials.sh`
+- **Start with Docker (recommended)**: `docker compose up -d`
+- **Start the server locally**: `npm start`
+- **Development mode with auto-restart**: `npm run dev`
+- **Start on specific port**: `./start-api.sh` (uses port 3003)
+- **Run tests**: `npm test`
 - Run specific test types:
   - Unit tests: `npm run test:unit`
   - Integration tests: `npm run test:integration`
@@ -32,11 +34,12 @@ This repository contains a webhook service that integrates Claude with GitHub, a
   - Watch mode: `npm run test:watch`
 
 ### Docker Commands
+- **Start services**: `docker compose up -d` (uses secure credentials)
+- **Stop services**: `docker compose down`
+- **View logs**: `docker compose logs -f webhook`
+- **Restart**: `docker compose restart webhook`
 - Build Claude container: `./build-claude-container.sh`
 - Build Claude Code container: `./build-claudecode.sh`
-- Build and start with Docker Compose: `docker compose up -d`
-- Stop Docker Compose services: `docker compose down`
-- View logs: `docker compose logs -f webhook`
 - Update production image: `./update-production-image.sh`
 
 ### AWS Credential Management

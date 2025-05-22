@@ -1,0 +1,59 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    name: Security Audit
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for comprehensive scanning
+        
+    - name: Run credential audit
+      run: ./scripts/security/credential-audit.sh
+      
+    - name: Run Gitleaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+        
+    - name: Check for high-risk files
+      run: |
+        # Check for files that commonly contain secrets
+        risk_files=$(find . -name "*.pem" -o -name "*.key" -o -name "*.p12" -o -name "*.pfx" -o -name "*secret*" -o -name "*password*" -o -name "*credential*" | grep -v node_modules || true)
+        if [ ! -z "$risk_files" ]; then
+          echo "⚠️ Found high-risk files that may contain secrets:"
+          echo "$risk_files"
+          echo "::warning::High-risk files detected. Please review for secrets."
+        fi
+        
+    - name: Audit npm packages
+      run: |
+        if [ -f "package.json" ]; then
+          npm audit --audit-level=high
+        fi

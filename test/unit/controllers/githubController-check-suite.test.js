@@ -47,6 +47,8 @@ describe('GitHub Controller - Check Suite Events', () => {
       check_suite: {
         id: 12345,
         conclusion: 'success',
+        head_sha: 'abc123def456',
+        head_branch: 'feature-branch',
         pull_requests: [
           {
             number: 42,
@@ -227,6 +229,7 @@ describe('GitHub Controller - Check Suite Events', () => {
       check_suite: {
         id: 12345,
         conclusion: 'success',
+        head_sha: 'abc123def456',
         pull_requests: [
           {
             number: 42,
@@ -251,6 +254,62 @@ describe('GitHub Controller - Check Suite Events', () => {
     await githubController.handleWebhook(mockReq, mockRes);
 
     // Should still return success response
+    expect(mockRes.status).toHaveBeenCalledWith(200);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      success: true,
+      message: 'Check suite completion processed - PR review triggered',
+      context: {
+        repo: 'owner/repo',
+        checkSuite: 12345,
+        conclusion: 'success',
+        pullRequests: [42]
+      }
+    });
+  });
+
+  it('should use check suite head_sha when PR head.sha is missing', async () => {
+    // Setup successful check suite with pull requests WITHOUT head.sha
+    mockReq.body = {
+      action: 'completed',
+      check_suite: {
+        id: 12345,
+        conclusion: 'success',
+        head_sha: 'check-suite-sha-123',
+        head_branch: 'feature-branch',
+        pull_requests: [
+          {
+            number: 42,
+            // Note: head object exists but no sha property
+            head: {
+              ref: 'feature-branch'
+            }
+          }
+        ]
+      },
+      repository: {
+        full_name: 'owner/repo',
+        owner: {
+          login: 'owner'
+        },
+        name: 'repo'
+      }
+    };
+
+    // Mock Claude service to return success
+    claudeService.processCommand.mockResolvedValue('PR review completed successfully');
+
+    await githubController.handleWebhook(mockReq, mockRes);
+
+    // Verify Claude was called with PR review prompt
+    expect(claudeService.processCommand).toHaveBeenCalledWith({
+      repoFullName: 'owner/repo',
+      issueNumber: 42,
+      command: expect.stringContaining('## PR Review Workflow Instructions'),
+      isPullRequest: true,
+      branchName: 'feature-branch'
+    });
+
+    // Verify response
     expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
       success: true,

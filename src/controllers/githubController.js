@@ -402,24 +402,83 @@ Please check with an administrator to review the logs for more details.`
     }
 
     // Handle check suite completion for automated PR review
-    if (event === 'check_suite' && payload.action === 'completed') {
+    if (event === 'check_suite') {
+      logger.info(
+        {
+          action: payload.action,
+          checkSuiteId: payload.check_suite?.id,
+          conclusion: payload.check_suite?.conclusion,
+          status: payload.check_suite?.status,
+          pullRequestCount: payload.check_suite?.pull_requests?.length || 0
+        },
+        'Received check_suite event details'
+      );
+      
+      if (payload.action === 'completed') {
       const checkSuite = payload.check_suite;
       const repo = payload.repository;
 
+      logger.info(
+        {
+          repo: repo.full_name,
+          checkSuiteId: checkSuite.id,
+          conclusion: checkSuite.conclusion,
+          status: checkSuite.status,
+          headBranch: checkSuite.head_branch,
+          headSha: checkSuite.head_sha,
+          pullRequestCount: checkSuite.pull_requests?.length || 0,
+          pullRequests: checkSuite.pull_requests?.map(pr => ({
+            number: pr.number,
+            headRef: pr.head?.ref,
+            headSha: pr.head?.sha
+          }))
+        },
+        'Processing check_suite completed event'
+      );
+
       // Only proceed if the check suite is for a pull request and conclusion is success
-      if (
-        checkSuite.conclusion === 'success' &&
-        checkSuite.pull_requests &&
-        checkSuite.pull_requests.length > 0
-      ) {
-        for (const pr of checkSuite.pull_requests) {
+      if (checkSuite.conclusion === 'success') {
+        // Check if we have pull requests directly in the webhook payload
+        if (checkSuite.pull_requests && checkSuite.pull_requests.length > 0) {
+          for (const pr of checkSuite.pull_requests) {
           // Verify ALL required status checks have passed using Combined Status API
           let combinedStatus;
           try {
+            // Use the check suite's head_sha if pr.head.sha is not available
+            const commitSha = pr.head?.sha || checkSuite.head_sha;
+            
+            if (!commitSha) {
+              logger.error(
+                {
+                  repo: repo.full_name,
+                  pr: pr.number,
+                  prData: JSON.stringify(pr),
+                  checkSuiteData: {
+                    id: checkSuite.id,
+                    head_sha: checkSuite.head_sha,
+                    head_branch: checkSuite.head_branch
+                  }
+                },
+                'No commit SHA available for PR - cannot check combined status'
+              );
+              continue;
+            }
+            
+            logger.info(
+              {
+                repo: repo.full_name,
+                pr: pr.number,
+                prHeadSha: pr.head?.sha,
+                checkSuiteHeadSha: checkSuite.head_sha,
+                usingSha: commitSha
+              },
+              'Getting combined status for PR'
+            );
+
             combinedStatus = await githubService.getCombinedStatus({
               repoOwner: repo.owner.login,
               repoName: repo.name,
-              ref: pr.head.sha
+              ref: commitSha
             });
 
             // Only proceed if ALL status checks are successful
@@ -573,28 +632,66 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
               'Error processing automated PR review'
             );
           }
+          }
         }
 
-        return res.status(200).json({
-          success: true,
-          message: 'Check suite completion processed - PR review triggered',
-          context: {
-            repo: repo.full_name,
-            checkSuite: checkSuite.id,
-            conclusion: checkSuite.conclusion,
-            pullRequests: checkSuite.pull_requests.map(pr => pr.number)
-          }
-        });
+          return res.status(200).json({
+            success: true,
+            message: 'Check suite completion processed - PR review triggered',
+            context: {
+              repo: repo.full_name,
+              checkSuite: checkSuite.id,
+              conclusion: checkSuite.conclusion,
+              pullRequests: checkSuite.pull_requests.map(pr => pr.number)
+            }
+          });
+        } else if (checkSuite.head_branch) {
+          // If no pull requests in payload but we have a head_branch,
+          // this might be a PR from a fork - log for debugging
+          logger.warn(
+            {
+              repo: repo.full_name,
+              checkSuite: checkSuite.id,
+              headBranch: checkSuite.head_branch,
+              headSha: checkSuite.head_sha
+            },
+            'Check suite succeeded but no pull requests found in payload - possible fork PR'
+          );
+          
+          // TODO: Could query GitHub API to find PRs for this branch/SHA
+          // For now, just acknowledge the webhook
+          return res.status(200).json({
+            success: true,
+            message: 'Check suite completed but no PRs found in payload',
+            context: {
+              repo: repo.full_name,
+              checkSuite: checkSuite.id,
+              conclusion: checkSuite.conclusion,
+              headBranch: checkSuite.head_branch
+            }
+          });
+        }
       } else {
+        // Log the specific reason why PR review was not triggered
+        const reasons = [];
+        if (checkSuite.conclusion !== 'success') {
+          reasons.push(`conclusion is '${checkSuite.conclusion}' (not 'success')`);
+        }
+        if (!checkSuite.pull_requests || checkSuite.pull_requests.length === 0) {
+          reasons.push('no pull requests associated with check suite');
+        }
+
         logger.info(
           {
             repo: repo.full_name,
             checkSuite: checkSuite.id,
             conclusion: checkSuite.conclusion,
-            pullRequestCount: checkSuite.pull_requests?.length || 0
+            pullRequestCount: checkSuite.pull_requests?.length || 0,
+            reasons: reasons.join(', ')
           },
-          'Check suite completed but not triggering PR review (not success or no PRs)'
+          'Check suite completed but not triggering PR review'
         );
+      }
       }
     }
 

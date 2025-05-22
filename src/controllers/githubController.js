@@ -3,6 +3,7 @@ const claudeService = require('../services/claudeService');
 const githubService = require('../services/githubService');
 const { createLogger } = require('../utils/logger');
 const { sanitizeBotMentions, sanitizeLabels } = require('../utils/sanitize');
+const secureCredentials = require('../utils/secureCredentials');
 
 const logger = createLogger('githubController');
 
@@ -35,8 +36,14 @@ function verifyWebhookSignature(req) {
     secret: process.env.GITHUB_WEBHOOK_SECRET ? '[SECRET REDACTED]' : 'missing'
   }, 'Verifying webhook signature');
 
+  const webhookSecret = secureCredentials.get('GITHUB_WEBHOOK_SECRET');
+  if (!webhookSecret) {
+    logger.error('GITHUB_WEBHOOK_SECRET not found in secure credentials');
+    throw new Error('Webhook secret not configured');
+  }
+
   const payload = req.rawBody || JSON.stringify(req.body);
-  const hmac = crypto.createHmac('sha256', process.env.GITHUB_WEBHOOK_SECRET);
+  const hmac = crypto.createHmac('sha256', webhookSecret);
   const calculatedSignature = 'sha256=' + hmac.update(payload).digest('hex');
 
   logger.debug('Webhook signature verification completed');
@@ -101,21 +108,20 @@ async function handleWebhook(req, res) {
 
       try {
         // Process the issue with Claude for automatic tagging
-        const tagCommand = `Analyze this issue and suggest appropriate labels based on the title and description:
+        const tagCommand = `Analyze this issue and apply appropriate labels:
 
 Title: ${issue.title}
 Description: ${issue.body || 'No description provided'}
 
-Available label categories and options:
+Available labels:
 - Priority: critical, high, medium, low
 - Type: bug, feature, enhancement, documentation, question, security
 - Complexity: trivial, simple, moderate, complex
 - Component: api, frontend, backend, database, auth, webhook, docker
 
-Return ONLY a JSON object with suggested labels in this format:
+Return ONLY a JSON object with the labels to apply:
 {
-  "labels": ["priority:medium", "type:feature", "complexity:simple", "component:api"],
-  "reasoning": "Brief explanation of why these labels were chosen"
+  "labels": ["priority:medium", "type:feature", "complexity:simple", "component:api"]
 }`;
 
         logger.info('Sending issue to Claude for auto-tagging analysis');
@@ -145,21 +151,7 @@ Return ONLY a JSON object with suggested labels in this format:
                 labels: labelSuggestion.labels
               });
 
-              // Post a comment explaining the auto-tagging
-              const autoTagComment = `🏷️ **Auto-tagged by Claude:**
-
-${labelSuggestion.reasoning || 'Labels applied based on issue analysis.'}
-
-Applied labels: ${labelSuggestion.labels.map(label => `\`${label}\``).join(', ')}
-
-_If you feel these labels are incorrect, please adjust them manually._`;
-
-              await githubService.postComment({
-                repoOwner: repo.owner.login,
-                repoName: repo.name,
-                issueNumber: issue.number,
-                body: autoTagComment
-              });
+              // Auto-tagging completed - no comment needed for subtlety
 
               const sanitizedLabels = sanitizeLabels(labelSuggestion.labels);
               logger.info({

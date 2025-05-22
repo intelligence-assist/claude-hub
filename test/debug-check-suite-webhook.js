@@ -86,9 +86,9 @@ app.post('/webhook', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   logger.info({ port: PORT }, `Debug webhook server listening on port ${PORT}`);
-  console.log(`\nTo test this webhook receiver:`);
+  console.log('\nTo test this webhook receiver:');
   console.log(`1. Configure your GitHub webhook to point to: http://YOUR_SERVER:${PORT}/webhook`);
-  console.log(`2. Make sure to include check_suite events in the webhook configuration`);
-  console.log(`3. Trigger a check suite completion in your repository`);
-  console.log(`4. Check the logs above for detailed information\n`);
+  console.log('2. Make sure to include check_suite events in the webhook configuration');
+  console.log('3. Trigger a check suite completion in your repository');
+  console.log('4. Check the logs above for detailed information\n');
 });

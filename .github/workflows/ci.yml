@@ -40,6 +40,7 @@ jobs:
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
 
+    # Integration tests are disabled for now
     # - name: Run integration tests
     #   run: npm run test:integration
     #   env:

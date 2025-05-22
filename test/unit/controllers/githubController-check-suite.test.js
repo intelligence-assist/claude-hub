@@ -17,7 +17,6 @@ describe('GitHub Controller - Check Suite Events', () => {
   let mockRes;
 
   beforeEach(() => {
-    
     mockReq = {
       headers: {
         'x-github-event': 'check_suite',
@@ -191,7 +190,7 @@ describe('GitHub Controller - Check Suite Events', () => {
 
     // Verify Claude was called twice, once for each PR
     expect(claudeService.processCommand).toHaveBeenCalledTimes(2);
-    
+
     expect(claudeService.processCommand).toHaveBeenNthCalledWith(1, {
       repoFullName: 'owner/repo',
       issueNumber: 42,

@@ -15,21 +15,22 @@ const testData = {
   GITHUB_TOKEN: 'github_token_example_1234567890',
   AWS_ACCESS_KEY_ID: 'EXAMPLE_KEY_ID',
   AWS_SECRET_ACCESS_KEY: 'EXAMPLE_SECRET_KEY',
-  
+
   // Nested in envVars
   envVars: {
     GITHUB_TOKEN: 'github_token_example_nested',
     AWS_ACCESS_KEY_ID: 'EXAMPLE_NESTED_KEY_ID',
     AWS_SECRET_ACCESS_KEY: 'EXAMPLE_NESTED_SECRET_KEY'
   },
-  
+
   // Docker command
-  dockerCommand: 'docker run -e GITHUB_TOKEN="github_token_example_command" -e AWS_SECRET_ACCESS_KEY="secretInCommand"',
-  
+  dockerCommand:
+    'docker run -e GITHUB_TOKEN="github_token_example_command" -e AWS_SECRET_ACCESS_KEY="secretInCommand"',
+
   // Error outputs
   stderr: 'Error: Failed with token github_token_example_error and key EXAMPLE_ERROR_KEY_ID',
   stdout: 'Output contains secret EXAMPLE_OUTPUT_SECRET_KEY',
-  
+
   // Other fields that should pass through
   normalField: 'This is normal data',
   repo: 'owner/repo',
@@ -40,13 +41,16 @@ const testData = {
 logger.info(testData, 'Testing logger redaction');
 
 // Also test nested objects
-logger.error({
-  error: {
-    message: 'Something failed',
-    dockerCommand: 'docker run -e AWS_SECRET_ACCESS_KEY="shouldBeRedacted"',
-    stderr: 'Contains AWS_SECRET_ACCESS_KEY=actualSecretKey'
-  }
-}, 'Testing nested redaction');
+logger.error(
+  {
+    error: {
+      message: 'Something failed',
+      dockerCommand: 'docker run -e AWS_SECRET_ACCESS_KEY="shouldBeRedacted"',
+      stderr: 'Contains AWS_SECRET_ACCESS_KEY=actualSecretKey'
+    }
+  },
+  'Testing nested redaction'
+);
 
 console.log('\nCheck the logged output above - all sensitive values should show as [REDACTED]');
 console.log('If you see any actual secrets, the redaction is not working properly.');

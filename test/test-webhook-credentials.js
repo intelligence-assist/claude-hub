@@ -29,11 +29,11 @@ async function testCredentialLeakPrevention() {
       isPullRequest: false,
       branchName: null
     });
-    
+
     console.log('Test result:', result);
   } catch (error) {
     console.log('Error caught (expected):', error.message);
-    
+
     // Check if error message contains any credentials
     const errorMessage = error.message.toString();
     const credentials = [
@@ -41,7 +41,7 @@ async function testCredentialLeakPrevention() {
       process.env.AWS_ACCESS_KEY_ID,
       process.env.AWS_SECRET_ACCESS_KEY
     ];
-    
+
     let hasLeak = false;
     credentials.forEach(cred => {
       if (errorMessage.includes(cred)) {
@@ -49,11 +49,11 @@ async function testCredentialLeakPrevention() {
         hasLeak = true;
       }
     });
-    
+
     if (!hasLeak) {
       console.log('✅ SUCCESS: No credentials found in error message');
     }
-    
+
     // Also check the error object if it has stderr/stdout
     if (error.stderr) {
       const stderr = error.stderr.toString();

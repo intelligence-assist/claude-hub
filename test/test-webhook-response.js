@@ -40,7 +40,7 @@ async function testWebhookResponse() {
   try {
     console.log('Sending webhook request to:', `${API_URL}/api/webhooks/github`);
     console.log('Payload:', JSON.stringify(payload, null, 2));
-    
+
     const response = await axios.post(`${API_URL}/api/webhooks/github`, payload, {
       headers: {
         'Content-Type': 'application/json',
@@ -49,17 +49,16 @@ async function testWebhookResponse() {
         'X-GitHub-Delivery': 'test-delivery-' + Date.now()
       }
     });
-    
+
     console.log('\nResponse Status:', response.status);
     console.log('Response Data:', JSON.stringify(response.data, null, 2));
-    
+
     if (response.data.claudeResponse) {
       console.log('\n✅ Success! Claude response received in webhook response:');
       console.log(response.data.claudeResponse);
     } else {
       console.log('\n❌ No Claude response found in webhook response');
     }
-    
   } catch (error) {
     console.error('\nError:', error.response ? error.response.data : error.message);
     throw error;

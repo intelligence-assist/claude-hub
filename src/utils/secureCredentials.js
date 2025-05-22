@@ -32,7 +32,7 @@ class SecureCredentials {
 
     for (const [key, config] of Object.entries(credentialMappings)) {
       let value = null;
-      
+
       // Try to read from file first (most secure)
       try {
         if (fs.existsSync(config.file)) {

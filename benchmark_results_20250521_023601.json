@@ -1,9 +1,0 @@
-{
-  "timestamp": "2025-05-21T02:36:01+00:00",
-  "compose_file": "docker-compose.optimized.yml",
-  "runs": 2,
-  "results_ms": [3110,1580],
-  "average_ms": 2345,
-  "min_ms": 1580,
-  "max_ms": 3110
-}

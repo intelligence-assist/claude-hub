@@ -24,7 +24,7 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - **Start with Docker (recommended)**: `docker compose up -d`
 - **Start the server locally**: `npm start`
 - **Development mode with auto-restart**: `npm run dev`
-- **Start on specific port**: `./start-api.sh` (uses port 3003)
+- **Start on specific port**: `./scripts/runtime/start-api.sh` (uses port 3003)
 - **Run tests**: `npm test`
 - Run specific test types:
   - Unit tests: `npm run test:unit`
@@ -39,14 +39,14 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - **View logs**: `docker compose logs -f webhook`
 - **Restart**: `docker compose restart webhook`
 - Build Claude container: `./build-claude-container.sh`
-- Build Claude Code container: `./build-claudecode.sh`
+- Build Claude Code container: `./scripts/build/build-claudecode.sh`
 - Update production image: `./update-production-image.sh`
 
 ### AWS Credential Management
 - Create AWS profile: `./scripts/create-aws-profile.sh`
 - Migrate from static credentials: `./scripts/migrate-aws-credentials.sh`
 - Setup AWS profiles: `./scripts/setup-aws-profiles.sh`
-- Setup Claude authentication: `./setup-claude-auth.sh`
+- Setup Claude authentication: `./scripts/setup/setup-claude-auth.sh`
 
 ### Testing Utilities
 - Test Claude API directly: `node test/test-claude-api.js owner/repo`

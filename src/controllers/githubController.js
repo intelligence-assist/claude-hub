@@ -402,19 +402,7 @@ Please check with an administrator to review the logs for more details.`
     }
 
     // Handle check suite completion for automated PR review
-    if (event === 'check_suite') {
-      logger.info(
-        {
-          action: payload.action,
-          checkSuiteId: payload.check_suite?.id,
-          conclusion: payload.check_suite?.conclusion,
-          status: payload.check_suite?.status,
-          pullRequestCount: payload.check_suite?.pull_requests?.length || 0
-        },
-        'Received check_suite event details'
-      );
-      
-      if (payload.action === 'completed') {
+    if (event === 'check_suite' && payload.action === 'completed') {
       const checkSuite = payload.check_suite;
       const repo = payload.repository;
 
@@ -437,9 +425,7 @@ Please check with an administrator to review the logs for more details.`
       );
 
       // Only proceed if the check suite is for a pull request and conclusion is success
-      if (checkSuite.conclusion === 'success') {
-        // Check if we have pull requests directly in the webhook payload
-        if (checkSuite.pull_requests && checkSuite.pull_requests.length > 0) {
+      if (checkSuite.conclusion === 'success' && checkSuite.pull_requests && checkSuite.pull_requests.length > 0) {
           for (const pr of checkSuite.pull_requests) {
           // Verify ALL required status checks have passed using Combined Status API
           let combinedStatus;
@@ -632,9 +618,8 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
               'Error processing automated PR review'
             );
           }
-          }
         }
-
+          // Return success after processing all PRs
           return res.status(200).json({
             success: true,
             message: 'Check suite completion processed - PR review triggered',
@@ -691,7 +676,6 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
           },
           'Check suite completed but not triggering PR review'
         );
-      }
       }
     }
 

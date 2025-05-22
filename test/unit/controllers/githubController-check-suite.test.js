@@ -161,17 +161,20 @@ describe('GitHub Controller - Check Suite Events', () => {
       check_suite: {
         id: 12345,
         conclusion: 'success',
+        head_sha: 'check-suite-sha',
         pull_requests: [
           {
             number: 42,
             head: {
-              ref: 'feature-branch-1'
+              ref: 'feature-branch-1',
+              sha: 'pr42-sha'
             }
           },
           {
             number: 43,
             head: {
-              ref: 'feature-branch-2'
+              ref: 'feature-branch-2',
+              sha: 'pr43-sha'
             }
           }
         ]

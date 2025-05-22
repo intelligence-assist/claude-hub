@@ -8,7 +8,7 @@ const repoFullName = process.argv[2] || 'test-org/test-repo';
 const useContainer = process.argv[3] === 'container';
 
 // The command to send to Claude
-const command = process.argv[4] || "Explain what this repository does and list its main components";
+const command = process.argv[4] || 'Explain what this repository does and list its main components';
 
 console.log(`
 Claude API Test Utility

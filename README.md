@@ -1,6 +1,11 @@
 # Claude GitHub Webhook
 
+[![CI Pipeline](https://github.com/your-org/claude-github-webhook/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/claude-github-webhook/actions/workflows/ci.yml)
+[![Security Scans](https://github.com/your-org/claude-github-webhook/actions/workflows/security.yml/badge.svg)](https://github.com/your-org/claude-github-webhook/actions/workflows/security.yml)
 [![Jest Tests](https://img.shields.io/badge/tests-jest-green)](test/README.md)
+[![Code Coverage](https://img.shields.io/badge/coverage-59%25-yellow)](./coverage/index.html)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](package.json)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A webhook service that enables Claude Code to respond to GitHub mentions and execute commands within repository contexts. This microservice allows Claude to analyze code, answer questions, and optionally make changes when mentioned in GitHub comments.
 

@@ -54,6 +54,23 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Test Claude container: `./test/test-claudecode-docker.sh`
 - Test full workflow: `./test/test-full-flow.sh`
 
+### CI/CD Commands
+- Run linting: `npm run lint` (auto-fix) or `npm run lint:check` (check only)
+- Run formatting: `npm run format` (auto-fix) or `npm run format:check` (check only)
+- Run security audit: `npm run security:audit`
+- Fix security vulnerabilities: `npm run security:fix`
+- All CI tests: `npm run test:ci` (includes coverage)
+
+### End-to-End Testing
+Use the demo repository for testing auto-tagging and webhook functionality:
+- Demo repository: `https://github.com/intelligence-assist/demo-repository`
+- Test auto-tagging: `./cli/webhook-cli.js --repo "intelligence-assist/demo-repository" --command "Auto-tag this issue" --issue 1 --url "http://localhost:8082"`
+- Test with specific issue content: Create a new issue in the demo repository to trigger auto-tagging webhook
+- Verify labels are applied based on issue content analysis
+
+### Label Management
+- Setup repository labels: `GITHUB_TOKEN=your_token node scripts/utils/setup-repository-labels.js owner/repo`
+
 ### CLI Commands
 - Basic usage: `./claude-webhook myrepo "Your command for Claude"`
 - With explicit owner: `./claude-webhook owner/repo "Your command for Claude"`
@@ -61,6 +78,25 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Specific issue: `./claude-webhook myrepo "Fix issue" -i 42`
 - Advanced usage: `node cli/webhook-cli.js --repo myrepo --command "Your command" --verbose`
 - Secure mode: `node cli/webhook-cli-secure.js` (uses AWS profile authentication)
+
+## Features
+
+### Auto-Tagging
+The system automatically analyzes new issues and applies appropriate labels based on:
+- **Priority**: critical, high, medium, low
+- **Type**: bug, feature, enhancement, documentation, question, security  
+- **Complexity**: trivial, simple, moderate, complex
+- **Component**: api, frontend, backend, database, auth, webhook, docker
+
+When an issue is opened, Claude analyzes the title and description to suggest intelligent labels, with keyword-based fallback for reliability.
+
+### Automated PR Review
+The system automatically triggers comprehensive PR reviews when all checks pass:
+- **Trigger**: `check_suite` webhook event with `conclusion: 'success'`
+- **Scope**: Reviews all PRs associated with the successful check suite
+- **Process**: Claude performs security, logic, performance, and code quality analysis
+- **Output**: Detailed review comments, line-specific feedback, and approval/change requests
+- **Integration**: Uses GitHub CLI (`gh`) commands for seamless review workflow
 
 ## Architecture Overview
 

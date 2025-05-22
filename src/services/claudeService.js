@@ -1,11 +1,12 @@
 const { execSync, exec } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
-const fs = require('fs');
+// Use sync methods for file operations that need to be synchronous
+const fsSync = require('fs');
 const path = require('path');
-const os = require('os');
+// const os = require('os');
 const { createLogger } = require('../utils/logger');
-const awsCredentialProvider = require('../utils/awsCredentialProvider');
+// const awsCredentialProvider = require('../utils/awsCredentialProvider');
 const { sanitizeBotMentions } = require('../utils/sanitize');
 
 const logger = createLogger('claudeService');
@@ -163,8 +164,10 @@ Please complete this task fully and autonomously.`;
         const stringValue = String(value);
         // Write complex values to files for safer handling
         if (key === 'COMMAND' && stringValue.length > 500) {
-          const tmpFile = `/tmp/claude-command-${Date.now()}.txt`;
-          fs.writeFileSync(tmpFile, stringValue);
+          const crypto = require('crypto');
+          const randomSuffix = crypto.randomBytes(16).toString('hex');
+          const tmpFile = `/tmp/claude-command-${Date.now()}-${randomSuffix}.txt`;
+          fsSync.writeFileSync(tmpFile, stringValue, { mode: 0o600 }); // Secure file permissions
           return `-e ${key}="$(cat ${tmpFile})"`;
         }
         // Escape for shell with double quotes (more reliable than single quotes)
@@ -210,7 +213,7 @@ Please complete this task fully and autonomously.`;
           const tempFiles = execSync('find /tmp -name "claude-command-*.txt" -type f').toString().split('\n');
           tempFiles.filter(f => f).forEach(file => {
             try {
-              fs.unlinkSync(file);
+              fsSync.unlinkSync(file);
               logger.info(`Removed temp file: ${file}`);
             } catch (e) {
               logger.warn(`Failed to remove temp file: ${file}`);
@@ -277,7 +280,7 @@ Please complete this task fully and autonomously.`;
         const tempFiles = execSync('find /tmp -name "claude-command-*.txt" -type f').toString().split('\n');
         tempFiles.filter(f => f).forEach(file => {
           try {
-            fs.unlinkSync(file);
+            fsSync.unlinkSync(file);
           } catch (e) {
             // Ignore cleanup errors
           }

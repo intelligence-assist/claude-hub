@@ -383,7 +383,7 @@ async function getCombinedStatus({ repoOwner, repoName, ref }) {
     const response = await axios.get(url, {
       headers: {
         Accept: 'application/vnd.github.v3+json',
-        Authorization: `token ${githubToken}`,
+        Authorization: `token ${process.env.GITHUB_TOKEN}`,
         'User-Agent': 'Claude-GitHub-Webhook'
       }
     });

@@ -7,10 +7,10 @@ const config = {
   awsSecret: 'EXAMPLE_SECRET_KEY',
   githubToken: 'github_token_example_1234567890',
   npmToken: 'npm_abcdefghijklmnopqrstuvwxyz0123456789',
-  
+
   // This should be allowed with pragma comment
   apiKey: 'not-a-real-key-123456', // pragma: allowlist secret
-  
+
   // These are not secrets
   normalString: 'hello world',
   publicKey: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC...',

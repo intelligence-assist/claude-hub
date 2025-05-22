@@ -2,7 +2,7 @@
 
 /**
  * Test script for Claude container execution
- * 
+ *
  * This script tests the Claude container execution by directly using the
  * claudeService processCommand function with container mode enabled.
  */
@@ -30,32 +30,32 @@ async function testContainer() {
   console.log('Container Mode: Enabled');
   console.log(`Container Image: ${process.env.CLAUDE_CONTAINER_IMAGE || 'claudecode:latest'}`);
   console.log('\nExecuting Claude in container...');
-  
+
   try {
     console.time('Execution time');
-    
+
     const response = await processCommand({
       repoFullName,
       issueNumber,
       command,
       useContainer: true
     });
-    
+
     console.timeEnd('Execution time');
     console.log('\n--- Claude Response ---\n');
     console.log(response);
     console.log('\n--- End Response ---\n');
-    
+
     return 0;
   } catch (error) {
     console.error('\nError during container execution:');
     console.error(error.message);
-    
+
     if (error.stack) {
       console.error('\nStack trace:');
       console.error(error.stack);
     }
-    
+
     return 1;
   }
 }

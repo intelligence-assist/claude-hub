@@ -53,6 +53,7 @@ npm run test:watch
 Unit tests focus on testing individual components in isolation. They use Jest's mocking capabilities to replace dependencies with test doubles. These tests are fast and reliable, making them ideal for development and CI/CD pipelines.
 
 Example:
+
 ```javascript
 // Test for awsCredentialProvider.js
 describe('AWS Credential Provider', () => {
@@ -68,14 +69,13 @@ describe('AWS Credential Provider', () => {
 Integration tests verify that different components work together correctly. They test the interactions between services, controllers, and external systems like GitHub and AWS.
 
 Example:
+
 ```javascript
 // Test for GitHub webhook processing
 describe('GitHub Webhook Processing', () => {
   test('should process a comment with @MCPClaude mention', async () => {
-    const response = await request(app)
-      .post('/api/webhooks/github')
-      .send(webhookPayload);
-    
+    const response = await request(app).post('/api/webhooks/github').send(webhookPayload);
+
     expect(response.status).toBe(200);
   });
 });
@@ -86,10 +86,12 @@ describe('GitHub Webhook Processing', () => {
 End-to-end tests verify that the entire system works correctly from start to finish. These tests often involve setting up Docker containers, simulating webhook events, and verifying that Claude responds correctly.
 
 E2E tests are organized into:
+
 - **Scripts**: Helper scripts for setting up test environments
 - **Scenarios**: Jest tests that use the helper scripts to run E2E tests
 
 Example:
+
 ```javascript
 // Test for Claude container execution
 describe('Container Execution E2E Tests', () => {
@@ -98,7 +100,7 @@ describe('Container Execution E2E Tests', () => {
       command: 'Hello Claude',
       repoFullName: 'test-org/test-repo'
     });
-    
+
     expect(response.status).toBe(200);
   });
 });
@@ -109,6 +111,7 @@ describe('Container Execution E2E Tests', () => {
 The original shell scripts in `/test` are being gradually migrated to the new testing framework. Several one-off and debug scripts have been removed to clean up the codebase. The remaining shell scripts serve two purposes:
 
 1. **E2E Infrastructure Tests**: Scripts that test container/environment configurations and will remain as separate scripts:
+
    - `test-claude-direct.sh` - Tests direct Claude container execution
    - `test-firewall.sh` - Tests firewall initialization
    - `test-container-privileged.sh` - Tests container privileges

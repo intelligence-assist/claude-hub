@@ -21,12 +21,15 @@ app.use((req, res, next) => {
 
   res.on('finish', () => {
     const responseTime = Date.now() - startTime;
-    appLogger.info({
-      method: req.method,
-      url: req.url,
-      statusCode: res.statusCode,
-      responseTime: `${responseTime}ms`
-    }, `${req.method} ${req.url}`);
+    appLogger.info(
+      {
+        method: req.method,
+        url: req.url,
+        statusCode: res.statusCode,
+        responseTime: `${responseTime}ms`
+      },
+      `${req.method} ${req.url}`
+    );
   });
 
   next();
@@ -35,12 +38,14 @@ app.use((req, res, next) => {
 // Middleware
 app.use(startupMetrics.metricsMiddleware());
 
-app.use(bodyParser.json({
-  verify: (req, res, buf) => {
-    // Store the raw body buffer for webhook signature verification
-    req.rawBody = buf;
-  }
-}));
+app.use(
+  bodyParser.json({
+    verify: (req, res, buf) => {
+      // Store the raw body buffer for webhook signature verification
+      req.rawBody = buf;
+    }
+  })
+);
 
 startupMetrics.recordMilestone('middleware_configured', 'Express middleware configured');
 
@@ -53,7 +58,7 @@ startupMetrics.recordMilestone('routes_configured', 'API routes configured');
 // Health check endpoint
 app.get('/health', async (req, res) => {
   const healthCheckStart = Date.now();
-  
+
   const checks = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -115,14 +120,17 @@ app.get('/api/test-tunnel', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, _next) => {
-  appLogger.error({
-    err: {
-      message: err.message,
-      stack: err.stack
+  appLogger.error(
+    {
+      err: {
+        message: err.message,
+        stack: err.stack
+      },
+      method: req.method,
+      url: req.url
     },
-    method: req.method,
-    url: req.url
-  }, 'Request error');
+    'Request error'
+  );
 
   res.status(500).json({ error: 'Internal server error' });
 });

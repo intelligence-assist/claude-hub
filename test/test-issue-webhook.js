@@ -33,13 +33,13 @@ function createSignature(payload, secret) {
 async function testIssueWebhook() {
   const webhookUrl = 'http://localhost:8082/api/webhooks/github';
   const secret = process.env.GITHUB_WEBHOOK_SECRET || 'test-secret';
-  
+
   try {
     console.log('Testing issue webhook with mock payload...');
     console.log('Issue:', mockPayload.issue.title);
-    
+
     const signature = createSignature(mockPayload, secret);
-    
+
     const response = await axios.post(webhookUrl, mockPayload, {
       headers: {
         'Content-Type': 'application/json',
@@ -50,10 +50,9 @@ async function testIssueWebhook() {
       },
       timeout: 30000
     });
-    
+
     console.log('✓ Webhook response status:', response.status);
     console.log('✓ Response data:', response.data);
-    
   } catch (error) {
     console.error('✗ Webhook test failed:');
     if (error.response) {

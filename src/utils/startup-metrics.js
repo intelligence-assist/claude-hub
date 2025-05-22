@@ -11,18 +11,21 @@ class StartupMetrics {
   recordMilestone(name, description = '') {
     const timestamp = Date.now();
     const elapsed = timestamp - this.startTime;
-    
+
     this.milestones[name] = {
       timestamp,
       elapsed,
       description
     };
 
-    this.logger.info({
-      milestone: name,
-      elapsed: `${elapsed}ms`,
-      description
-    }, `Startup milestone: ${name}`);
+    this.logger.info(
+      {
+        milestone: name,
+        elapsed: `${elapsed}ms`,
+        description
+      },
+      `Startup milestone: ${name}`
+    );
 
     return elapsed;
   }
@@ -30,11 +33,14 @@ class StartupMetrics {
   markReady() {
     const totalTime = this.recordMilestone('service_ready', 'Service is ready to accept requests');
     this.isReady = true;
-    
-    this.logger.info({
-      totalStartupTime: `${totalTime}ms`,
-      milestones: this.milestones
-    }, 'Service startup completed');
+
+    this.logger.info(
+      {
+        totalStartupTime: `${totalTime}ms`,
+        milestones: this.milestones
+      },
+      'Service startup completed'
+    );
 
     return totalTime;
   }

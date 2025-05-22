@@ -17,7 +17,9 @@ const BOT_USERNAME = process.env.BOT_USERNAME;
 
 // Validate bot username is set
 if (!BOT_USERNAME) {
-  logger.error('BOT_USERNAME environment variable is not set in claudeService. This is required to prevent infinite loops.');
+  logger.error(
+    'BOT_USERNAME environment variable is not set in claudeService. This is required to prevent infinite loops.'
+  );
   throw new Error('BOT_USERNAME environment variable is required');
 }
 
@@ -34,24 +36,36 @@ if (!BOT_USERNAME) {
  * @param {string} [options.branchName] - The branch name for pull requests
  * @returns {Promise<string>} - Claude's response
  */
-async function processCommand({ repoFullName, issueNumber, command, isPullRequest = false, branchName = null }) {
+async function processCommand({
+  repoFullName,
+  issueNumber,
+  command,
+  isPullRequest = false,
+  branchName = null
+}) {
   try {
-    logger.info({
-      repo: repoFullName,
-      issue: issueNumber,
-      isPullRequest,
-      branchName,
-      commandLength: command.length
-    }, 'Processing command with Claude');
+    logger.info(
+      {
+        repo: repoFullName,
+        issue: issueNumber,
+        isPullRequest,
+        branchName,
+        commandLength: command.length
+      },
+      'Processing command with Claude'
+    );
 
     const githubToken = secureCredentials.get('GITHUB_TOKEN');
-    
+
     // In test mode, skip execution and return a mock response
     if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
-      logger.info({
-        repo: repoFullName,
-        issue: issueNumber
-      }, 'TEST MODE: Skipping Claude execution');
+      logger.info(
+        {
+          repo: repoFullName,
+          issue: issueNumber
+        },
+        'TEST MODE: Skipping Claude execution'
+      );
 
       // Create a test response and sanitize it
       const testResponse = `Hello! I'm Claude responding to your request.
@@ -63,7 +77,7 @@ Since this is a test environment, I'm providing a simulated response. In product
 4. Use GitHub CLI to interact with issues, PRs, and comments
 
 For real functionality, please configure valid GitHub and Claude API tokens.`;
-      
+
       // Always sanitize responses, even in test mode
       return sanitizeBotMentions(testResponse);
     }
@@ -83,7 +97,7 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
 
     // Create unique container name
     const containerName = `claude-${repoFullName.replace(/\//g, '-')}-${Date.now()}`;
-    
+
     // Create the full prompt with context and instructions
     const fullPrompt = `You are Claude, an AI assistant responding to a GitHub ${isPullRequest ? 'pull request' : 'issue'} via the ${BOT_USERNAME} webhook.
 
@@ -154,23 +168,32 @@ Please complete this task fully and autonomously.`;
       .join(' ');
 
     // Run the container
-    logger.info({
-      containerName,
-      repo: repoFullName,
-      isPullRequest,
-      branch: branchName
-    }, 'Starting Claude Code container');
+    logger.info(
+      {
+        containerName,
+        repo: repoFullName,
+        isPullRequest,
+        branch: branchName
+      },
+      'Starting Claude Code container'
+    );
 
     const dockerCommand = `docker run --rm --privileged --cap-add=NET_ADMIN --cap-add=NET_RAW --cap-add=SYS_TIME --cap-add=DAC_OVERRIDE --cap-add=AUDIT_WRITE --cap-add=SYS_ADMIN --name ${containerName} ${envArgs} ${dockerImageName}`;
-    
+
     // Create sanitized version for logging (remove sensitive values)
-    const sanitizedCommand = dockerCommand.replace(/-e [A-Z_]+=".+?"/g, (match) => {
+    const sanitizedCommand = dockerCommand.replace(/-e [A-Z_]+=".+?"/g, match => {
       // Extract the environment variable name, handling both quotes and command substitution
       const keyMatch = match.match(/-e ([A-Z_]+)=/);
       if (!keyMatch) return match;
-      
+
       const envKey = keyMatch[1];
-      const sensitiveSKeys = ['GITHUB_TOKEN', 'ANTHROPIC_API_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN'];
+      const sensitiveSKeys = [
+        'GITHUB_TOKEN',
+        'ANTHROPIC_API_KEY',
+        'AWS_ACCESS_KEY_ID',
+        'AWS_SECRET_ACCESS_KEY',
+        'AWS_SESSION_TOKEN'
+      ];
       if (sensitiveSKeys.includes(envKey)) {
         return `-e ${envKey}="[REDACTED]"`;
       }
@@ -180,31 +203,35 @@ Please complete this task fully and autonomously.`;
       }
       return match;
     });
-    
+
     try {
       logger.info({ dockerCommand: sanitizedCommand }, 'Executing Docker command');
-      
+
       // Clear any temporary command files after execution
       const cleanupTempFiles = () => {
         try {
-          const tempFiles = execSync('find /tmp -name "claude-command-*.txt" -type f').toString().split('\n');
-          tempFiles.filter(f => f).forEach(file => {
-            try {
-              fsSync.unlinkSync(file);
-              logger.info(`Removed temp file: ${file}`);
-            } catch (e) {
-              logger.warn(`Failed to remove temp file: ${file}`);
-            }
-          });
+          const tempFiles = execSync('find /tmp -name "claude-command-*.txt" -type f')
+            .toString()
+            .split('\n');
+          tempFiles
+            .filter(f => f)
+            .forEach(file => {
+              try {
+                fsSync.unlinkSync(file);
+                logger.info(`Removed temp file: ${file}`);
+              } catch (e) {
+                logger.warn(`Failed to remove temp file: ${file}`);
+              }
+            });
         } catch (e) {
           logger.warn('Failed to clean up temp files');
         }
       };
-      
+
       // Get container lifetime from environment variable or use default (2 hours)
       const containerLifetimeMs = parseInt(process.env.CONTAINER_LIFETIME_MS, 10) || 7200000; // 2 hours in milliseconds
       logger.info({ containerLifetimeMs }, 'Setting container lifetime');
-      
+
       const result = await execAsync(dockerCommand, {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
         timeout: containerLifetimeMs // Container lifetime in milliseconds
@@ -214,64 +241,76 @@ Please complete this task fully and autonomously.`;
       cleanupTempFiles();
 
       let responseText = result.stdout.trim();
-      
+
       // Check for empty response
       if (!responseText) {
-        logger.warn({
-          containerName,
-          repo: repoFullName,
-          issue: issueNumber
-        }, 'Empty response from Claude Code container');
-        
+        logger.warn(
+          {
+            containerName,
+            repo: repoFullName,
+            issue: issueNumber
+          },
+          'Empty response from Claude Code container'
+        );
+
         // Try to get container logs as the response instead
         try {
-          responseText = execSync(`docker logs ${containerName} 2>&1`, { 
+          responseText = execSync(`docker logs ${containerName} 2>&1`, {
             encoding: 'utf8',
             maxBuffer: 1024 * 1024
           });
           logger.info('Retrieved response from container logs');
         } catch (e) {
-          logger.error({
-            error: e.message,
-            containerName
-          }, 'Failed to get container logs as fallback');
+          logger.error(
+            {
+              error: e.message,
+              containerName
+            },
+            'Failed to get container logs as fallback'
+          );
         }
       }
-      
+
       // Sanitize response to prevent infinite loops by removing bot mentions
       responseText = sanitizeBotMentions(responseText);
-      
-      logger.info({
-        repo: repoFullName,
-        issue: issueNumber,
-        responseLength: responseText.length,
-        containerName,
-        stdout: responseText.substring(0, 500) // Log first 500 chars
-      }, 'Claude Code execution completed successfully');
+
+      logger.info(
+        {
+          repo: repoFullName,
+          issue: issueNumber,
+          responseLength: responseText.length,
+          containerName,
+          stdout: responseText.substring(0, 500) // Log first 500 chars
+        },
+        'Claude Code execution completed successfully'
+      );
 
       return responseText;
-
     } catch (error) {
       // Clean up temporary files even when there's an error
       try {
-        const tempFiles = execSync('find /tmp -name "claude-command-*.txt" -type f').toString().split('\n');
-        tempFiles.filter(f => f).forEach(file => {
-          try {
-            fsSync.unlinkSync(file);
-          } catch (e) {
-            // Ignore cleanup errors
-          }
-        });
+        const tempFiles = execSync('find /tmp -name "claude-command-*.txt" -type f')
+          .toString()
+          .split('\n');
+        tempFiles
+          .filter(f => f)
+          .forEach(file => {
+            try {
+              fsSync.unlinkSync(file);
+            } catch (e) {
+              // Ignore cleanup errors
+            }
+          });
       } catch (e) {
         // Ignore cleanup errors
       }
-      
+
       // Sanitize stderr and stdout to remove any potential credentials
-      const sanitizeOutput = (output) => {
+      const sanitizeOutput = output => {
         if (!output) return output;
         // Import the sanitization utility
         let sanitized = output.toString();
-        
+
         // Sensitive values to redact
         const sensitiveValues = [
           githubToken,
@@ -280,7 +319,7 @@ Please complete this task fully and autonomously.`;
           envVars.AWS_SECRET_ACCESS_KEY,
           envVars.AWS_SESSION_TOKEN
         ].filter(val => val && val.length > 0);
-        
+
         sensitiveValues.forEach(value => {
           if (value) {
             // Convert to string and escape regex special characters
@@ -292,13 +331,16 @@ Please complete this task fully and autonomously.`;
         });
         return sanitized;
       };
-      
+
       // Check for specific error types
       const errorMsg = error.message || '';
       const errorOutput = error.stderr ? error.stderr.toString() : '';
-      
+
       // Check if this is a docker image not found error
-      if (errorOutput.includes('Unable to find image') || errorMsg.includes('Unable to find image')) {
+      if (
+        errorOutput.includes('Unable to find image') ||
+        errorMsg.includes('Unable to find image')
+      ) {
         logger.error('Docker image not found. Attempting to rebuild...');
         try {
           execSync(`docker build -f Dockerfile.claudecode -t ${dockerImageName} .`, {
@@ -307,23 +349,29 @@ Please complete this task fully and autonomously.`;
           });
           logger.info('Successfully rebuilt Docker image');
         } catch (rebuildError) {
-          logger.error({
-            error: rebuildError.message
-          }, 'Failed to rebuild Docker image');
+          logger.error(
+            {
+              error: rebuildError.message
+            },
+            'Failed to rebuild Docker image'
+          );
         }
       }
-      
-      logger.error({
-        error: error.message,
-        stderr: sanitizeOutput(error.stderr),
-        stdout: sanitizeOutput(error.stdout),
-        containerName,
-        dockerCommand: sanitizedCommand
-      }, 'Error running Claude Code container');
+
+      logger.error(
+        {
+          error: error.message,
+          stderr: sanitizeOutput(error.stderr),
+          stdout: sanitizeOutput(error.stdout),
+          containerName,
+          dockerCommand: sanitizedCommand
+        },
+        'Error running Claude Code container'
+      );
 
       // Try to get container logs for debugging
       try {
-        const logs = execSync(`docker logs ${containerName} 2>&1`, { 
+        const logs = execSync(`docker logs ${containerName} 2>&1`, {
           encoding: 'utf8',
           maxBuffer: 1024 * 1024
         });
@@ -342,33 +390,35 @@ Please complete this task fully and autonomously.`;
       // Generate an error ID for log correlation
       const timestamp = new Date().toISOString();
       const errorId = `err-${Math.random().toString(36).substring(2, 10)}`;
-      
+
       // Log the detailed error with full context
       const sanitizedStderr = sanitizeOutput(error.stderr);
       const sanitizedStdout = sanitizeOutput(error.stdout);
-      
-      logger.error({
-        errorId,
-        timestamp,
-        error: error.message,
-        stderr: sanitizedStderr,
-        stdout: sanitizedStdout,
-        containerName,
-        repo: repoFullName,
-        issue: issueNumber
-      }, 'Claude Code container execution failed (with error reference)');
-      
+
+      logger.error(
+        {
+          errorId,
+          timestamp,
+          error: error.message,
+          stderr: sanitizedStderr,
+          stdout: sanitizedStdout,
+          containerName,
+          repo: repoFullName,
+          issue: issueNumber
+        },
+        'Claude Code container execution failed (with error reference)'
+      );
+
       // Throw a generic error with reference ID, but without sensitive details
       const errorMessage = sanitizeBotMentions(
         `Error executing Claude command (Reference: ${errorId}, Time: ${timestamp})`
       );
-      
+
       throw new Error(errorMessage);
     }
-
   } catch (error) {
     // Sanitize the error message to remove any credentials
-    const sanitizeMessage = (message) => {
+    const sanitizeMessage = message => {
       if (!message) return message;
       let sanitized = message;
       const sensitivePatterns = [
@@ -376,47 +426,53 @@ Please complete this task fully and autonomously.`;
         /AWS_SECRET_ACCESS_KEY="[^"]+"/g,
         /AWS_SESSION_TOKEN="[^"]+"/g,
         /GITHUB_TOKEN="[^"]+"/g,
-        /AKIA[0-9A-Z]{16}/g,  // AWS Access Key pattern
-        /[a-zA-Z0-9/+=]{40}/g  // AWS Secret Key pattern
+        /AKIA[0-9A-Z]{16}/g, // AWS Access Key pattern
+        /[a-zA-Z0-9/+=]{40}/g // AWS Secret Key pattern
       ];
-      
+
       sensitivePatterns.forEach(pattern => {
         sanitized = sanitized.replace(pattern, '[REDACTED]');
       });
       return sanitized;
     };
-    
-    logger.error({
-      err: {
-        message: sanitizeMessage(error.message),
-        stack: sanitizeMessage(error.stack)
+
+    logger.error(
+      {
+        err: {
+          message: sanitizeMessage(error.message),
+          stack: sanitizeMessage(error.stack)
+        },
+        repo: repoFullName,
+        issue: issueNumber
       },
-      repo: repoFullName,
-      issue: issueNumber
-    }, 'Error processing command with Claude');
+      'Error processing command with Claude'
+    );
 
     // Generate an error ID for log correlation
     const timestamp = new Date().toISOString();
     const errorId = `err-${Math.random().toString(36).substring(2, 10)}`;
-    
+
     // Log the sanitized error with its ID for correlation
     const sanitizedErrorMessage = sanitizeMessage(error.message);
     const sanitizedErrorStack = error.stack ? sanitizeMessage(error.stack) : null;
-    
-    logger.error({
-      errorId,
-      timestamp,
-      error: sanitizedErrorMessage,
-      stack: sanitizedErrorStack,
-      repo: repoFullName,
-      issue: issueNumber
-    }, 'General error in Claude service (with error reference)');
-    
+
+    logger.error(
+      {
+        errorId,
+        timestamp,
+        error: sanitizedErrorMessage,
+        stack: sanitizedErrorStack,
+        repo: repoFullName,
+        issue: issueNumber
+      },
+      'General error in Claude service (with error reference)'
+    );
+
     // Throw a generic error with reference ID, but without sensitive details
     const errorMessage = sanitizeBotMentions(
       `Error processing Claude command (Reference: ${errorId}, Time: ${timestamp})`
     );
-    
+
     throw new Error(errorMessage);
   }
 }

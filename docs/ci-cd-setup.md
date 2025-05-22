@@ -5,7 +5,8 @@ This document outlines the CI/CD pipeline setup for the Claude GitHub Webhook pr
 ## Overview
 
 The project uses GitHub Actions for CI/CD with multiple workflows:
-- **Main CI Pipeline** - Testing, linting, building, and deployment
+- **Main CI Pipeline** - Testing, linting, and Docker builds for PRs and pushes
+- **Deployment Pipeline** - Building and pushing images, deployment (main branch only)
 - **Security Scans** - Daily security scanning and vulnerability detection
 - **Dependabot** - Automated dependency updates
 
@@ -37,16 +38,25 @@ The project uses GitHub Actions for CI/CD with multiple workflows:
 - Tests container startup and health endpoints
 - Uses Docker BuildKit with GitHub Actions caching
 
-#### Build & Push Job (main branch only)
+**Note:** When all CI jobs complete successfully on a PR, the webhook service automatically triggers a comprehensive Claude Code review of the pull request.
+
+### 2. Deployment Pipeline (`.github/workflows/deploy.yml`)
+
+**Triggers:**
+- Push to `main` branch only
+
+**Jobs:**
+
+#### Build & Push Job
 - Builds and pushes images to GitHub Container Registry
 - Tags images with branch name, SHA, and `latest`
-- Requires successful completion of all other jobs
+- Uses Docker BuildKit with GitHub Actions caching
 
-#### Deploy Job (main branch only)
+#### Deploy Job
 - Placeholder for deployment to staging environment
 - Runs only after successful build and push
 
-### 2. Security Scans (`.github/workflows/security.yml`)
+### 3. Security Scans (`.github/workflows/security.yml`)
 
 **Triggers:**
 - Daily at 2 AM UTC (scheduled)
@@ -68,7 +78,7 @@ The project uses GitHub Actions for CI/CD with multiple workflows:
 - Scans JavaScript/Node.js code for security issues
 - Results appear in Security tab
 
-### 3. Dependabot (`.github/dependabot.yml`)
+### 4. Dependabot (`.github/dependabot.yml`)
 
 **Automated Updates:**
 - **npm dependencies** - Weekly updates

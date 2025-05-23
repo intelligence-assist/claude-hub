@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  webhook-staging:
+    image: ghcr.io/YOUR_ORG/claude-github-webhook:staging
+    container_name: claude-webhook-staging
+    restart: unless-stopped
+    ports:
+      - "8083:3003"  # External:Internal port mapping
+    environment:
+      # Node environment
+      NODE_ENV: staging
+      PORT: 3003
+      
+      # GitHub App Configuration (Staging Bot: @MCPClaude-Staging)
+      GITHUB_APP_ID: ${GITHUB_APP_ID_STAGING}
+      GITHUB_PRIVATE_KEY: ${GITHUB_PRIVATE_KEY_STAGING}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET_STAGING}
+      GITHUB_BOT_NAME: MCPClaude-Staging
+      
+      # Anthropic Configuration
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY_STAGING}
+      
+      # MCP Server Configuration (if applicable)
+      MCP_SERVER_URL: ${MCP_SERVER_URL_STAGING:-}
+      
+      # Security & Access Control
+      ALLOWED_ORGS: ${ALLOWED_ORGS_STAGING:-}
+      ALLOWED_REPOS: ${ALLOWED_REPOS_STAGING:-}
+      
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL_STAGING:-info}
+      LOG_FORMAT: json
+      
+      # Feature Flags
+      ENABLE_METRICS: ${ENABLE_METRICS_STAGING:-false}
+      ENABLE_RATE_LIMITING: ${ENABLE_RATE_LIMITING_STAGING:-true}
+      
+    volumes:
+      # Persist logs
+      - ./logs/staging:/app/logs
+      
+      # Configuration files (if needed)
+      - ./config/staging:/app/config:ro
+      
+      # GitHub App private key (alternative to env var)
+      # - ./keys/staging/github-app.pem:/app/github-app.pem:ro
+      
+    networks:
+      - webhook-network
+      
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      
+    labels:
+      - "com.example.environment=staging"
+      - "com.example.service=claude-webhook"
+      - "com.example.bot=MCPClaude-Staging"
+      
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "environment,service,bot"
+
+networks:
+  webhook-network:
+    driver: bridge
+    name: claude-webhook-staging-net

@@ -14,8 +14,8 @@
     "test:watch": "jest --watch",
     "test:ci": "jest --ci --coverage",
     "pretest": "./scripts/utils/ensure-test-dirs.sh",
-    "lint": "eslint src/ test/ --ext .js --fix",
-    "lint:check": "eslint src/ test/ --ext .js",
+    "lint": "eslint src/ test/ --fix",
+    "lint:check": "eslint src/ test/",
     "format": "prettier --write src/ test/",
     "format:check": "prettier --check src/ test/",
     "security:audit": "npm audit --audit-level=moderate",
@@ -23,6 +23,7 @@
     "setup:dev": "husky install"
   },
   "dependencies": {
+    "@octokit/rest": "^21.1.1",
     "axios": "^1.6.2",
     "body-parser": "^2.2.0",
     "commander": "^14.0.0",

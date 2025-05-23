@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  claude-webhook:
+    image: intelligenceassist/claude-github-webhook:latest
+    ports:
+      - "8082:3002"
+    volumes:
+      # Mount Docker socket for container execution
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount AWS credentials (optional, for AWS Bedrock access)
+      - ${HOME}/.aws:/root/.aws:ro
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      
+      # Required: GitHub webhook configuration
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      
+      # Required: Anthropic API key for Claude access
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      
+      # Bot configuration
+      - BOT_USERNAME=${BOT_USERNAME:-@ClaudeBot}
+      - AUTHORIZED_USERS=${AUTHORIZED_USERS}
+      - DEFAULT_GITHUB_OWNER=${DEFAULT_GITHUB_OWNER}
+      - DEFAULT_GITHUB_USER=${DEFAULT_GITHUB_USER}
+      - DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
+      
+      # Container execution settings
+      - CLAUDE_USE_CONTAINERS=${CLAUDE_USE_CONTAINERS:-1}
+      - CLAUDE_CONTAINER_IMAGE=${CLAUDE_CONTAINER_IMAGE:-claudecode:latest}
+      
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

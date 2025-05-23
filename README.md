@@ -1,7 +1,7 @@
 # Claude GitHub Webhook
 
-[![CI Pipeline](https://github.com/your-org/claude-github-webhook/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/claude-github-webhook/actions/workflows/ci.yml)
-[![Security Scans](https://github.com/your-org/claude-github-webhook/actions/workflows/security.yml/badge.svg)](https://github.com/your-org/claude-github-webhook/actions/workflows/security.yml)
+[![CI Pipeline](https://github.com/intelligence-assist/claude-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/intelligence-assist/claude-hub/actions/workflows/ci.yml)
+[![Security Scans](https://github.com/intelligence-assist/claude-hub/actions/workflows/security.yml/badge.svg)](https://github.com/intelligence-assist/claude-hub/actions/workflows/security.yml)
 [![Jest Tests](https://img.shields.io/badge/tests-jest-green)](test/README.md)
 [![Code Coverage](https://img.shields.io/badge/coverage-59%25-yellow)](./coverage/index.html)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](package.json)

@@ -6,10 +6,19 @@ process.env.GITHUB_TOKEN = 'test-token';
 
 const githubController = require('../../../src/controllers/githubController');
 const claudeService = require('../../../src/services/claudeService');
+const githubService = require('../../../src/services/githubService');
 
 // Mock the Claude service
 jest.mock('../../../src/services/claudeService', () => ({
   processCommand: jest.fn()
+}));
+
+// Mock the GitHub service
+jest.mock('../../../src/services/githubService', () => ({
+  getCombinedStatus: jest.fn(),
+  postComment: jest.fn(),
+  addLabelsToIssue: jest.fn(),
+  getFallbackLabels: jest.fn()
 }));
 
 describe('GitHub Controller - Check Suite Events', () => {
@@ -34,6 +43,10 @@ describe('GitHub Controller - Check Suite Events', () => {
 
     // Reset mocks
     claudeService.processCommand.mockReset();
+    githubService.getCombinedStatus.mockReset();
+    githubService.postComment.mockReset();
+    githubService.addLabelsToIssue.mockReset();
+    githubService.getFallbackLabels.mockReset();
   });
 
   afterEach(() => {
@@ -51,7 +64,8 @@ describe('GitHub Controller - Check Suite Events', () => {
           {
             number: 42,
             head: {
-              ref: 'feature-branch'
+              ref: 'feature-branch',
+              sha: 'abc123'
             }
           }
         ]
@@ -65,6 +79,12 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
+    // Mock GitHub service to return successful combined status
+    githubService.getCombinedStatus.mockResolvedValue({
+      state: 'success',
+      total_count: 3
+    });
+
     // Mock Claude service to return success
     claudeService.processCommand.mockResolvedValue('PR review completed successfully');
 
@@ -74,7 +94,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     expect(claudeService.processCommand).toHaveBeenCalledWith({
       repoFullName: 'owner/repo',
       issueNumber: 42,
-      command: expect.stringContaining('## PR Review Workflow Instructions'),
+      command: expect.stringContaining('# GitHub PR Review - Complete Automated Review'),
       isPullRequest: true,
       branchName: 'feature-branch'
     });
@@ -163,13 +183,15 @@ describe('GitHub Controller - Check Suite Events', () => {
           {
             number: 42,
             head: {
-              ref: 'feature-branch-1'
+              ref: 'feature-branch-1',
+              sha: 'abc123'
             }
           },
           {
             number: 43,
             head: {
-              ref: 'feature-branch-2'
+              ref: 'feature-branch-2',
+              sha: 'def456'
             }
           }
         ]
@@ -183,6 +205,12 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
+    // Mock GitHub service to return successful combined status for both PRs
+    githubService.getCombinedStatus.mockResolvedValue({
+      state: 'success',
+      total_count: 3
+    });
+
     // Mock Claude service to return success
     claudeService.processCommand.mockResolvedValue('PR review completed successfully');
 
@@ -194,7 +222,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     expect(claudeService.processCommand).toHaveBeenNthCalledWith(1, {
       repoFullName: 'owner/repo',
       issueNumber: 42,
-      command: expect.stringContaining('## PR Review Workflow Instructions'),
+      command: expect.stringContaining('# GitHub PR Review - Complete Automated Review'),
       isPullRequest: true,
       branchName: 'feature-branch-1'
     });
@@ -202,7 +230,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     expect(claudeService.processCommand).toHaveBeenNthCalledWith(2, {
       repoFullName: 'owner/repo',
       issueNumber: 43,
-      command: expect.stringContaining('## PR Review Workflow Instructions'),
+      command: expect.stringContaining('# GitHub PR Review - Complete Automated Review'),
       isPullRequest: true,
       branchName: 'feature-branch-2'
     });
@@ -231,7 +259,8 @@ describe('GitHub Controller - Check Suite Events', () => {
           {
             number: 42,
             head: {
-              ref: 'feature-branch'
+              ref: 'feature-branch',
+              sha: 'abc123'
             }
           }
         ]
@@ -244,6 +273,12 @@ describe('GitHub Controller - Check Suite Events', () => {
         name: 'repo'
       }
     };
+
+    // Mock GitHub service to return successful combined status
+    githubService.getCombinedStatus.mockResolvedValue({
+      state: 'success',
+      total_count: 3
+    });
 
     // Mock Claude service to throw error
     claudeService.processCommand.mockRejectedValue(new Error('Claude service error'));

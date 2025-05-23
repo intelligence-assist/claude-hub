@@ -17,7 +17,9 @@ jest.mock('../../../src/services/githubService', () => ({
   getCombinedStatus: jest.fn(),
   postComment: jest.fn(),
   addLabelsToIssue: jest.fn(),
-  getFallbackLabels: jest.fn()
+  getFallbackLabels: jest.fn(),
+  hasReviewedPRAtCommit: jest.fn(),
+  managePRLabels: jest.fn()
 }));
 
 describe('GitHub Controller - Check Suite Events', () => {
@@ -46,6 +48,8 @@ describe('GitHub Controller - Check Suite Events', () => {
     githubService.postComment.mockReset();
     githubService.addLabelsToIssue.mockReset();
     githubService.getFallbackLabels.mockReset();
+    githubService.hasReviewedPRAtCommit.mockReset();
+    githubService.managePRLabels.mockReset();
   });
 
   afterEach(() => {
@@ -80,23 +84,40 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
-    // Mock combined status to return success
-    githubService.getCombinedStatus.mockResolvedValue({
-      state: 'success',
-      total_count: 5,
-      statuses: []
-    });
+    // Mock that PR has not been reviewed yet
+    githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
+    
+    // Mock label management
+    githubService.managePRLabels.mockResolvedValue();
 
     // Mock Claude service to return success
     claudeService.processCommand.mockResolvedValue('PR review completed successfully');
 
     await githubController.handleWebhook(mockReq, mockRes);
 
-    // Verify combined status was checked with PR SHA
-    expect(githubService.getCombinedStatus).toHaveBeenCalledWith({
+    // Verify PR was checked for existing review
+    expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledWith({
       repoOwner: 'owner',
       repoName: 'repo',
-      ref: 'pr-sha-123'
+      prNumber: 42,
+      commitSha: 'pr-sha-123'
+    });
+    
+    // Verify labels were managed (in-progress and complete)
+    expect(githubService.managePRLabels).toHaveBeenCalledTimes(2);
+    expect(githubService.managePRLabels).toHaveBeenCalledWith({
+      repoOwner: 'owner',
+      repoName: 'repo',
+      prNumber: 42,
+      labelsToAdd: ['claude-review-in-progress'],
+      labelsToRemove: ['claude-review-needed', 'claude-review-complete']
+    });
+    expect(githubService.managePRLabels).toHaveBeenCalledWith({
+      repoOwner: 'owner',
+      repoName: 'repo',  
+      prNumber: 42,
+      labelsToAdd: ['claude-review-complete'],
+      labelsToRemove: ['claude-review-in-progress', 'claude-review-needed']
     });
 
     // Verify Claude was called with PR review prompt
@@ -222,30 +243,34 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
-    // Mock combined status to return success for both PRs
-    githubService.getCombinedStatus.mockResolvedValue({
-      state: 'success',
-      total_count: 3,
-      statuses: []
-    });
+    // Mock that neither PR has been reviewed yet
+    githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
+    
+    // Mock label management
+    githubService.managePRLabels.mockResolvedValue();
 
     // Mock Claude service to return success
     claudeService.processCommand.mockResolvedValue('PR review completed successfully');
 
     await githubController.handleWebhook(mockReq, mockRes);
 
-    // Verify combined status was checked for both PRs
-    expect(githubService.getCombinedStatus).toHaveBeenCalledTimes(2);
-    expect(githubService.getCombinedStatus).toHaveBeenCalledWith({
+    // Verify both PRs were checked for existing reviews
+    expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledTimes(2);
+    expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledWith({
       repoOwner: 'owner',
       repoName: 'repo',
-      ref: 'pr42-sha'
+      prNumber: 42,
+      commitSha: 'pr42-sha'
     });
-    expect(githubService.getCombinedStatus).toHaveBeenCalledWith({
+    expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledWith({
       repoOwner: 'owner',
       repoName: 'repo',
-      ref: 'pr43-sha'
+      prNumber: 43,
+      commitSha: 'pr43-sha'
     });
+    
+    // Verify labels were managed for both PRs
+    expect(githubService.managePRLabels).toHaveBeenCalledTimes(4); // 2 PRs * 2 calls each
 
     // Verify Claude was called twice, once for each PR
     expect(claudeService.processCommand).toHaveBeenCalledTimes(2);
@@ -303,12 +328,11 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
-    // Mock combined status to return success
-    githubService.getCombinedStatus.mockResolvedValue({
-      state: 'success',
-      total_count: 5,
-      statuses: []
-    });
+    // Mock that PR has not been reviewed yet
+    githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
+    
+    // Mock label management
+    githubService.managePRLabels.mockResolvedValue();
 
     // Mock Claude service to throw error
     claudeService.processCommand.mockRejectedValue(new Error('Claude service error'));
@@ -393,7 +417,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     });
   });
 
-  it('should skip PR review when combined status is not success', async () => {
+  it.skip('should skip PR review when combined status is not success', async () => {
     // Setup successful check suite with pull requests
     mockReq.body = {
       action: 'completed',
@@ -459,7 +483,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     });
   });
 
-  it('should handle combined status API errors', async () => {
+  it.skip('should handle combined status API errors', async () => {
     // Setup successful check suite with pull requests
     mockReq.body = {
       action: 'completed',
@@ -556,21 +580,22 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
-    // Mock combined status to return success for PR 42, pending for PR 43
-    githubService.getCombinedStatus
-      .mockResolvedValueOnce({ state: 'success', total_count: 3, statuses: [] })
-      .mockResolvedValueOnce({ state: 'pending', total_count: 3, statuses: [] });
+    // Mock that PRs have not been reviewed yet
+    githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
+    
+    // Mock label management
+    githubService.managePRLabels.mockResolvedValue();
 
     // Mock Claude service to succeed for first PR
     claudeService.processCommand.mockResolvedValueOnce('PR review completed successfully');
 
     await githubController.handleWebhook(mockReq, mockRes);
 
-    // Verify combined status was checked for PRs with SHA
-    expect(githubService.getCombinedStatus).toHaveBeenCalledTimes(2);
+    // Verify all PRs were checked for existing reviews (including the one without SHA)
+    expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledTimes(2);
 
-    // Verify Claude was called only for PR 42
-    expect(claudeService.processCommand).toHaveBeenCalledTimes(1);
+    // Verify Claude was called for both PRs with valid SHA
+    expect(claudeService.processCommand).toHaveBeenCalledTimes(2);
     expect(claudeService.processCommand).toHaveBeenCalledWith({
       repoFullName: 'owner/repo',
       issueNumber: 42,
@@ -578,11 +603,18 @@ describe('GitHub Controller - Check Suite Events', () => {
       isPullRequest: true,
       branchName: 'feature-branch-1'
     });
+    expect(claudeService.processCommand).toHaveBeenCalledWith({
+      repoFullName: 'owner/repo',
+      issueNumber: 43,
+      command: expect.stringContaining('## PR Review Workflow Instructions'),
+      isPullRequest: true,
+      branchName: 'feature-branch-2'
+    });
 
     // Verify response with mixed results
     expect(mockRes.json).toHaveBeenCalledWith({
       success: true,
-      message: 'Check suite processed: 1 reviewed, 0 failed, 2 skipped',
+      message: 'Check suite processed: 2 reviewed, 0 failed, 1 skipped',
       context: {
         repo: 'owner/repo',
         checkSuite: 12345,
@@ -596,15 +628,82 @@ describe('GitHub Controller - Check Suite Events', () => {
           },
           {
             prNumber: 43,
-            success: false,
+            success: true,
             error: null,
-            skippedReason: 'Combined status is pending'
+            skippedReason: null
           },
           {
             prNumber: 44,
             success: false,
             error: 'Missing PR head SHA',
             skippedReason: 'No commit SHA available'
+          }
+        ]
+      }
+    });
+  });
+
+  it('should skip PR review when already reviewed at same commit', async () => {
+    // Setup successful check suite with pull request
+    mockReq.body = {
+      action: 'completed',
+      check_suite: {
+        id: 12345,
+        conclusion: 'success',
+        head_sha: 'abc123def456',
+        head_branch: 'feature-branch',
+        pull_requests: [
+          {
+            number: 42,
+            head: {
+              ref: 'feature-branch',
+              sha: 'pr-sha-123'
+            }
+          }
+        ]
+      },
+      repository: {
+        full_name: 'owner/repo',
+        owner: {
+          login: 'owner'
+        },
+        name: 'repo'
+      }
+    };
+
+    // Mock that PR has already been reviewed at this commit
+    githubService.hasReviewedPRAtCommit.mockResolvedValue(true);
+
+    await githubController.handleWebhook(mockReq, mockRes);
+
+    // Verify PR was checked for existing review
+    expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledWith({
+      repoOwner: 'owner',
+      repoName: 'repo',
+      prNumber: 42,
+      commitSha: 'pr-sha-123'
+    });
+    
+    // Verify no labels were added (review was skipped)
+    expect(githubService.managePRLabels).not.toHaveBeenCalled();
+
+    // Verify Claude was NOT called
+    expect(claudeService.processCommand).not.toHaveBeenCalled();
+
+    // Verify response indicates PR was skipped
+    expect(mockRes.json).toHaveBeenCalledWith({
+      success: true,
+      message: 'Check suite processed: 0 reviewed, 0 failed, 1 skipped',
+      context: {
+        repo: 'owner/repo',
+        checkSuite: 12345,
+        conclusion: 'success',
+        results: [
+          {
+            prNumber: 42,
+            success: false,
+            error: null,
+            skippedReason: 'Already reviewed at this commit'
           }
         ]
       }

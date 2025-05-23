@@ -1,3 +1,21 @@
+// Mock Octokit before requiring modules that use it
+jest.mock('@octokit/rest', () => ({
+  Octokit: jest.fn().mockImplementation(() => ({
+    issues: {
+      createComment: jest.fn(),
+      addLabels: jest.fn(),
+      createLabel: jest.fn(),
+      removeLabel: jest.fn()
+    },
+    pulls: {
+      listReviews: jest.fn()
+    },
+    repos: {
+      getCombinedStatusForRef: jest.fn()
+    }
+  }))
+}));
+
 // Mock the logger before requiring other modules
 jest.mock('../../../src/utils/logger', () => ({
   createLogger: () => ({

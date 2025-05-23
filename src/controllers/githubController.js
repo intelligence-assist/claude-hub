@@ -406,64 +406,119 @@ Please check with an administrator to review the logs for more details.`
       const checkSuite = payload.check_suite;
       const repo = payload.repository;
 
-      // Only proceed if the check suite is for a pull request and conclusion is success
-      if (
-        checkSuite.conclusion === 'success' &&
-        checkSuite.pull_requests &&
-        checkSuite.pull_requests.length > 0
-      ) {
-        for (const pr of checkSuite.pull_requests) {
-          // Verify ALL required status checks have passed using Combined Status API
-          let combinedStatus;
-          try {
-            combinedStatus = await githubService.getCombinedStatus({
-              repoOwner: repo.owner.login,
-              repoName: repo.name,
-              ref: pr.head.sha
-            });
+      logger.info(
+        {
+          repo: repo.full_name,
+          checkSuiteId: checkSuite.id,
+          conclusion: checkSuite.conclusion,
+          status: checkSuite.status,
+          headBranch: checkSuite.head_branch,
+          headSha: checkSuite.head_sha,
+          pullRequestCount: checkSuite.pull_requests?.length || 0,
+          pullRequests: checkSuite.pull_requests?.map(pr => ({
+            number: pr.number,
+            headRef: pr.head?.ref,
+            headSha: pr.head?.sha
+          }))
+        },
+        'Processing check_suite completed event'
+      );
 
-            // Only proceed if ALL status checks are successful
-            if (combinedStatus.state !== 'success') {
+      // Only proceed if the check suite is for a pull request and conclusion is success
+      if (checkSuite.conclusion === 'success' && checkSuite.pull_requests && checkSuite.pull_requests.length > 0) {
+        try {
+          // Process PRs in parallel for better performance
+          const prPromises = checkSuite.pull_requests.map(async (pr) => {
+            const prResult = {
+              prNumber: pr.number,
+              success: false,
+              error: null,
+              skippedReason: null
+            };
+            
+            try {
+              // Extract SHA from PR data first, only fall back to check suite SHA if absolutely necessary
+              const commitSha = pr.head?.sha;
+              
+              if (!commitSha) {
+                logger.error(
+                  {
+                    repo: repo.full_name,
+                    pr: pr.number,
+                    prData: JSON.stringify(pr),
+                    checkSuiteData: {
+                      id: checkSuite.id,
+                      head_sha: checkSuite.head_sha,
+                      head_branch: checkSuite.head_branch
+                    }
+                  },
+                  'No commit SHA available for PR - cannot verify status'
+                );
+                prResult.skippedReason = 'No commit SHA available';
+                prResult.error = 'Missing PR head SHA';
+                return prResult;
+              }
+              
+              // Note: We rely on the check_suite conclusion being 'success' 
+              // which already indicates all checks have passed.
+              // The Combined Status API (legacy) won't show results for 
+              // modern GitHub Actions check runs.
+
+              // Check if we've already reviewed this PR at this commit
+              const alreadyReviewed = await githubService.hasReviewedPRAtCommit({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                prNumber: pr.number,
+                commitSha: commitSha
+              });
+
+              if (alreadyReviewed) {
+                logger.info(
+                  {
+                    repo: repo.full_name,
+                    pr: pr.number,
+                    commitSha: commitSha
+                  },
+                  'PR already reviewed at this commit - skipping duplicate review'
+                );
+                prResult.skippedReason = 'Already reviewed at this commit';
+                return prResult;
+              }
+
+              // Add "review-in-progress" label
+              try {
+                await githubService.managePRLabels({
+                  repoOwner: repo.owner.login,
+                  repoName: repo.name,
+                  prNumber: pr.number,
+                  labelsToAdd: ['claude-review-in-progress'],
+                  labelsToRemove: ['claude-review-needed', 'claude-review-complete']
+                });
+              } catch (labelError) {
+                logger.error(
+                  {
+                    err: labelError.message,
+                    repo: repo.full_name,
+                    pr: pr.number
+                  },
+                  'Failed to add review-in-progress label'
+                );
+                // Continue with review even if label fails
+              }
+
               logger.info(
                 {
                   repo: repo.full_name,
                   pr: pr.number,
                   checkSuite: checkSuite.id,
-                  combinedState: combinedStatus.state,
-                  totalChecks: combinedStatus.total_count
+                  conclusion: checkSuite.conclusion,
+                  commitSha: commitSha
                 },
-                'Skipping PR review - not all required status checks have passed'
+                'All checks passed - triggering automated PR review'
               );
-              continue;
-            }
-          } catch (error) {
-            logger.error(
-              {
-                err: error.message,
-                repo: repo.full_name,
-                pr: pr.number,
-                checkSuite: checkSuite.id
-              },
-              'Error checking combined status - skipping PR review'
-            );
-            continue;
-          }
 
-          logger.info(
-            {
-              repo: repo.full_name,
-              pr: pr.number,
-              checkSuite: checkSuite.id,
-              conclusion: checkSuite.conclusion,
-              combinedState: combinedStatus.state,
-              totalChecks: combinedStatus.total_count
-            },
-            'All checks passed - triggering automated PR review'
-          );
-
-          try {
-            // Create the PR review prompt
-            const prReviewPrompt = `# GitHub PR Review - Complete Automated Review
+              // Create the PR review prompt
+              const prReviewPrompt = `# GitHub PR Review - Complete Automated Review
 
 ## Initial Setup & Data Collection
 
@@ -645,60 +700,188 @@ Create a single comprehensive review comment with all feedback.
 4. **Be constructive** - explain why something is an issue and suggest solutions
 5. **Prioritize critical issues** - security, breaking changes, logic errors
 6. **Complete your review** with an appropriate event type (APPROVE, REQUEST_CHANGES, or COMMENT)
+7. **Include commit SHA** - Always include "Reviewed at commit: ${commitSha}" in your final review comment
 
 Please perform a comprehensive review of PR #${pr.number} in repository ${repo.full_name}.`;
 
-            // Process the PR review with Claude
-            logger.info('Sending PR for automated Claude review');
-            const claudeResponse = await claudeService.processCommand({
-              repoFullName: repo.full_name,
-              issueNumber: pr.number,
-              command: prReviewPrompt,
-              isPullRequest: true,
-              branchName: pr.head.ref
-            });
+              // Process the PR review with Claude
+              logger.info('Sending PR for automated Claude review');
+              const claudeResponse = await claudeService.processCommand({
+                repoFullName: repo.full_name,
+                issueNumber: pr.number,
+                command: prReviewPrompt,
+                isPullRequest: true,
+                branchName: pr.head.ref
+              });
 
-            logger.info(
-              {
-                repo: repo.full_name,
-                pr: pr.number,
-                responseLength: claudeResponse ? claudeResponse.length : 0
-              },
-              'Automated PR review completed successfully'
-            );
-          } catch (error) {
-            logger.error(
-              {
-                errorMessage: error.message || 'Unknown error',
-                errorType: error.constructor.name,
-                repo: repo.full_name,
-                pr: pr.number,
-                checkSuite: checkSuite.id
-              },
-              'Error processing automated PR review'
-            );
-          }
+              logger.info(
+                {
+                  repo: repo.full_name,
+                  pr: pr.number,
+                  responseLength: claudeResponse ? claudeResponse.length : 0
+                },
+                'Automated PR review completed successfully'
+              );
+              
+              // Update label to show review is complete
+              try {
+                await githubService.managePRLabels({
+                  repoOwner: repo.owner.login,
+                  repoName: repo.name,
+                  prNumber: pr.number,
+                  labelsToAdd: ['claude-review-complete'],
+                  labelsToRemove: ['claude-review-in-progress', 'claude-review-needed']
+                });
+              } catch (labelError) {
+                logger.error(
+                  {
+                    err: labelError.message,
+                    repo: repo.full_name,
+                    pr: pr.number
+                  },
+                  'Failed to update review-complete label'
+                );
+                // Don't fail the review if label update fails
+              }
+              
+              prResult.success = true;
+              return prResult;
+            } catch (reviewError) {
+              logger.error(
+                {
+                  errorMessage: reviewError.message || 'Unknown error',
+                  errorType: reviewError.constructor.name,
+                  repo: repo.full_name,
+                  pr: pr.number,
+                  checkSuite: checkSuite.id
+                },
+                'Error processing automated PR review'
+              );
+              
+              // Remove in-progress label on error
+              try {
+                await githubService.managePRLabels({
+                  repoOwner: repo.owner.login,
+                  repoName: repo.name,
+                  prNumber: pr.number,
+                  labelsToRemove: ['claude-review-in-progress']
+                });
+              } catch (labelError) {
+                logger.error(
+                  {
+                    err: labelError.message,
+                    repo: repo.full_name,
+                    pr: pr.number
+                  },
+                  'Failed to remove review-in-progress label after error'
+                );
+              }
+              
+              prResult.error = reviewError.message || 'Unknown error during review';
+              return prResult;
+            }
+          });
+          
+          // Wait for all PR reviews to complete
+          const results = await Promise.allSettled(prPromises);
+          const prResults = results.map(result => 
+            result.status === 'fulfilled' ? result.value : { success: false, error: result.reason }
+          );
+          
+          // Count successes and failures (mutually exclusive)
+          const successCount = prResults.filter(r => r.success).length;
+          const failureCount = prResults.filter(r => !r.success && r.error && !r.skippedReason).length;
+          const skippedCount = prResults.filter(r => !r.success && r.skippedReason).length;
+          
+          logger.info(
+            {
+              repo: repo.full_name,
+              checkSuite: checkSuite.id,
+              totalPRs: prResults.length,
+              successCount,
+              failureCount,
+              skippedCount,
+              results: prResults
+            },
+            'Check suite PR review processing completed'
+          );
+          
+          // Return detailed status
+          return res.status(200).json({
+            success: true,
+            message: `Check suite processed: ${successCount} reviewed, ${failureCount} failed, ${skippedCount} skipped`,
+            context: {
+              repo: repo.full_name,
+              checkSuite: checkSuite.id,
+              conclusion: checkSuite.conclusion,
+              results: prResults
+            }
+          });
+        } catch (error) {
+          logger.error(
+            {
+              err: error,
+              repo: repo.full_name,
+              checkSuite: checkSuite.id
+            },
+            'Error processing check suite for PR reviews'
+          );
+          
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to process check suite',
+            message: error.message,
+            context: {
+              repo: repo.full_name,
+              checkSuite: checkSuite.id,
+              type: 'check_suite'
+            }
+          });
         }
-
+      } else if (checkSuite.head_branch) {
+        // If no pull requests in payload but we have a head_branch,
+        // this might be a PR from a fork - log for debugging
+        logger.warn(
+          {
+            repo: repo.full_name,
+            checkSuite: checkSuite.id,
+            headBranch: checkSuite.head_branch,
+            headSha: checkSuite.head_sha
+          },
+          'Check suite succeeded but no pull requests found in payload - possible fork PR'
+        );
+        
+        // TODO: Could query GitHub API to find PRs for this branch/SHA
+        // For now, just acknowledge the webhook
         return res.status(200).json({
           success: true,
-          message: 'Check suite completion processed - PR review triggered',
+          message: 'Check suite completed but no PRs found in payload',
           context: {
             repo: repo.full_name,
             checkSuite: checkSuite.id,
             conclusion: checkSuite.conclusion,
-            pullRequests: checkSuite.pull_requests.map(pr => pr.number)
+            headBranch: checkSuite.head_branch
           }
         });
       } else {
+        // Log the specific reason why PR review was not triggered
+        const reasons = [];
+        if (checkSuite.conclusion !== 'success') {
+          reasons.push(`conclusion is '${checkSuite.conclusion}' (not 'success')`);
+        }
+        if (!checkSuite.pull_requests || checkSuite.pull_requests.length === 0) {
+          reasons.push('no pull requests associated with check suite');
+        }
+
         logger.info(
           {
             repo: repo.full_name,
             checkSuite: checkSuite.id,
             conclusion: checkSuite.conclusion,
-            pullRequestCount: checkSuite.pull_requests?.length || 0
+            pullRequestCount: checkSuite.pull_requests?.length || 0,
+            reasons: reasons.join(', ')
           },
-          'Check suite completed but not triggering PR review (not success or no PRs)'
+          'Check suite completed but not triggering PR review'
         );
       }
     }

@@ -24,7 +24,7 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - **Start with Docker (recommended)**: `docker compose up -d`
 - **Start the server locally**: `npm start`
 - **Development mode with auto-restart**: `npm run dev`
-- **Start on specific port**: `./start-api.sh` (uses port 3003)
+- **Start on specific port**: `./scripts/runtime/start-api.sh` (uses port 3003)
 - **Run tests**: `npm test`
 - Run specific test types:
   - Unit tests: `npm run test:unit`
@@ -39,14 +39,14 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - **View logs**: `docker compose logs -f webhook`
 - **Restart**: `docker compose restart webhook`
 - Build Claude container: `./build-claude-container.sh`
-- Build Claude Code container: `./build-claudecode.sh`
+- Build Claude Code container: `./scripts/build/build-claudecode.sh`
 - Update production image: `./update-production-image.sh`
 
 ### AWS Credential Management
 - Create AWS profile: `./scripts/create-aws-profile.sh`
 - Migrate from static credentials: `./scripts/migrate-aws-credentials.sh`
 - Setup AWS profiles: `./scripts/setup-aws-profiles.sh`
-- Setup Claude authentication: `./setup-claude-auth.sh`
+- Setup Claude authentication: `./scripts/setup/setup-claude-auth.sh`
 
 ### Testing Utilities
 - Test Claude API directly: `node test/test-claude-api.js owner/repo`
@@ -75,10 +75,10 @@ Use the demo repository for testing auto-tagging and webhook functionality:
 - Setup repository labels: `GITHUB_TOKEN=your_token node scripts/utils/setup-repository-labels.js owner/repo`
 
 ### CLI Commands
-- Basic usage: `./claude-webhook myrepo "Your command for Claude"`
-- With explicit owner: `./claude-webhook owner/repo "Your command for Claude"`
-- Pull request review: `./claude-webhook myrepo "Review this PR" -p -b feature-branch`
-- Specific issue: `./claude-webhook myrepo "Fix issue" -i 42`
+- Basic usage: `./cli/claude-webhook myrepo "Your command for Claude"`
+- With explicit owner: `./cli/claude-webhook owner/repo "Your command for Claude"`
+- Pull request review: `./cli/claude-webhook myrepo "Review this PR" -p -b feature-branch`
+- Specific issue: `./cli/claude-webhook myrepo "Fix issue" -i 42`
 - Advanced usage: `node cli/webhook-cli.js --repo myrepo --command "Your command" --verbose`
 - Secure mode: `node cli/webhook-cli-secure.js` (uses AWS profile authentication)
 

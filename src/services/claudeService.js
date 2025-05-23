@@ -286,11 +286,11 @@ Please complete this task fully and autonomously.`;
               try {
                 fsSync.unlinkSync(file);
                 logger.info(`Removed temp file: ${file}`);
-              } catch (e) {
+              } catch {
                 logger.warn(`Failed to remove temp file: ${file}`);
               }
             });
-        } catch (e) {
+        } catch {
           logger.warn('Failed to clean up temp files');
         }
       };
@@ -369,11 +369,11 @@ Please complete this task fully and autonomously.`;
           .forEach(file => {
             try {
               fsSync.unlinkSync(file);
-            } catch (e) {
+            } catch {
               // Ignore cleanup errors
             }
           });
-      } catch (e) {
+      } catch {
         // Ignore cleanup errors
       }
 
@@ -471,7 +471,7 @@ Please complete this task fully and autonomously.`;
       // Try to clean up the container if it's still running
       try {
         execFileSync('docker', ['kill', containerName], { stdio: 'ignore' });
-      } catch (e) {
+      } catch {
         // Container might already be stopped
       }
 

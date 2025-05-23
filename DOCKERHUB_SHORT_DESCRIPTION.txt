@@ -1,0 +1,1 @@
+GitHub webhook service that enables Claude AI to respond to mentions in issues and PRs. Features auto-tagging, automated PR reviews, and secure container execution. Mention your bot to trigger Claude's code analysis and assistance.

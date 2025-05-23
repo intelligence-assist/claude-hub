@@ -6,6 +6,8 @@ This guide explains how to set up Docker Hub authentication for the GitHub Actio
 
 The repository uses Docker Hub to publish container images through GitHub Actions. Authentication is required to push images to Docker Hub.
 
+**Note**: This guide supplements the general Docker CI/CD documentation in [docker-ci-cd.md](./docker-ci-cd.md) with specific authentication setup instructions.
+
 ## Setup Instructions
 
 ### 1. Create a Docker Hub Access Token
@@ -50,16 +52,20 @@ You can add the token as either a repository secret or an organization secret.
 ## Verification
 
 The workflows that use Docker Hub authentication include:
-- `.github/workflows/docker-publish.yml` - Publishes Docker images on releases and main branch pushes
+- `.github/workflows/docker-publish.yml` - Contains two jobs that publish Docker images:
+  - `build` job - Builds and publishes the main webhook service image
+  - `build-claudecode` job - Builds and publishes the Claude Code container image
 
 These workflows reference the token using:
 ```yaml
 - name: Log in to Docker Hub
   uses: docker/login-action@v3
   with:
-    username: ${{ secrets.DOCKER_HUB_USERNAME }}
-    password: ${{ secrets.DOCKER_HUB_TOKEN }}
+    username: ${{ env.DOCKER_HUB_USERNAME }}  # Hardcoded as 'cheffromspace' in workflow
+    password: ${{ secrets.DOCKER_HUB_TOKEN }}  # Your secret token
 ```
+
+**Important**: The username (`DOCKER_HUB_USERNAME`) is defined as an environment variable in the workflow file and is currently set to `cheffromspace`. Only the `DOCKER_HUB_TOKEN` needs to be configured as a secret.
 
 ## Troubleshooting
 
@@ -69,7 +75,7 @@ If you encounter authentication errors:
 2. **Check repository access**: If using an organization secret, verify the repository is included in the access list
 3. **Token validity**: Ensure the Docker Hub token hasn't expired or been revoked
 4. **Token permissions**: Verify the token has "Read & Write" permissions
-5. **Username**: Ensure `DOCKER_HUB_USERNAME` secret is also set correctly
+5. **Username**: The `DOCKER_HUB_USERNAME` is hardcoded in the workflow as `cheffromspace`. If you need to use a different Docker Hub account, you'll need to modify the workflow file
 
 ## Security Best Practices
 

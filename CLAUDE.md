@@ -10,6 +10,8 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 
 - `/docs/complete-workflow.md` - Comprehensive workflow documentation
 - `/docs/github-workflow.md` - GitHub-specific integration details
+- `/docs/pr-review-automation-guide.md` - **NEW** Complete PR review automation guide
+- `/docs/pr-review-examples.md` - **NEW** Practical PR review examples and use cases
 - `/docs/container-setup.md` - Docker container configuration
 - `/docs/container-limitations.md` - Container execution constraints
 - `/docs/aws-authentication-best-practices.md` - AWS credential management
@@ -82,6 +84,12 @@ Use the demo repository for testing auto-tagging and webhook functionality:
 - Advanced usage: `node cli/webhook-cli.js --repo myrepo --command "Your command" --verbose`
 - Secure mode: `node cli/webhook-cli-secure.js` (uses AWS profile authentication)
 
+### PR Review Script Templates
+- **Basic review**: `./scripts/pr-review-templates/basic-pr-review.sh <PR_NUMBER>`
+- **Security-focused**: `./scripts/pr-review-templates/security-focused-review.sh <PR_NUMBER>`
+- **Comprehensive review**: `./scripts/pr-review-templates/comprehensive-review.sh <PR_NUMBER>`
+- **Template documentation**: See `./scripts/pr-review-templates/README.md` for detailed usage
+
 ## Features
 
 ### Auto-Tagging
@@ -96,10 +104,16 @@ When an issue is opened, Claude analyzes the title and description to suggest in
 ### Automated PR Review
 The system automatically triggers comprehensive PR reviews when all checks pass:
 - **Trigger**: `check_suite` webhook event with `conclusion: 'success'`
-- **Scope**: Reviews all PRs associated with the successful check suite
+- **Scope**: Reviews all PRs associated with the successful check suite  
 - **Process**: Claude performs security, logic, performance, and code quality analysis
 - **Output**: Detailed review comments, line-specific feedback, and approval/change requests
 - **Integration**: Uses GitHub CLI (`gh`) commands for seamless review workflow
+- **Enhanced Features**: 
+  - Inline comment creation with GitHub API
+  - Multi-phase review for large PRs
+  - Security-focused scanning with severity classification
+  - Adaptive review strategies based on PR size
+  - Comprehensive reporting and recommendations
 
 ## Architecture Overview
 

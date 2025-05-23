@@ -459,57 +459,51 @@ Please check with an administrator to review the logs for more details.`
                 return prResult;
               }
               
-              logger.info(
-                {
-                  repo: repo.full_name,
-                  pr: pr.number,
-                  commitSha: commitSha
-                },
-                'Verifying combined status for PR'
-              );
+              // Note: We rely on the check_suite conclusion being 'success' 
+              // which already indicates all checks have passed.
+              // The Combined Status API (legacy) won't show results for 
+              // modern GitHub Actions check runs.
 
-              // Verify ALL required status checks have passed using Combined Status API
-              let combinedStatus;
-              try {
-                combinedStatus = await githubService.getCombinedStatus({
-                  repoOwner: repo.owner.login,
-                  repoName: repo.name,
-                  ref: commitSha
-                });
-              } catch (statusError) {
-                logger.error(
-                  {
-                    err: statusError.message,
-                    repo: repo.full_name,
-                    pr: pr.number,
-                    commitSha: commitSha
-                  },
-                  'Failed to retrieve combined status for PR'
-                );
-                prResult.error = `Failed to check status: ${statusError.message}`;
-                prResult.skippedReason = 'Status check failed';
-                return prResult;
-              }
+              // Check if we've already reviewed this PR at this commit
+              const alreadyReviewed = await githubService.hasReviewedPRAtCommit({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                prNumber: pr.number,
+                commitSha: commitSha
+              });
 
-              // Only proceed if ALL status checks are successful
-              if (combinedStatus.state !== 'success') {
+              if (alreadyReviewed) {
                 logger.info(
                   {
                     repo: repo.full_name,
                     pr: pr.number,
-                    checkSuite: checkSuite.id,
-                    combinedState: combinedStatus.state,
-                    totalChecks: combinedStatus.total_count,
-                    failedStatuses: combinedStatus.statuses?.filter(s => s.state !== 'success').map(s => ({
-                      context: s.context,
-                      state: s.state,
-                      description: s.description
-                    }))
+                    commitSha: commitSha
                   },
-                  'Skipping PR review - not all required status checks have passed'
+                  'PR already reviewed at this commit - skipping duplicate review'
                 );
-                prResult.skippedReason = `Combined status is ${combinedStatus.state}`;
+                prResult.skippedReason = 'Already reviewed at this commit';
                 return prResult;
+              }
+
+              // Add "review-in-progress" label
+              try {
+                await githubService.managePRLabels({
+                  repoOwner: repo.owner.login,
+                  repoName: repo.name,
+                  prNumber: pr.number,
+                  labelsToAdd: ['claude-review-in-progress'],
+                  labelsToRemove: ['claude-review-needed', 'claude-review-complete']
+                });
+              } catch (labelError) {
+                logger.error(
+                  {
+                    err: labelError.message,
+                    repo: repo.full_name,
+                    pr: pr.number
+                  },
+                  'Failed to add review-in-progress label'
+                );
+                // Continue with review even if label fails
               }
 
               logger.info(
@@ -518,8 +512,7 @@ Please check with an administrator to review the logs for more details.`
                   pr: pr.number,
                   checkSuite: checkSuite.id,
                   conclusion: checkSuite.conclusion,
-                  combinedState: combinedStatus.state,
-                  totalChecks: combinedStatus.total_count
+                  commitSha: commitSha
                 },
                 'All checks passed - triggering automated PR review'
               );
@@ -585,6 +578,10 @@ For each significant issue:
 4. Code organization and maintainability
 5. Error handling and edge cases
 6. Test coverage and effectiveness
+
+### Important Notes
+- Your review will be marked with the commit SHA to prevent duplicate reviews
+- Always include "Reviewed at commit: ${commitSha}" in your final review comment
 7. Documentation quality
 
 ### Comment Style Guidelines
@@ -624,6 +621,27 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
                 'Automated PR review completed successfully'
               );
               
+              // Update label to show review is complete
+              try {
+                await githubService.managePRLabels({
+                  repoOwner: repo.owner.login,
+                  repoName: repo.name,
+                  prNumber: pr.number,
+                  labelsToAdd: ['claude-review-complete'],
+                  labelsToRemove: ['claude-review-in-progress', 'claude-review-needed']
+                });
+              } catch (labelError) {
+                logger.error(
+                  {
+                    err: labelError.message,
+                    repo: repo.full_name,
+                    pr: pr.number
+                  },
+                  'Failed to update review-complete label'
+                );
+                // Don't fail the review if label update fails
+              }
+              
               prResult.success = true;
               return prResult;
             } catch (reviewError) {
@@ -637,6 +655,26 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
                 },
                 'Error processing automated PR review'
               );
+              
+              // Remove in-progress label on error
+              try {
+                await githubService.managePRLabels({
+                  repoOwner: repo.owner.login,
+                  repoName: repo.name,
+                  prNumber: pr.number,
+                  labelsToRemove: ['claude-review-in-progress']
+                });
+              } catch (labelError) {
+                logger.error(
+                  {
+                    err: labelError.message,
+                    repo: repo.full_name,
+                    pr: pr.number
+                  },
+                  'Failed to remove review-in-progress label after error'
+                );
+              }
+              
               prResult.error = reviewError.message || 'Unknown error during review';
               return prResult;
             }

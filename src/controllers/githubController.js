@@ -406,156 +406,482 @@ Please check with an administrator to review the logs for more details.`
       const checkSuite = payload.check_suite;
       const repo = payload.repository;
 
+      logger.info(
+        {
+          repo: repo.full_name,
+          checkSuiteId: checkSuite.id,
+          conclusion: checkSuite.conclusion,
+          status: checkSuite.status,
+          headBranch: checkSuite.head_branch,
+          headSha: checkSuite.head_sha,
+          pullRequestCount: checkSuite.pull_requests?.length || 0,
+          pullRequests: checkSuite.pull_requests?.map(pr => ({
+            number: pr.number,
+            headRef: pr.head?.ref,
+            headSha: pr.head?.sha
+          }))
+        },
+        'Processing check_suite completed event'
+      );
+
       // Only proceed if the check suite is for a pull request and conclusion is success
-      if (
-        checkSuite.conclusion === 'success' &&
-        checkSuite.pull_requests &&
-        checkSuite.pull_requests.length > 0
-      ) {
-        for (const pr of checkSuite.pull_requests) {
-          logger.info(
-            {
-              repo: repo.full_name,
-              pr: pr.number,
-              checkSuite: checkSuite.id,
-              conclusion: checkSuite.conclusion
-            },
-            'All checks passed - triggering automated PR review'
-          );
+      if (checkSuite.conclusion === 'success' && checkSuite.pull_requests && checkSuite.pull_requests.length > 0) {
+        try {
+          // Process PRs in parallel for better performance
+          const prPromises = checkSuite.pull_requests.map(async (pr) => {
+            const prResult = {
+              prNumber: pr.number,
+              success: false,
+              error: null,
+              skippedReason: null
+            };
+            
+            try {
+              // Extract SHA from PR data first, only fall back to check suite SHA if absolutely necessary
+              const commitSha = pr.head?.sha;
+              
+              if (!commitSha) {
+                logger.error(
+                  {
+                    repo: repo.full_name,
+                    pr: pr.number,
+                    prData: JSON.stringify(pr),
+                    checkSuiteData: {
+                      id: checkSuite.id,
+                      head_sha: checkSuite.head_sha,
+                      head_branch: checkSuite.head_branch
+                    }
+                  },
+                  'No commit SHA available for PR - cannot verify status'
+                );
+                prResult.skippedReason = 'No commit SHA available';
+                prResult.error = 'Missing PR head SHA';
+                return prResult;
+              }
+              
+              // Note: We rely on the check_suite conclusion being 'success' 
+              // which already indicates all checks have passed.
+              // The Combined Status API (legacy) won't show results for 
+              // modern GitHub Actions check runs.
 
-          try {
-            // Create the PR review prompt
-            const prReviewPrompt = `## PR Review Workflow Instructions
+              // Check if we've already reviewed this PR at this commit
+              const alreadyReviewed = await githubService.hasReviewedPRAtCommit({
+                repoOwner: repo.owner.login,
+                repoName: repo.name,
+                prNumber: pr.number,
+                commitSha: commitSha
+              });
 
-You are Claude, acting as a professional code reviewer through Claude Code CLI. Your task is to review GitHub pull requests and provide constructive feedback.
+              if (alreadyReviewed) {
+                logger.info(
+                  {
+                    repo: repo.full_name,
+                    pr: pr.number,
+                    commitSha: commitSha
+                  },
+                  'PR already reviewed at this commit - skipping duplicate review'
+                );
+                prResult.skippedReason = 'Already reviewed at this commit';
+                return prResult;
+              }
 
-### Initial Setup
-1. Review the PR that has been checked out for you
+              // Add "review-in-progress" label
+              try {
+                await githubService.managePRLabels({
+                  repoOwner: repo.owner.login,
+                  repoName: repo.name,
+                  prNumber: pr.number,
+                  labelsToAdd: ['claude-review-in-progress'],
+                  labelsToRemove: ['claude-review-needed', 'claude-review-complete']
+                });
+              } catch (labelError) {
+                logger.error(
+                  {
+                    err: labelError.message,
+                    repo: repo.full_name,
+                    pr: pr.number
+                  },
+                  'Failed to add review-in-progress label'
+                );
+                // Continue with review even if label fails
+              }
 
-### Review Process
-1. First, get an overview of the PR:
-   \`\`\`bash
-   gh pr view ${pr.number} --json title,body,additions,deletions,changedFiles
-   \`\`\`
+              logger.info(
+                {
+                  repo: repo.full_name,
+                  pr: pr.number,
+                  checkSuite: checkSuite.id,
+                  conclusion: checkSuite.conclusion,
+                  commitSha: commitSha
+                },
+                'All checks passed - triggering automated PR review'
+              );
 
-2. Examine the changed files:
-   \`\`\`bash
-   gh pr diff ${pr.number}
-   \`\`\`
+              // Create the PR review prompt
+              const prReviewPrompt = `# GitHub PR Review - Complete Automated Review
 
-3. For each file, check:
-   - Security vulnerabilities
-   - Logic errors or edge cases
-   - Performance issues
-   - Code organization
-   - Error handling
-   - Test coverage
+## Initial Setup & Data Collection
 
-4. When needed, examine specific files:
-   \`\`\`bash
-   gh pr view ${pr.number} --json files
-   cat [FILE_PATH]
-   \`\`\`
+### 1. Get PR Overview and Commit Information
+\`\`\`bash
+# Get basic PR information including title, body, and comments
+gh pr view ${pr.number} --json title,body,additions,deletions,changedFiles,files,headRefOid,comments
 
-### Providing Feedback
-For each significant issue:
-1. Add a comment to the specific line:
-   \`\`\`bash
-   gh pr comment ${pr.number} --body "YOUR COMMENT" --file [FILE] --line [LINE_NUMBER]
-   \`\`\`
+# Get detailed file information  
+gh pr view ${pr.number} --json files --jq '.files[] | {filename: .filename, additions: .additions, deletions: .deletions, status: .status}'
 
-2. For general feedback, add a PR comment:
-   \`\`\`bash
-   gh pr comment ${pr.number} --body "YOUR REVIEW SUMMARY"
-   \`\`\`
+# Get the latest commit ID (required for inline comments)
+COMMIT_ID=$(gh pr view ${pr.number} --json headRefOid --jq -r '.headRefOid')
+\`\`\`
 
-3. Complete your review with an approval or change request:
-   \`\`\`bash
-   # For approval:
-   gh pr review ${pr.number} --approve --body "APPROVAL MESSAGE"
-   
-   # For requesting changes:
-   gh pr review ${pr.number} --request-changes --body "CHANGE REQUEST SUMMARY"
-   \`\`\`
+### 2. Examine Changes
+\`\`\`bash
+# Get the full diff
+gh pr diff ${pr.number}
 
-### Review Focus Areas
-1. Potential security vulnerabilities (injection attacks, authentication issues, etc.)
-2. Logic bugs or edge cases
-3. Performance issues (inefficient algorithms, unnecessary computations)
-4. Code organization and maintainability
-5. Error handling and edge cases
-6. Test coverage and effectiveness
-7. Documentation quality
+# Get diff for specific files if needed
+# gh pr diff ${pr.number} -- path/to/specific/file.ext
+\`\`\`
 
-### Comment Style Guidelines
-- Be specific and actionable
-- Explain why issues matter, not just what they are
-- Suggest concrete improvements
-- Balance criticism with positive reinforcement
-- Group related issues
-- Use a professional, constructive tone
+### 3. Examine Individual Files
+\`\`\`bash
+# Get list of changed files
+CHANGED_FILES=$(gh pr view ${pr.number} --json files --jq -r '.files[].filename')
 
-### Review Summary Format
-1. Brief summary of changes and overall assessment
-2. Key issues organized by file
-3. Positive aspects of the implementation
-4. Conclusion with recommended next steps
+# Read specific files as needed
+for file in $CHANGED_FILES; do
+    echo "=== $file ==="
+    cat "$file"
+done
+\`\`\`
 
-After completing the review, all output from this process will be automatically saved as comments in the workflow. No additional logging is required.
+## Automated Review Process
+
+### 4. Repository and Owner Detection
+\`\`\`bash
+# Get repository information
+REPO_INFO=$(gh repo view --json owner,name)
+OWNER=$(echo $REPO_INFO | jq -r '.owner.login')
+REPO_NAME=$(echo $REPO_INFO | jq -r '.name')
+\`\`\`
+
+## Comment Creation Methods
+
+### Method 1: General PR Comments (Use for overall assessment)
+\`\`\`bash
+# Add general comment to PR conversation
+gh pr comment ${pr.number} --body "Your overall assessment here"
+\`\`\`
+
+### Method 2: Inline Comments (Use for specific line feedback)
+
+**CRITICAL**: Inline comments require the GitHub REST API via \`gh api\` command.
+
+#### For Single Line Comments:
+\`\`\`bash
+# Create inline comment on specific line
+gh api \\
+  --method POST \\
+  -H "Accept: application/vnd.github+json" \\
+  -H "X-GitHub-Api-Version: 2022-11-28" \\
+  /repos/\${OWNER}/\${REPO_NAME}/pulls/${pr.number}/comments \\
+  -f body="Your comment here" \\
+  -f commit_id="\${COMMIT_ID}" \\
+  -f path="src/main.js" \\
+  -F line=42 \\
+  -f side="RIGHT"
+\`\`\`
+
+#### For Multi-Line Comments (Line Range):
+\`\`\`bash
+# Create comment spanning multiple lines
+gh api \\
+  --method POST \\
+  -H "Accept: application/vnd.github+json" \\
+  -H "X-GitHub-Api-Version: 2022-11-28" \\
+  /repos/\${OWNER}/\${REPO_NAME}/pulls/${pr.number}/comments \\
+  -f body="Your comment here" \\
+  -f commit_id="\${COMMIT_ID}" \\
+  -f path="src/utils.js" \\
+  -F start_line=15 \\
+  -F line=25 \\
+  -f side="RIGHT"
+\`\`\`
+
+### Method 3: Comprehensive Review Submission
+\`\`\`bash
+# Submit complete review with multiple inline comments + overall assessment
+gh api \\
+  --method POST \\
+  -H "Accept: application/vnd.github+json" \\
+  -H "X-GitHub-Api-Version: 2022-11-28" \\
+  /repos/\${OWNER}/\${REPO_NAME}/pulls/${pr.number}/reviews \\
+  -f commit_id="\${COMMIT_ID}" \\
+  -f body="Overall review summary here" \\
+  -f event="REQUEST_CHANGES" \\
+  -f comments='[
+    {
+      "path": "file1.js",
+      "line": 23,
+      "body": "Comment text"
+    },
+    {
+      "path": "file2.js", 
+      "line": 15,
+      "body": "Another comment"
+    }
+  ]'
+\`\`\`
+
+## Review Guidelines
+
+### Review Event Types:
+- \`APPROVE\`: Approve the PR
+- \`REQUEST_CHANGES\`: Request changes before merge
+- \`COMMENT\`: Provide feedback without approval/rejection
+
+### Review Focus Areas by File Type
+
+#### Workflow Files (.github/workflows/*.yml)
+- **Trigger conditions** and branch targeting
+- **Security**: \`secrets\` usage, \`pull_request_target\` risks  
+- **Performance**: Unnecessary job runs, caching opportunities
+- **Dependencies**: Job interdependencies and failure handling
+
+#### Code Files (*.js, *.py, etc.)
+- **Security vulnerabilities** (injection, XSS, auth)
+- **Logic errors** and edge cases
+- **Performance** issues
+- **Code organization** and maintainability
+
+#### Configuration Files (*.json, *.yaml, *.toml)
+- **Security**: Exposed secrets or sensitive data
+- **Syntax** and structural validity
+- **Environment-specific** settings
+
+### Quality Gates
+
+#### Must Address (REQUEST_CHANGES):
+- Security vulnerabilities
+- Breaking changes
+- Critical logic errors
+- Workflow infinite loops or failures
+
+#### Should Address (COMMENT):
+- Performance improvements  
+- Code organization
+- Missing error handling
+- Documentation gaps
+
+#### Nice to Have (APPROVE with comments):
+- Code style preferences
+- Minor optimizations
+- Suggestions for future iterations
+
+## Multi-File Output Strategy
+
+### For Small PRs (1-3 files, <50 changes):
+Create a single comprehensive review comment with all feedback.
+
+### For Medium PRs (4-10 files, 50-200 changes):
+1. Create inline comments for specific issues
+2. Create a summary review comment
+
+### For Large PRs (10+ files, 200+ changes):
+1. Create inline comments for critical issues
+2. Group related feedback by component/area
+3. Create a comprehensive summary review
+
+## Important Instructions
+
+1. **Always start by examining the PR title, body, and any existing comments** to understand context
+2. **Use inline comments for specific code issues** - they're more actionable
+3. **Group related issues** in your review to avoid comment spam
+4. **Be constructive** - explain why something is an issue and suggest solutions
+5. **Prioritize critical issues** - security, breaking changes, logic errors
+6. **Complete your review** with an appropriate event type (APPROVE, REQUEST_CHANGES, or COMMENT)
+7. **Include commit SHA** - Always include "Reviewed at commit: ${commitSha}" in your final review comment
 
 Please perform a comprehensive review of PR #${pr.number} in repository ${repo.full_name}.`;
 
-            // Process the PR review with Claude
-            logger.info('Sending PR for automated Claude review');
-            const claudeResponse = await claudeService.processCommand({
-              repoFullName: repo.full_name,
-              issueNumber: pr.number,
-              command: prReviewPrompt,
-              isPullRequest: true,
-              branchName: pr.head.ref
-            });
+              // Process the PR review with Claude
+              logger.info('Sending PR for automated Claude review');
+              const claudeResponse = await claudeService.processCommand({
+                repoFullName: repo.full_name,
+                issueNumber: pr.number,
+                command: prReviewPrompt,
+                isPullRequest: true,
+                branchName: pr.head.ref
+              });
 
-            logger.info(
-              {
-                repo: repo.full_name,
-                pr: pr.number,
-                responseLength: claudeResponse ? claudeResponse.length : 0
-              },
-              'Automated PR review completed successfully'
-            );
-          } catch (error) {
-            logger.error(
-              {
-                errorMessage: error.message || 'Unknown error',
-                errorType: error.constructor.name,
-                repo: repo.full_name,
-                pr: pr.number,
-                checkSuite: checkSuite.id
-              },
-              'Error processing automated PR review'
-            );
-          }
+              logger.info(
+                {
+                  repo: repo.full_name,
+                  pr: pr.number,
+                  responseLength: claudeResponse ? claudeResponse.length : 0
+                },
+                'Automated PR review completed successfully'
+              );
+              
+              // Update label to show review is complete
+              try {
+                await githubService.managePRLabels({
+                  repoOwner: repo.owner.login,
+                  repoName: repo.name,
+                  prNumber: pr.number,
+                  labelsToAdd: ['claude-review-complete'],
+                  labelsToRemove: ['claude-review-in-progress', 'claude-review-needed']
+                });
+              } catch (labelError) {
+                logger.error(
+                  {
+                    err: labelError.message,
+                    repo: repo.full_name,
+                    pr: pr.number
+                  },
+                  'Failed to update review-complete label'
+                );
+                // Don't fail the review if label update fails
+              }
+              
+              prResult.success = true;
+              return prResult;
+            } catch (reviewError) {
+              logger.error(
+                {
+                  errorMessage: reviewError.message || 'Unknown error',
+                  errorType: reviewError.constructor.name,
+                  repo: repo.full_name,
+                  pr: pr.number,
+                  checkSuite: checkSuite.id
+                },
+                'Error processing automated PR review'
+              );
+              
+              // Remove in-progress label on error
+              try {
+                await githubService.managePRLabels({
+                  repoOwner: repo.owner.login,
+                  repoName: repo.name,
+                  prNumber: pr.number,
+                  labelsToRemove: ['claude-review-in-progress']
+                });
+              } catch (labelError) {
+                logger.error(
+                  {
+                    err: labelError.message,
+                    repo: repo.full_name,
+                    pr: pr.number
+                  },
+                  'Failed to remove review-in-progress label after error'
+                );
+              }
+              
+              prResult.error = reviewError.message || 'Unknown error during review';
+              return prResult;
+            }
+          });
+          
+          // Wait for all PR reviews to complete
+          const results = await Promise.allSettled(prPromises);
+          const prResults = results.map(result => 
+            result.status === 'fulfilled' ? result.value : { success: false, error: result.reason }
+          );
+          
+          // Count successes and failures (mutually exclusive)
+          const successCount = prResults.filter(r => r.success).length;
+          const failureCount = prResults.filter(r => !r.success && r.error && !r.skippedReason).length;
+          const skippedCount = prResults.filter(r => !r.success && r.skippedReason).length;
+          
+          logger.info(
+            {
+              repo: repo.full_name,
+              checkSuite: checkSuite.id,
+              totalPRs: prResults.length,
+              successCount,
+              failureCount,
+              skippedCount,
+              results: prResults
+            },
+            'Check suite PR review processing completed'
+          );
+          
+          // Return detailed status
+          return res.status(200).json({
+            success: true,
+            message: `Check suite processed: ${successCount} reviewed, ${failureCount} failed, ${skippedCount} skipped`,
+            context: {
+              repo: repo.full_name,
+              checkSuite: checkSuite.id,
+              conclusion: checkSuite.conclusion,
+              results: prResults
+            }
+          });
+        } catch (error) {
+          logger.error(
+            {
+              err: error,
+              repo: repo.full_name,
+              checkSuite: checkSuite.id
+            },
+            'Error processing check suite for PR reviews'
+          );
+          
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to process check suite',
+            message: error.message,
+            context: {
+              repo: repo.full_name,
+              checkSuite: checkSuite.id,
+              type: 'check_suite'
+            }
+          });
         }
-
+      } else if (checkSuite.head_branch) {
+        // If no pull requests in payload but we have a head_branch,
+        // this might be a PR from a fork - log for debugging
+        logger.warn(
+          {
+            repo: repo.full_name,
+            checkSuite: checkSuite.id,
+            headBranch: checkSuite.head_branch,
+            headSha: checkSuite.head_sha
+          },
+          'Check suite succeeded but no pull requests found in payload - possible fork PR'
+        );
+        
+        // TODO: Could query GitHub API to find PRs for this branch/SHA
+        // For now, just acknowledge the webhook
         return res.status(200).json({
           success: true,
-          message: 'Check suite completion processed - PR review triggered',
+          message: 'Check suite completed but no PRs found in payload',
           context: {
             repo: repo.full_name,
             checkSuite: checkSuite.id,
             conclusion: checkSuite.conclusion,
-            pullRequests: checkSuite.pull_requests.map(pr => pr.number)
+            headBranch: checkSuite.head_branch
           }
         });
       } else {
+        // Log the specific reason why PR review was not triggered
+        const reasons = [];
+        if (checkSuite.conclusion !== 'success') {
+          reasons.push(`conclusion is '${checkSuite.conclusion}' (not 'success')`);
+        }
+        if (!checkSuite.pull_requests || checkSuite.pull_requests.length === 0) {
+          reasons.push('no pull requests associated with check suite');
+        }
+
         logger.info(
           {
             repo: repo.full_name,
             checkSuite: checkSuite.id,
             conclusion: checkSuite.conclusion,
-            pullRequestCount: checkSuite.pull_requests?.length || 0
+            pullRequestCount: checkSuite.pull_requests?.length || 0,
+            reasons: reasons.join(', ')
           },
-          'Check suite completed but not triggering PR review (not success or no PRs)'
+          'Check suite completed but not triggering PR review'
         );
       }
     }

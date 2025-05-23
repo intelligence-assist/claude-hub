@@ -1,8 +1,24 @@
-const axios = require('axios');
+const { Octokit } = require('@octokit/rest');
 const { createLogger } = require('../utils/logger');
 const secureCredentials = require('../utils/secureCredentials');
 
 const logger = createLogger('githubService');
+
+// Create Octokit instance (lazy initialization)
+let octokit = null;
+
+function getOctokit() {
+  if (!octokit) {
+    const githubToken = secureCredentials.get('GITHUB_TOKEN');
+    if (githubToken && githubToken.includes('ghp_')) {
+      octokit = new Octokit({
+        auth: githubToken,
+        userAgent: 'Claude-GitHub-Webhook'
+      });
+    }
+  }
+  return octokit;
+}
 
 /**
  * Posts a comment to a GitHub issue or pull request
@@ -20,10 +36,9 @@ async function postComment({ repoOwner, repoName, issueNumber, body }) {
       'Posting comment to GitHub'
     );
 
-    const githubToken = secureCredentials.get('GITHUB_TOKEN');
-
     // In test mode, just log the comment instead of posting to GitHub
-    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
       logger.info(
         {
           repo: `${repoOwner}/${repoName}`,
@@ -40,31 +55,24 @@ async function postComment({ repoOwner, repoName, issueNumber, body }) {
       };
     }
 
-    const url = `https://api.github.com/repos/${validated.repoOwner}/${validated.repoName}/issues/${validated.issueNumber}/comments`;
-
-    const response = await axios.post(
-      url,
-      { body },
-      {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-          Authorization: `token ${githubToken}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'Claude-GitHub-Webhook'
-        }
-      }
-    );
+    // Use Octokit to create comment
+    const { data } = await client.issues.createComment({
+      owner: validated.repoOwner,
+      repo: validated.repoName,
+      issue_number: validated.issueNumber,
+      body: body
+    });
 
     logger.info(
       {
         repo: `${repoOwner}/${repoName}`,
         issue: issueNumber,
-        commentId: response.data.id
+        commentId: data.id
       },
       'Comment posted successfully'
     );
 
-    return response.data;
+    return data;
   } catch (error) {
     logger.error(
       {
@@ -117,10 +125,9 @@ async function addLabelsToIssue({ repoOwner, repoName, issueNumber, labels }) {
       'Adding labels to GitHub issue'
     );
 
-    const githubToken = secureCredentials.get('GITHUB_TOKEN');
-
     // In test mode, just log the labels instead of applying to GitHub
-    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
       logger.info(
         {
           repo: `${repoOwner}/${repoName}`,
@@ -136,31 +143,24 @@ async function addLabelsToIssue({ repoOwner, repoName, issueNumber, labels }) {
       };
     }
 
-    const url = `https://api.github.com/repos/${validated.repoOwner}/${validated.repoName}/issues/${validated.issueNumber}/labels`;
-
-    const response = await axios.post(
-      url,
-      { labels },
-      {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-          Authorization: `token ${githubToken}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'Claude-GitHub-Webhook'
-        }
-      }
-    );
+    // Use Octokit to add labels
+    const { data } = await client.issues.addLabels({
+      owner: validated.repoOwner,
+      repo: validated.repoName,
+      issue_number: validated.issueNumber,
+      labels: labels
+    });
 
     logger.info(
       {
         repo: `${repoOwner}/${repoName}`,
         issue: issueNumber,
-        appliedLabels: response.data.map(label => label.name)
+        appliedLabels: data.map(label => label.name)
       },
       'Labels added successfully'
     );
 
-    return response.data;
+    return data;
   } catch (error) {
     logger.error(
       {
@@ -197,10 +197,9 @@ async function createRepositoryLabels({ repoOwner, repoName, labels }) {
       'Creating repository labels'
     );
 
-    const githubToken = secureCredentials.get('GITHUB_TOKEN');
-
     // In test mode, just log the operation
-    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
       logger.info(
         {
           repo: `${repoOwner}/${repoName}`,
@@ -215,22 +214,20 @@ async function createRepositoryLabels({ repoOwner, repoName, labels }) {
 
     for (const label of labels) {
       try {
-        const url = `https://api.github.com/repos/${repoOwner}/${repoName}/labels`;
-
-        const response = await axios.post(url, label, {
-          headers: {
-            Accept: 'application/vnd.github.v3+json',
-            Authorization: `token ${githubToken}`,
-            'Content-Type': 'application/json',
-            'User-Agent': 'Claude-GitHub-Webhook'
-          }
+        // Use Octokit to create label
+        const { data } = await client.issues.createLabel({
+          owner: repoOwner,
+          repo: repoName,
+          name: label.name,
+          color: label.color,
+          description: label.description
         });
 
-        createdLabels.push(response.data);
+        createdLabels.push(data);
         logger.debug({ labelName: label.name }, 'Label created successfully');
       } catch (error) {
         // Label might already exist - check if it's a 422 (Unprocessable Entity)
-        if (error.response?.status === 422) {
+        if (error.status === 422) {
           logger.debug({ labelName: label.name }, 'Label already exists, skipping');
         } else {
           logger.warn(
@@ -360,10 +357,9 @@ async function getCombinedStatus({ repoOwner, repoName, ref }) {
       'Getting combined status from GitHub'
     );
 
-    const githubToken = secureCredentials.get('GITHUB_TOKEN');
-
     // In test mode, return a mock successful status
-    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
       logger.info(
         {
           repo: `${repoOwner}/${repoName}`,
@@ -382,27 +378,24 @@ async function getCombinedStatus({ repoOwner, repoName, ref }) {
       };
     }
 
-    const url = `https://api.github.com/repos/${repoOwner}/${repoName}/commits/${ref}/status`;
-
-    const response = await axios.get(url, {
-      headers: {
-        Accept: 'application/vnd.github.v3+json',
-        Authorization: `token ${githubToken}`,
-        'User-Agent': 'Claude-GitHub-Webhook'
-      }
+    // Use Octokit to get combined status
+    const { data } = await client.repos.getCombinedStatusForRef({
+      owner: repoOwner,
+      repo: repoName,
+      ref: ref
     });
 
     logger.info(
       {
         repo: `${repoOwner}/${repoName}`,
         ref: ref,
-        state: response.data.state,
-        totalCount: response.data.total_count
+        state: data.state,
+        totalCount: data.total_count
       },
       'Combined status retrieved successfully'
     );
 
-    return response.data;
+    return data;
   } catch (error) {
     logger.error(
       {
@@ -447,27 +440,22 @@ async function hasReviewedPRAtCommit({ repoOwner, repoName, prNumber, commitSha 
       'Checking if PR has been reviewed at commit'
     );
 
-    const githubToken = secureCredentials.get('GITHUB_TOKEN');
-    
     // In test mode, return false to allow review
-    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
       return false;
     }
 
-    // Get review comments for this PR
-    const url = `https://api.github.com/repos/${repoOwner}/${repoName}/pulls/${prNumber}/reviews`;
-    
-    const response = await axios.get(url, {
-      headers: {
-        Accept: 'application/vnd.github.v3+json',
-        Authorization: `token ${githubToken}`,
-        'User-Agent': 'Claude-GitHub-Webhook'
-      }
+    // Get review comments for this PR using Octokit
+    const { data: reviews } = await client.pulls.listReviews({
+      owner: repoOwner,
+      repo: repoName,
+      pull_number: prNumber
     });
 
     // Check if any review mentions this specific commit SHA
     const botUsername = process.env.BOT_USERNAME || 'ClaudeBot';
-    const existingReview = response.data.find(review => {
+    const existingReview = reviews.find(review => {
       return review.user.login === botUsername && 
              review.body && 
              review.body.includes(`commit: ${commitSha}`);
@@ -505,10 +493,9 @@ async function managePRLabels({ repoOwner, repoName, prNumber, labelsToAdd = [],
       throw new Error('Invalid repository owner or name - contains unsafe characters');
     }
 
-    const githubToken = secureCredentials.get('GITHUB_TOKEN');
-    
     // In test mode, just log
-    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
       logger.info(
         {
           repo: `${repoOwner}/${repoName}`,
@@ -521,16 +508,14 @@ async function managePRLabels({ repoOwner, repoName, prNumber, labelsToAdd = [],
       return;
     }
 
-    // Remove labels first
+    // Remove labels first using Octokit
     for (const label of labelsToRemove) {
       try {
-        const url = `https://api.github.com/repos/${repoOwner}/${repoName}/issues/${prNumber}/labels/${encodeURIComponent(label)}`;
-        await axios.delete(url, {
-          headers: {
-            Accept: 'application/vnd.github.v3+json',
-            Authorization: `token ${githubToken}`,
-            'User-Agent': 'Claude-GitHub-Webhook'
-          }
+        await client.issues.removeLabel({
+          owner: repoOwner,
+          repo: repoName,
+          issue_number: prNumber,
+          name: label
         });
         logger.info(
           {
@@ -542,7 +527,7 @@ async function managePRLabels({ repoOwner, repoName, prNumber, labelsToAdd = [],
         );
       } catch (error) {
         // Ignore 404 errors (label not present)
-        if (error.response?.status !== 404) {
+        if (error.status !== 404) {
           logger.error(
             {
               err: error.message,
@@ -554,19 +539,14 @@ async function managePRLabels({ repoOwner, repoName, prNumber, labelsToAdd = [],
       }
     }
 
-    // Add new labels
+    // Add new labels using Octokit
     if (labelsToAdd.length > 0) {
-      const url = `https://api.github.com/repos/${repoOwner}/${repoName}/issues/${prNumber}/labels`;
-      await axios.post(url, 
-        { labels: labelsToAdd },
-        {
-          headers: {
-            Accept: 'application/vnd.github.v3+json',
-            Authorization: `token ${githubToken}`,
-            'User-Agent': 'Claude-GitHub-Webhook'
-          }
-        }
-      );
+      await client.issues.addLabels({
+        owner: repoOwner,
+        repo: repoName,
+        issue_number: prNumber,
+        labels: labelsToAdd
+      });
       logger.info(
         {
           repo: `${repoOwner}/${repoName}`,

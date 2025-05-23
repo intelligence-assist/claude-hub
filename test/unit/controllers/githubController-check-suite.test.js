@@ -124,7 +124,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     expect(claudeService.processCommand).toHaveBeenCalledWith({
       repoFullName: 'owner/repo',
       issueNumber: 42,
-      command: expect.stringContaining('## PR Review Workflow Instructions'),
+      command: expect.stringContaining('# GitHub PR Review - Complete Automated Review'),
       isPullRequest: true,
       branchName: 'feature-branch'
     });
@@ -599,14 +599,14 @@ describe('GitHub Controller - Check Suite Events', () => {
     expect(claudeService.processCommand).toHaveBeenCalledWith({
       repoFullName: 'owner/repo',
       issueNumber: 42,
-      command: expect.stringContaining('## PR Review Workflow Instructions'),
+      command: expect.stringContaining('# GitHub PR Review - Complete Automated Review'),
       isPullRequest: true,
       branchName: 'feature-branch-1'
     });
     expect(claudeService.processCommand).toHaveBeenCalledWith({
       repoFullName: 'owner/repo',
       issueNumber: 43,
-      command: expect.stringContaining('## PR Review Workflow Instructions'),
+      command: expect.stringContaining('# GitHub PR Review - Complete Automated Review'),
       isPullRequest: true,
       branchName: 'feature-branch-2'
     });

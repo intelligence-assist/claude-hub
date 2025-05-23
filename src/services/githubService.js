@@ -421,10 +421,180 @@ async function getCombinedStatus({ repoOwner, repoName, ref }) {
   }
 }
 
+/**
+ * Check if we've already reviewed this PR at the given commit SHA
+ * @param {Object} params
+ * @param {string} params.repoOwner - Repository owner
+ * @param {string} params.repoName - Repository name  
+ * @param {number} params.prNumber - Pull request number
+ * @param {string} params.commitSha - Commit SHA to check
+ * @returns {Promise<boolean>} True if already reviewed at this SHA
+ */
+async function hasReviewedPRAtCommit({ repoOwner, repoName, prNumber, commitSha }) {
+  try {
+    // Validate parameters
+    const repoPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
+      throw new Error('Invalid repository owner or name - contains unsafe characters');
+    }
+
+    logger.info(
+      {
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber,
+        commitSha: commitSha
+      },
+      'Checking if PR has been reviewed at commit'
+    );
+
+    const githubToken = secureCredentials.get('GITHUB_TOKEN');
+    
+    // In test mode, return false to allow review
+    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
+      return false;
+    }
+
+    // Get review comments for this PR
+    const url = `https://api.github.com/repos/${repoOwner}/${repoName}/pulls/${prNumber}/reviews`;
+    
+    const response = await axios.get(url, {
+      headers: {
+        Accept: 'application/vnd.github.v3+json',
+        Authorization: `token ${githubToken}`,
+        'User-Agent': 'Claude-GitHub-Webhook'
+      }
+    });
+
+    // Check if any review mentions this specific commit SHA
+    const botUsername = process.env.BOT_USERNAME || 'ClaudeBot';
+    const existingReview = response.data.find(review => {
+      return review.user.login === botUsername && 
+             review.body && 
+             review.body.includes(`commit: ${commitSha}`);
+    });
+
+    return !!existingReview;
+  } catch (error) {
+    logger.error(
+      {
+        err: error.message,
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber
+      },
+      'Failed to check for existing reviews'
+    );
+    // On error, assume not reviewed to avoid blocking reviews
+    return false;
+  }
+}
+
+/**
+ * Add or remove labels on a pull request
+ * @param {Object} params
+ * @param {string} params.repoOwner - Repository owner
+ * @param {string} params.repoName - Repository name
+ * @param {number} params.prNumber - Pull request number
+ * @param {string[]} params.labelsToAdd - Labels to add
+ * @param {string[]} params.labelsToRemove - Labels to remove
+ */
+async function managePRLabels({ repoOwner, repoName, prNumber, labelsToAdd = [], labelsToRemove = [] }) {
+  try {
+    // Validate parameters
+    const repoPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
+      throw new Error('Invalid repository owner or name - contains unsafe characters');
+    }
+
+    const githubToken = secureCredentials.get('GITHUB_TOKEN');
+    
+    // In test mode, just log
+    if (process.env.NODE_ENV === 'test' || !githubToken || !githubToken.includes('ghp_')) {
+      logger.info(
+        {
+          repo: `${repoOwner}/${repoName}`,
+          pr: prNumber,
+          labelsToAdd,
+          labelsToRemove
+        },
+        'TEST MODE: Would manage PR labels'
+      );
+      return;
+    }
+
+    // Remove labels first
+    for (const label of labelsToRemove) {
+      try {
+        const url = `https://api.github.com/repos/${repoOwner}/${repoName}/issues/${prNumber}/labels/${encodeURIComponent(label)}`;
+        await axios.delete(url, {
+          headers: {
+            Accept: 'application/vnd.github.v3+json',
+            Authorization: `token ${githubToken}`,
+            'User-Agent': 'Claude-GitHub-Webhook'
+          }
+        });
+        logger.info(
+          {
+            repo: `${repoOwner}/${repoName}`,
+            pr: prNumber,
+            label
+          },
+          'Removed label from PR'
+        );
+      } catch (error) {
+        // Ignore 404 errors (label not present)
+        if (error.response?.status !== 404) {
+          logger.error(
+            {
+              err: error.message,
+              label
+            },
+            'Failed to remove label'
+          );
+        }
+      }
+    }
+
+    // Add new labels
+    if (labelsToAdd.length > 0) {
+      const url = `https://api.github.com/repos/${repoOwner}/${repoName}/issues/${prNumber}/labels`;
+      await axios.post(url, 
+        { labels: labelsToAdd },
+        {
+          headers: {
+            Accept: 'application/vnd.github.v3+json',
+            Authorization: `token ${githubToken}`,
+            'User-Agent': 'Claude-GitHub-Webhook'
+          }
+        }
+      );
+      logger.info(
+        {
+          repo: `${repoOwner}/${repoName}`,
+          pr: prNumber,
+          labels: labelsToAdd
+        },
+        'Added labels to PR'
+      );
+    }
+  } catch (error) {
+    logger.error(
+      {
+        err: error.message,
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber
+      },
+      'Failed to manage PR labels'
+    );
+    throw error;
+  }
+}
+
 module.exports = {
   postComment,
   addLabelsToIssue,
   createRepositoryLabels,
   getFallbackLabels,
-  getCombinedStatus
+  getCombinedStatus,
+  hasReviewedPRAtCommit,
+  managePRLabels
 };

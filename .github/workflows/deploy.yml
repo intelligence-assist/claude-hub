@@ -107,10 +107,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Extract first image tag
+        id: first-tag
+        run: |
+          FIRST_TAG=$(echo "${{ needs.build.outputs.image-tag }}" | head -n 1)
+          echo "tag=$FIRST_TAG" >> $GITHUB_OUTPUT
+      
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ needs.build.outputs.image-tag }}
+          image-ref: ${{ steps.first-tag.outputs.tag }}
           format: 'sarif'
           output: 'trivy-results.sarif'
       

@@ -49,7 +49,7 @@ jest.mock('../../../src/utils/secureCredentials', () => ({
 }));
 
 // Now require the module under test
-const { execFileSync, exec } = require('child_process');
+const { execFileSync } = require('child_process');
 const { writeFileSync } = require('fs');
 const { promisify } = require('util');
 const { sanitizeBotMentions } = require('../../../src/utils/sanitize');
@@ -92,7 +92,7 @@ describe('Claude Service', () => {
       process.env.NODE_ENV = 'production';
       
       // Mock dependencies needed in production mode
-      execFileSync.mockImplementation((cmd, args, options) => {
+      execFileSync.mockImplementation((cmd, args, _options) => {
         if (args[0] === 'inspect') return '{}';
         return 'mocked output';
       });
@@ -142,7 +142,7 @@ describe('Claude Service', () => {
       process.env.NODE_ENV = 'production';
       
       // Mock the Docker inspect to succeed
-      execFileSync.mockImplementation((cmd, args, options) => {
+      execFileSync.mockImplementation((cmd, args, _options) => {
         if (args[0] === 'inspect') return '{}';
         if (args[0] === 'logs') return 'error logs';
         if (args[0] === 'kill') return '';
@@ -192,24 +192,20 @@ describe('Claude Service', () => {
       process.env.NODE_ENV = 'production';
       
       // Mock the Docker inspect to succeed
-      execFileSync.mockImplementation((cmd, args, options) => {
+      execFileSync.mockImplementation((cmd, args, _options) => {
         if (args[0] === 'inspect') return '{}';
         return 'mocked output';
       });
       
-      // Make sure our original command is accessible
-      const longCommand = options.command;
-      
       // Capture file write calls
-      let capturedFilePath = null;
-      writeFileSync.mockImplementation((path, content, options) => {
-        capturedFilePath = path;
+      writeFileSync.mockImplementation((_path, _content, _options) => {
+        // File write is mocked
       });
       
       // Call the original implementation
       try {
         await originalProcessCommand(options);
-      } catch (e) {
+      } catch (_e) {
         // Ignore errors, we just want to check if writeFileSync was called
       }
       

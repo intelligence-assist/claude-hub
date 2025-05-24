@@ -1,6 +1,4 @@
-const { execFileSync, exec } = require('child_process');
-const { promisify } = require('util');
-const execAsync = promisify(exec);
+const { execFileSync } = require('child_process');
 // Use sync methods for file operations that need to be synchronous
 const fsSync = require('fs');
 const path = require('path');
@@ -87,7 +85,7 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
     try {
       execFileSync('docker', ['inspect', dockerImageName], { stdio: 'ignore' });
       logger.info({ dockerImageName }, 'Docker image already exists');
-    } catch (e) {
+    } catch (_e) {
       logger.info({ dockerImageName }, 'Building Docker image for Claude Code runner');
       execFileSync('docker', ['build', '-f', 'Dockerfile.claudecode', '-t', dockerImageName, '.'], {
         cwd: path.join(__dirname, '../..'),
@@ -149,7 +147,7 @@ Please complete this task fully and autonomously.`;
     };
 
     // Build docker run command - properly escape values for shell
-    const envArgs = Object.entries(envVars)
+    Object.entries(envVars)
       .filter(([_, value]) => value !== undefined && value !== '')
       .map(([key, value]) => {
         // Convert to string and escape shell special characters in the value

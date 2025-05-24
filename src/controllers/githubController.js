@@ -123,83 +123,35 @@ async function handleWebhook(req, res) {
       );
 
       try {
-        // Process the issue with Claude for automatic tagging
-        const tagCommand = `Analyze this issue and apply appropriate labels:
+        // Apply labels based on keyword matching - simple and efficient
+        const labels = await githubService.getFallbackLabels(issue.title, issue.body);
+        
+        if (labels.length > 0) {
+          await githubService.addLabelsToIssue({
+            repoOwner: repo.owner.login,
+            repoName: repo.name,
+            issueNumber: issue.number,
+            labels: labels
+          });
 
-Title: ${issue.title}
-Description: ${issue.body || 'No description provided'}
-
-Available labels:
-- Priority: critical, high, medium, low
-- Type: bug, feature, enhancement, documentation, question, security
-- Complexity: trivial, simple, moderate, complex
-- Component: api, frontend, backend, database, auth, webhook, docker
-
-Return ONLY a JSON object with the labels to apply:
-{
-  "labels": ["priority:medium", "type:feature", "complexity:simple", "component:api"]
-}`;
-
-        logger.info('Sending issue to Claude for auto-tagging analysis');
-        const claudeResponse = await claudeService.processCommand({
-          repoFullName: repo.full_name,
-          issueNumber: issue.number,
-          command: tagCommand,
-          isPullRequest: false,
-          branchName: null
-        });
-
-        // Parse Claude's response and apply labels
-        try {
-          // Extract JSON from Claude's response (it might have additional text) using safer approach
-          const jsonStart = claudeResponse.indexOf('{');
-          const jsonEnd = claudeResponse.lastIndexOf('}');
-          if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-            const jsonString = claudeResponse.substring(jsonStart, jsonEnd + 1);
-            const labelSuggestion = JSON.parse(jsonString);
-
-            if (labelSuggestion.labels && Array.isArray(labelSuggestion.labels)) {
-              // Apply the suggested labels
-              await githubService.addLabelsToIssue({
-                repoOwner: repo.owner.login,
-                repoName: repo.name,
-                issueNumber: issue.number,
-                labels: labelSuggestion.labels
-              });
-
-              // Auto-tagging completed - no comment needed for subtlety
-
-              const sanitizedLabels = sanitizeLabels(labelSuggestion.labels);
-              logger.info(
-                {
-                  repo: repo.full_name,
-                  issue: issue.number,
-                  labelCount: sanitizedLabels.length
-                },
-                'Auto-tagging completed successfully'
-              );
-            }
-          }
-        } catch (parseError) {
-          logger.warn(
+          const sanitizedLabels = sanitizeLabels(labels);
+          logger.info(
             {
-              err: parseError,
-              claudeResponseLength: claudeResponse.length,
-              claudeResponsePreview: '[RESPONSE_CONTENT_REDACTED]'
+              repo: repo.full_name,
+              issue: issue.number,
+              appliedLabels: sanitizedLabels,
+              labelCount: sanitizedLabels.length
             },
-            'Failed to parse Claude response for auto-tagging'
+            'Auto-tagging completed successfully'
           );
-
-          // Fall back to basic tagging based on keywords
-          const fallbackLabels = await githubService.getFallbackLabels(issue.title, issue.body);
-          if (fallbackLabels.length > 0) {
-            await githubService.addLabelsToIssue({
-              repoOwner: repo.owner.login,
-              repoName: repo.name,
-              issueNumber: issue.number,
-              labels: fallbackLabels
-            });
-          }
+        } else {
+          logger.info(
+            {
+              repo: repo.full_name,
+              issue: issue.number
+            },
+            'No matching labels found for issue'
+          );
         }
 
         return res.status(200).json({
@@ -208,14 +160,17 @@ Return ONLY a JSON object with the labels to apply:
           context: {
             repo: repo.full_name,
             issue: issue.number,
-            type: 'issues_opened'
+            type: 'issues_opened',
+            appliedLabels: labels
           }
         });
       } catch (error) {
         logger.error(
           {
             errorMessage: error.message || 'Unknown error',
-            errorType: error.constructor.name
+            errorType: error.constructor.name,
+            repo: repo.full_name,
+            issue: issue.number
           },
           'Error processing issue for auto-tagging'
         );

@@ -61,13 +61,13 @@ describe('githubService', () => {
   describe('getFallbackLabels', () => {
     it('should identify bug labels correctly', async () => {
       const labels = await githubService.getFallbackLabels(
-        'Fix critical bug in authentication',
-        'There is an error when users try to login'
+        'Fix critical bug in database',
+        'There is an error when querying the database'
       );
 
       expect(labels).toContain('type:bug');
       expect(labels).toContain('priority:critical');
-      expect(labels).toContain('component:auth');
+      expect(labels).toContain('component:database');
     });
 
     it('should identify feature labels correctly', async () => {
@@ -112,17 +112,17 @@ describe('githubService', () => {
     it('should default to medium priority when no specific priority keywords found', async () => {
       const labels = await githubService.getFallbackLabels(
         'Add some new feature',
-        'This would be nice to have'
+        'This would be good to have'
       );
 
       expect(labels).toContain('priority:medium');
     });
 
     it('should handle empty descriptions gracefully', async () => {
-      const labels = await githubService.getFallbackLabels('Bug in authentication', null);
+      const labels = await githubService.getFallbackLabels('Bug in database connection', null);
 
       expect(labels).toContain('type:bug');
-      expect(labels).toContain('component:auth');
+      expect(labels).toContain('component:database');
     });
   });
 

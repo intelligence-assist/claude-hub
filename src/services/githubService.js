@@ -256,75 +256,172 @@ async function createRepositoryLabels({ repoOwner, repoName, labels }) {
 }
 
 /**
- * Provides fallback labels based on simple keyword matching
+ * Provides intelligent labels based on keyword matching and pattern detection
  */
 async function getFallbackLabels(title, body) {
   const content = `${title} ${body || ''}`.toLowerCase();
   const labels = [];
 
-  // Type detection - check documentation first for specificity
+  // Type detection - prioritize specific types first
   if (
+    content.includes('security') ||
+    content.includes('vulnerability') ||
+    content.includes('exploit') ||
+    content.includes('auth') ||
+    content.includes('permission')
+  ) {
+    labels.push('type:security');
+  } else if (
     content.includes(' doc ') ||
     content.includes('docs') ||
     content.includes('readme') ||
-    content.includes('documentation')
+    content.includes('documentation') ||
+    content.includes('guide') ||
+    content.includes('tutorial')
   ) {
     labels.push('type:documentation');
   } else if (
     content.includes('bug') ||
     content.includes('error') ||
-    content.includes('issue') ||
-    content.includes('problem')
+    content.includes('crash') ||
+    content.includes('fail') ||
+    content.includes('broken') ||
+    content.includes('problem') ||
+    content.includes('fix')
   ) {
     labels.push('type:bug');
-  } else if (content.includes('feature') || content.includes('add') || content.includes('new')) {
+  } else if (
+    content.includes('feature') ||
+    content.includes('add') ||
+    content.includes('new') ||
+    content.includes('implement') ||
+    content.includes('support')
+  ) {
     labels.push('type:feature');
   } else if (
     content.includes('improve') ||
     content.includes('enhance') ||
-    content.includes('better')
+    content.includes('better') ||
+    content.includes('optimize') ||
+    content.includes('update')
   ) {
     labels.push('type:enhancement');
-  } else if (content.includes('question') || content.includes('help') || content.includes('how')) {
+  } else if (
+    content.includes('question') ||
+    content.includes('help') ||
+    content.includes('how') ||
+    content.includes('why') ||
+    content.includes('what')
+  ) {
     labels.push('type:question');
   }
 
-  // Priority detection
+  // Priority detection with more nuanced keywords
   if (
     content.includes('critical') ||
     content.includes('urgent') ||
-    content.includes('security') ||
-    content.includes('down')
+    content.includes('blocking') ||
+    content.includes('production') ||
+    content.includes('down') ||
+    content.includes('outage') ||
+    content.includes('emergency')
   ) {
     labels.push('priority:critical');
-  } else if (content.includes('important') || content.includes('high')) {
+  } else if (
+    content.includes('important') ||
+    content.includes('high') ||
+    content.includes('asap') ||
+    content.includes('soon') ||
+    content.includes('breaking')
+  ) {
     labels.push('priority:high');
+  } else if (
+    content.includes('low') ||
+    content.includes('minor') ||
+    content.includes('cosmetic') ||
+    content.includes('nice to have')
+  ) {
+    labels.push('priority:low');
   } else {
     labels.push('priority:medium');
   }
 
-  // Component detection
-  if (content.includes('api') || content.includes('endpoint')) {
+  // Complexity detection based on scope indicators
+  if (
+    content.includes('refactor') ||
+    content.includes('rewrite') ||
+    content.includes('architecture') ||
+    content.includes('migration') ||
+    content.includes('major')
+  ) {
+    labels.push('complexity:complex');
+  } else if (
+    content.includes('multiple') ||
+    content.includes('several') ||
+    content.includes('workflow') ||
+    content.includes('integration')
+  ) {
+    labels.push('complexity:moderate');
+  } else if (
+    content.includes('typo') ||
+    content.includes('text') ||
+    content.includes('color') ||
+    content.includes('spacing') ||
+    content.includes('cosmetic')
+  ) {
+    labels.push('complexity:trivial');
+  } else {
+    labels.push('complexity:simple');
+  }
+
+  // Component detection with more comprehensive matching
+  if (content.includes('api') || content.includes('endpoint') || content.includes('rest')) {
     labels.push('component:api');
   } else if (
     content.includes('ui') ||
     content.includes('frontend') ||
-    content.includes('interface')
+    content.includes('interface') ||
+    content.includes('css') ||
+    content.includes('html') ||
+    content.includes('react') ||
+    content.includes('vue')
   ) {
     labels.push('component:frontend');
-  } else if (content.includes('backend') || content.includes('server')) {
+  } else if (
+    content.includes('backend') ||
+    content.includes('server') ||
+    content.includes('node') ||
+    content.includes('express')
+  ) {
     labels.push('component:backend');
-  } else if (content.includes('database') || content.includes('db')) {
+  } else if (
+    content.includes('database') ||
+    content.includes('db') ||
+    content.includes('sql') ||
+    content.includes('mongo') ||
+    content.includes('redis')
+  ) {
     labels.push('component:database');
   } else if (
     content.includes('auth') ||
     content.includes('login') ||
-    content.includes('permission')
+    content.includes('permission') ||
+    content.includes('token') ||
+    content.includes('oauth')
   ) {
     labels.push('component:auth');
-  } else if (content.includes('webhook') || content.includes('github')) {
+  } else if (
+    content.includes('webhook') ||
+    content.includes('github') ||
+    content.includes('git')
+  ) {
     labels.push('component:webhook');
-  } else if (content.includes('docker') || content.includes('container')) {
+  } else if (
+    content.includes('docker') ||
+    content.includes('container') ||
+    content.includes('kubernetes') ||
+    content.includes('k8s')
+  ) {
     labels.push('component:docker');
   }
 

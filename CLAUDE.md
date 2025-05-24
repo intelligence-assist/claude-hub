@@ -85,13 +85,17 @@ Use the demo repository for testing auto-tagging and webhook functionality:
 ## Features
 
 ### Auto-Tagging
-The system automatically analyzes new issues and applies appropriate labels based on:
+The system automatically analyzes new issues and applies appropriate labels based on intelligent keyword matching:
 - **Priority**: critical, high, medium, low
 - **Type**: bug, feature, enhancement, documentation, question, security  
 - **Complexity**: trivial, simple, moderate, complex
 - **Component**: api, frontend, backend, database, auth, webhook, docker
 
-When an issue is opened, Claude analyzes the title and description to suggest intelligent labels, with keyword-based fallback for reliability.
+When an issue is opened, the system automatically analyzes the title and description using keyword pattern matching to apply relevant labels. The workflow is:
+1. **Silent Operation**: Labels are applied without posting any comments
+2. **Minimal Permissions**: Only requires repository read access and issue labeling permissions
+3. **Keyword-Based**: Uses comprehensive keyword matching for reliable, fast labeling
+4. **No External Dependencies**: Does not require Claude Code CLI for basic auto-tagging
 
 ### Automated PR Review
 The system automatically triggers comprehensive PR reviews when all checks pass:

@@ -11,7 +11,7 @@ on:
 
 jobs:
   security-audit:
-    runs-on: [self-hosted, linux, x64]
+    runs-on: [self-hosted, Linux, X64]
     name: Security Audit
     
     steps:

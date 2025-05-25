@@ -15,7 +15,7 @@ jobs:
   # Lint job - fast and independent
   lint:
     name: Lint & Format Check
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest-4-cores
     
     steps:
     - name: Checkout code
@@ -40,7 +40,7 @@ jobs:
   # Unit tests - fastest test suite
   test-unit:
     name: Unit Tests
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest-4-cores
     
     steps:
     - name: Checkout code
@@ -67,7 +67,7 @@ jobs:
   # Integration tests - moderate complexity
   test-integration:
     name: Integration Tests
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest-4-cores
     
     steps:
     - name: Checkout code
@@ -94,7 +94,7 @@ jobs:
   # E2E tests - most complex, run on self-hosted for better performance
   test-e2e:
     name: E2E Tests
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     
     steps:
     - name: Checkout code
@@ -121,7 +121,7 @@ jobs:
   # Coverage generation - depends on unit tests
   coverage:
     name: Test Coverage
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest-4-cores
     needs: [test-unit]
     
     steps:
@@ -157,7 +157,7 @@ jobs:
   # Security scans - run in parallel with tests
   security:
     name: Security Scan
-    runs-on: [self-hosted, linux, x64]
+    runs-on: [self-hosted, Linux, X64]
     
     steps:
     - name: Checkout code
@@ -187,7 +187,7 @@ jobs:
   # Docker builds - move to self-hosted for better performance
   docker:
     name: Docker Build & Test
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     # Only need unit tests to pass for Docker builds
     needs: [test-unit, lint]
     

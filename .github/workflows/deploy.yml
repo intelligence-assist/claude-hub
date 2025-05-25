@@ -21,7 +21,7 @@ jobs:
   
   test:
     name: Run Tests
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest-4-cores
     strategy:
       matrix:
         node-version: [18.x, 20.x]
@@ -53,7 +53,7 @@ jobs:
 
   build:
     name: Build Docker Image
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     needs: test
     
     outputs:
@@ -107,7 +107,7 @@ jobs:
 
   security-scan:
     name: Security Scanning
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest-4-cores
     needs: build
     if: github.event_name != 'pull_request'
     
@@ -140,7 +140,7 @@ jobs:
     name: Deploy to Staging
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [build, security-scan]
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     environment: staging
     
     steps:
@@ -193,7 +193,7 @@ jobs:
     name: Deploy to Production
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [build, security-scan]
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64]
     environment: 
       name: production
       url: https://webhook.yourdomain.com

@@ -8,8 +8,6 @@
     "dev": "nodemon src/index.js",
     "test": "jest",
     "test:unit": "jest --testMatch='**/test/unit/**/*.test.js'",
-    "test:integration": "jest --testMatch='**/test/integration/**/*.test.js'",
-    "test:e2e": "jest --testMatch='**/test/e2e/scenarios/**/*.test.js'",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
     "test:ci": "jest --ci --coverage",

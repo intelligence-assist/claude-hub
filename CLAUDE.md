@@ -28,8 +28,6 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - **Run tests**: `npm test`
 - Run specific test types:
   - Unit tests: `npm run test:unit`
-  - Integration tests: `npm run test:integration`
-  - End-to-end tests: `npm run test:e2e`
   - Test with coverage: `npm run test:coverage`
   - Watch mode: `npm run test:watch`
 
@@ -64,7 +62,7 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Fix security vulnerabilities: `npm run security:fix`
 - All CI tests: `npm run test:ci` (includes coverage)
 
-### End-to-End Testing
+### Manual Testing
 Use the demo repository for testing auto-tagging and webhook functionality:
 - Demo repository: `https://github.com/intelligence-assist/demo-repository`
 - Test auto-tagging: `./cli/webhook-cli.js --repo "intelligence-assist/demo-repository" --command "Auto-tag this issue" --issue 1 --url "http://localhost:8082"`

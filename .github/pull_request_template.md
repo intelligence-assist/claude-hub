@@ -25,8 +25,6 @@ Fixes #(issue number)
 ## Testing
 <!-- Describe the tests you ran and how to reproduce them -->
 - [ ] Unit tests pass (`npm run test:unit`)
-- [ ] Integration tests pass (`npm run test:integration`)
-- [ ] E2E tests pass (`npm run test:e2e`)
 - [ ] Manual testing completed
 - [ ] Added new tests for new functionality
 

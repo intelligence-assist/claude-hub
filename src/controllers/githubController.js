@@ -886,7 +886,8 @@ Please check with an administrator to review the logs for more details.`
           commitSha: sha,
           status: status,
           context: context,
-          targetUrl: targetUrl
+          targetUrl: targetUrl,
+          timestamp: new Date().toISOString()
         },
         'Processing status webhook event'
       );

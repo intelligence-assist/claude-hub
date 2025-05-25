@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains a webhook service that integrates Claude with GitHub, allowing Claude to respond to mentions in GitHub comments and help with repository tasks. When someone mentions the configured bot username (configured via environment variables) in a GitHub issue or PR comment, the system processes the command with Claude Code and returns a helpful response.
 
+## Memories
+
+- The webhook for this repository is configured at an organization-level. 
+
 ## Documentation Structure
 
 - `/docs/complete-workflow.md` - Comprehensive workflow documentation

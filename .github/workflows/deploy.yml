@@ -51,12 +51,34 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  # Check if Docker-related files changed
+  changes:
+    name: Detect Changes  
+    runs-on: ubuntu-latest
+    outputs:
+      docker: ${{ steps.changes.outputs.docker }}
+      src: ${{ steps.changes.outputs.src }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          docker:
+            - 'Dockerfile*'
+            - 'scripts/**'
+            - '.dockerignore'
+            - 'claude-config*'
+          src:
+            - 'src/**'
+            - 'package*.json'
+
   build:
     name: Build Docker Image
     runs-on: [self-hosted, Linux, X64]
-    # Security: Only run on self-hosted for trusted sources
-    if: github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request'
-    needs: test
+    # Security: Only run on self-hosted for trusted sources AND when files changed
+    if: (github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request') && (needs.changes.outputs.docker == 'true' || needs.changes.outputs.src == 'true')
+    needs: [test, changes]
     
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}

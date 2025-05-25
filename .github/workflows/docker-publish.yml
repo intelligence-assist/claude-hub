@@ -7,6 +7,13 @@ on:
       - master
     tags:
       - 'v*.*.*'
+    paths:
+      - 'Dockerfile*'
+      - 'package*.json'
+      - '.github/workflows/docker-publish.yml'
+      - 'src/**'
+      - 'scripts/**'
+      - 'claude-config*'
   pull_request:
     branches:
       - main
@@ -17,6 +24,7 @@ on:
       - '.github/workflows/docker-publish.yml'
       - 'src/**'
       - 'scripts/**'
+      - 'claude-config*'
 
 env:
   DOCKER_HUB_USERNAME: cheffromspace
@@ -25,7 +33,9 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
+    # Security: Only run on self-hosted for trusted sources
+    if: github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
@@ -71,8 +81,12 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha,scope=publish-main
+            type=local,src=/tmp/.buildx-cache-main
+          cache-to: |
+            type=gha,mode=max,scope=publish-main
+            type=local,dest=/tmp/.buildx-cache-main-new,mode=max
 
       - name: Update Docker Hub Description
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -86,8 +100,9 @@ jobs:
 
   # Additional job to build and push the Claude Code container
   build-claudecode:
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+    runs-on: [self-hosted, Linux, X64]
+    # Security: Only run on self-hosted for trusted sources + not on PRs
+    if: (github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request') && github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
@@ -124,5 +139,9 @@ jobs:
           push: true
           tags: ${{ steps.meta-claudecode.outputs.tags }}
           labels: ${{ steps.meta-claudecode.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha,scope=publish-claudecode
+            type=local,src=/tmp/.buildx-cache-claude
+          cache-to: |
+            type=gha,mode=max,scope=publish-claudecode
+            type=local,dest=/tmp/.buildx-cache-claude-new,mode=max

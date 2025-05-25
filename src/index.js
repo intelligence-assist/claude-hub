@@ -23,7 +23,7 @@ const generalLimiter = rateLimit({
 
 const webhookLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 30, // Limit each IP to 30 webhook requests per minute
+  max: 120, // Limit each IP to 120 webhook requests per minute
   message: 'Too many webhook requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,

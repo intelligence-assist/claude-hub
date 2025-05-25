@@ -10,7 +10,6 @@ coverage
 test-results
 *.log
 .DS_Store
-claude-config/
 secrets/
 k8s/
 docs/

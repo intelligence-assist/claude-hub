@@ -7,16 +7,6 @@ on:
       - master
     tags:
       - 'v*.*.*'
-  pull_request:
-    branches:
-      - main
-      - master
-    paths:
-      - 'Dockerfile*'
-      - 'package*.json'
-      - '.github/workflows/docker-publish.yml'
-      - 'src/**'
-      - 'scripts/**'
 
 env:
   DOCKER_HUB_USERNAME: cheffromspace
@@ -38,7 +28,6 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_HUB_USERNAME }}
@@ -58,17 +47,15 @@ jobs:
             type=semver,pattern={{major}}
             # Latest tag for semantic version tags
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            # SHA for branch builds (push only)
-            type=sha,prefix={{branch}}-,enable=${{ github.event_name != 'pull_request' }}
-            # For PR builds, use pr-NUMBER
-            type=ref,event=pr
+            # SHA for branch builds
+            type=sha,prefix={{branch}}-
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
-          push: ${{ github.event_name != 'pull_request' }}
+          platforms: linux/amd64,linux/arm64
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -87,7 +74,6 @@ jobs:
   # Additional job to build and push the Claude Code container
   build-claudecode:
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

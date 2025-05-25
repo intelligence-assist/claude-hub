@@ -94,7 +94,7 @@ jobs:
   # E2E tests - most complex, run on self-hosted for better performance
   test-e2e:
     name: E2E Tests
-    runs-on: [self-hosted, linux, x64]
+    runs-on: self-hosted
     
     steps:
     - name: Checkout code
@@ -187,7 +187,7 @@ jobs:
   # Docker builds - move to self-hosted for better performance
   docker:
     name: Docker Build & Test
-    runs-on: [self-hosted, linux, x64]
+    runs-on: self-hosted
     # Only need unit tests to pass for Docker builds
     needs: [test-unit, lint]
     

@@ -12,7 +12,7 @@ on:
 jobs:
   dependency-scan:
     name: Dependency Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     
     steps:
     - name: Checkout code
@@ -23,9 +23,10 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
 
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --prefer-offline --no-audit
 
     - name: Run npm audit
       run: npm audit --audit-level=moderate
@@ -35,7 +36,7 @@ jobs:
 
   secret-scan:
     name: Secret Scanning
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     
     steps:
     - name: Checkout code
@@ -53,7 +54,7 @@ jobs:
 
   codeql:
     name: CodeQL Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     permissions:
       actions: read
       contents: read
@@ -67,6 +68,13 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3

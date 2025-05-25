@@ -25,7 +25,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     permissions:
       contents: read
       packages: write
@@ -71,8 +71,13 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,type=local,src=/tmp/.buildx-cache
+          cache-to: type=gha,mode=max,type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       - name: Update Docker Hub Description
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -86,7 +91,7 @@ jobs:
 
   # Additional job to build and push the Claude Code container
   build-claudecode:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     if: github.event_name != 'pull_request'
     permissions:
       contents: read
@@ -124,5 +129,10 @@ jobs:
           push: true
           tags: ${{ steps.meta-claudecode.outputs.tags }}
           labels: ${{ steps.meta-claudecode.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,type=local,src=/tmp/.buildx-cache-claudecode
+          cache-to: type=gha,mode=max,type=local,dest=/tmp/.buildx-cache-claudecode-new,mode=max
+
+      - name: Move Claude Code cache
+        run: |
+          rm -rf /tmp/.buildx-cache-claudecode
+          mv /tmp/.buildx-cache-claudecode-new /tmp/.buildx-cache-claudecode

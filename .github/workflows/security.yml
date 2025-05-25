@@ -12,7 +12,7 @@ on:
 jobs:
   dependency-scan:
     name: Dependency Security Scan
-    runs-on: ubuntu-latest-4-cores
+    runs-on: [self-hosted, linux, x64]
     
     steps:
     - name: Checkout code
@@ -36,7 +36,7 @@ jobs:
 
   secret-scan:
     name: Secret Scanning
-    runs-on: ubuntu-latest-4-cores
+    runs-on: [self-hosted, linux, x64]
     
     steps:
     - name: Checkout code
@@ -54,7 +54,7 @@ jobs:
 
   codeql:
     name: CodeQL Analysis
-    runs-on: ubuntu-latest-4-cores
+    runs-on: [self-hosted, linux, x64]
     permissions:
       actions: read
       contents: read

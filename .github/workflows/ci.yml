@@ -184,14 +184,36 @@ jobs:
       with:
         args: --severity-threshold=high
 
-  # Docker builds - move to self-hosted for better performance
+  # Check if Docker-related files changed
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      docker: ${{ steps.changes.outputs.docker }}
+      src: ${{ steps.changes.outputs.src }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          docker:
+            - 'Dockerfile*'
+            - 'scripts/**'
+            - '.dockerignore'
+            - 'claude-config*'
+          src:
+            - 'src/**'
+            - 'package*.json'
+
+  # Docker builds - only when relevant files change
   docker:
     name: Docker Build & Test
     runs-on: [self-hosted, Linux, X64]
     # Security: Only run on self-hosted for trusted sources
-    if: github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request'
+    if: (github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request') && (needs.changes.outputs.docker == 'true' || needs.changes.outputs.src == 'true')
     # Only need unit tests to pass for Docker builds
-    needs: [test-unit, lint]
+    needs: [test-unit, lint, changes]
     
     steps:
     - name: Checkout code
@@ -199,6 +221,16 @@ jobs:
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+
+    - name: Start build profiling
+      run: |
+        echo "BUILD_START_TIME=$(date +%s)" >> $GITHUB_ENV
+        echo "🏗️ Docker build started at $(date)"
+
+    - name: Set up Docker layer caching
+      run: |
+        # Create cache mount directories
+        mkdir -p /tmp/.buildx-cache-main /tmp/.buildx-cache-claude
 
     - name: Build main Docker image
       uses: docker/build-push-action@v6
@@ -208,11 +240,17 @@ jobs:
         push: false
         load: true
         tags: claude-github-webhook:test
-        cache-from: type=gha,type=local,src=/tmp/.buildx-cache
-        cache-to: type=gha,mode=max,type=local,dest=/tmp/.buildx-cache-new,mode=max
+        cache-from: |
+          type=gha,scope=main
+          type=local,src=/tmp/.buildx-cache-main
+        cache-to: |
+          type=gha,mode=max,scope=main
+          type=local,dest=/tmp/.buildx-cache-main-new,mode=max
         platforms: linux/amd64
+        build-args: |
+          BUILDKIT_INLINE_CACHE=1
 
-    - name: Build Claude Code Docker image
+    - name: Build Claude Code Docker image (parallel)
       uses: docker/build-push-action@v6
       with:
         context: .
@@ -220,14 +258,46 @@ jobs:
         push: false
         load: true
         tags: claude-code-runner:test
-        cache-from: type=gha,type=local,src=/tmp/.buildx-cache
-        cache-to: type=gha,mode=max,type=local,dest=/tmp/.buildx-cache-new,mode=max
+        cache-from: |
+          type=gha,scope=claudecode
+          type=local,src=/tmp/.buildx-cache-claude
+        cache-to: |
+          type=gha,mode=max,scope=claudecode
+          type=local,dest=/tmp/.buildx-cache-claude-new,mode=max
         platforms: linux/amd64
+        build-args: |
+          BUILDKIT_INLINE_CACHE=1
 
-    - name: Move cache
+    - name: Rotate build caches
       run: |
-        rm -rf /tmp/.buildx-cache
-        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+        # Rotate caches to avoid size limits
+        rm -rf /tmp/.buildx-cache-main /tmp/.buildx-cache-claude
+        mv /tmp/.buildx-cache-main-new /tmp/.buildx-cache-main 2>/dev/null || true
+        mv /tmp/.buildx-cache-claude-new /tmp/.buildx-cache-claude 2>/dev/null || true
+
+    - name: Profile build performance
+      run: |
+        BUILD_END_TIME=$(date +%s)
+        BUILD_DURATION=$((BUILD_END_TIME - BUILD_START_TIME))
+        echo "🏁 Docker build completed at $(date)"
+        echo "⏱️ Total build time: ${BUILD_DURATION} seconds"
+        
+        # Check image sizes
+        echo "📦 Image sizes:"
+        docker images | grep -E "(claude-github-webhook|claude-code-runner):test" || true
+        
+        # Show cache usage
+        echo "💾 Cache statistics:"
+        du -sh /tmp/.buildx-cache-* 2>/dev/null || echo "No local caches found"
+        
+        # Performance summary
+        if [ $BUILD_DURATION -lt 120 ]; then
+          echo "✅ Fast build (< 2 minutes)"
+        elif [ $BUILD_DURATION -lt 300 ]; then
+          echo "⚠️ Moderate build (2-5 minutes)"
+        else
+          echo "🐌 Slow build (> 5 minutes) - consider optimization"
+        fi
 
     - name: Test Docker containers
       run: |

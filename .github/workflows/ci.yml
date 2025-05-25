@@ -95,6 +95,8 @@ jobs:
   test-e2e:
     name: E2E Tests
     runs-on: [self-hosted, Linux, X64]
+    # Security: Only run on self-hosted for trusted sources
+    if: github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request'
     
     steps:
     - name: Checkout code
@@ -158,6 +160,8 @@ jobs:
   security:
     name: Security Scan
     runs-on: [self-hosted, Linux, X64]
+    # Security: Only run on self-hosted for trusted sources
+    if: github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request'
     
     steps:
     - name: Checkout code
@@ -188,6 +192,8 @@ jobs:
   docker:
     name: Docker Build & Test
     runs-on: [self-hosted, Linux, X64]
+    # Security: Only run on self-hosted for trusted sources
+    if: github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request'
     # Only need unit tests to pass for Docker builds
     needs: [test-unit, lint]
     

@@ -26,6 +26,8 @@ env:
 jobs:
   build:
     runs-on: [self-hosted, Linux, X64]
+    # Security: Only run on self-hosted for trusted sources
+    if: github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
@@ -92,7 +94,8 @@ jobs:
   # Additional job to build and push the Claude Code container
   build-claudecode:
     runs-on: [self-hosted, Linux, X64]
-    if: github.event_name != 'pull_request'
+    # Security: Only run on self-hosted for trusted sources + not on PRs
+    if: (github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request') && github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write

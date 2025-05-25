@@ -9,6 +9,15 @@
 
 A webhook service that enables Claude Code to respond to GitHub mentions and execute commands within repository contexts. This microservice allows Claude to analyze code, answer questions, and optionally make changes when mentioned in GitHub comments.
 
+## ⚡ Performance Optimizations
+
+This repository uses highly optimized CI/CD pipelines:
+- **Parallel test execution** for faster feedback loops
+- **Conditional Docker builds** (only when code/Dockerfile changes)
+- **Strategic runner distribution** (GitHub for tests, self-hosted for heavy builds)
+- **Advanced caching strategies** for significantly faster subsequent builds
+- **Build performance profiling** with timing and size metrics
+
 ## Documentation
 
 For comprehensive documentation, see:

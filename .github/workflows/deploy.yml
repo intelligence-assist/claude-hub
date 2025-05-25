@@ -54,6 +54,8 @@ jobs:
   build:
     name: Build Docker Image
     runs-on: [self-hosted, Linux, X64]
+    # Security: Only run on self-hosted for trusted sources
+    if: github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request'
     needs: test
     
     outputs:

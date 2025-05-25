@@ -63,7 +63,11 @@ function verifyWebhookSignature(req) {
   }
 
   // Properly verify the signature using timing-safe comparison
-  if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(calculatedSignature))) {
+  // Check lengths first to avoid timingSafeEqual error with different-length buffers
+  if (
+    signature.length === calculatedSignature.length &&
+    crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(calculatedSignature))
+  ) {
     logger.debug('Webhook signature verification succeeded');
     return true;
   }
@@ -425,21 +429,25 @@ Please check with an administrator to review the logs for more details.`
       );
 
       // Only proceed if the check suite is for a pull request and conclusion is success
-      if (checkSuite.conclusion === 'success' && checkSuite.pull_requests && checkSuite.pull_requests.length > 0) {
+      if (
+        checkSuite.conclusion === 'success' &&
+        checkSuite.pull_requests &&
+        checkSuite.pull_requests.length > 0
+      ) {
         try {
           // Process PRs in parallel for better performance
-          const prPromises = checkSuite.pull_requests.map(async (pr) => {
+          const prPromises = checkSuite.pull_requests.map(async pr => {
             const prResult = {
               prNumber: pr.number,
               success: false,
               error: null,
               skippedReason: null
             };
-            
+
             try {
               // Extract SHA from PR data first, only fall back to check suite SHA if absolutely necessary
               const commitSha = pr.head?.sha;
-              
+
               if (!commitSha) {
                 logger.error(
                   {
@@ -458,10 +466,10 @@ Please check with an administrator to review the logs for more details.`
                 prResult.error = 'Missing PR head SHA';
                 return prResult;
               }
-              
-              // Note: We rely on the check_suite conclusion being 'success' 
+
+              // Note: We rely on the check_suite conclusion being 'success'
               // which already indicates all checks have passed.
-              // The Combined Status API (legacy) won't show results for 
+              // The Combined Status API (legacy) won't show results for
               // modern GitHub Actions check runs.
 
               // Check if we've already reviewed this PR at this commit
@@ -722,7 +730,7 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
                 },
                 'Automated PR review completed successfully'
               );
-              
+
               // Update label to show review is complete
               try {
                 await githubService.managePRLabels({
@@ -743,7 +751,7 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
                 );
                 // Don't fail the review if label update fails
               }
-              
+
               prResult.success = true;
               return prResult;
             } catch (reviewError) {
@@ -757,7 +765,7 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
                 },
                 'Error processing automated PR review'
               );
-              
+
               // Remove in-progress label on error
               try {
                 await githubService.managePRLabels({
@@ -776,23 +784,25 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
                   'Failed to remove review-in-progress label after error'
                 );
               }
-              
+
               prResult.error = reviewError.message || 'Unknown error during review';
               return prResult;
             }
           });
-          
+
           // Wait for all PR reviews to complete
           const results = await Promise.allSettled(prPromises);
-          const prResults = results.map(result => 
+          const prResults = results.map(result =>
             result.status === 'fulfilled' ? result.value : { success: false, error: result.reason }
           );
-          
+
           // Count successes and failures (mutually exclusive)
           const successCount = prResults.filter(r => r.success).length;
-          const failureCount = prResults.filter(r => !r.success && r.error && !r.skippedReason).length;
+          const failureCount = prResults.filter(
+            r => !r.success && r.error && !r.skippedReason
+          ).length;
           const skippedCount = prResults.filter(r => !r.success && r.skippedReason).length;
-          
+
           logger.info(
             {
               repo: repo.full_name,
@@ -805,7 +815,7 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
             },
             'Check suite PR review processing completed'
           );
-          
+
           // Return detailed status
           return res.status(200).json({
             success: true,
@@ -826,7 +836,7 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
             },
             'Error processing check suite for PR reviews'
           );
-          
+
           return res.status(500).json({
             success: false,
             error: 'Failed to process check suite',
@@ -850,7 +860,7 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
           },
           'Check suite succeeded but no pull requests found in payload - possible fork PR'
         );
-        
+
         // TODO: Could query GitHub API to find PRs for this branch/SHA
         // For now, just acknowledge the webhook
         return res.status(200).json({

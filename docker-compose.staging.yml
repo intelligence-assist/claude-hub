@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   webhook-staging:
-    image: ghcr.io/YOUR_ORG/claude-github-webhook:staging
+    image: ghcr.io/intelligence-assist/claude-hub:develop
     container_name: claude-webhook-staging
     restart: unless-stopped
     ports:

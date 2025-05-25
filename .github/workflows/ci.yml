@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ develop ]  # Only run full CI on develop push, not main
   pull_request:
-    branches: [ main, develop ]
+    branches: [ develop ]  # PRs should target develop, not main
 
 env:
   NODE_VERSION: '20'

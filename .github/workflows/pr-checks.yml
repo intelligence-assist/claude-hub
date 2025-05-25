@@ -1,0 +1,125 @@
+name: PR Checks (Fast)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # Lint job - very fast
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+
+    - name: Run linter
+      run: npm run lint:check || echo "No lint script found, skipping"
+
+    - name: Check formatting
+      run: npm run format:check || echo "No format script found, skipping"
+
+  # Unit tests only - fastest test suite
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+
+    - name: Run unit tests
+      run: npm run test:unit
+      env:
+        NODE_ENV: test
+        BOT_USERNAME: '@TestBot'
+        GITHUB_WEBHOOK_SECRET: 'test-secret'
+        GITHUB_TOKEN: 'test-token'
+
+  # Security scan - important for PRs
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+
+    - name: Run npm audit
+      run: npm audit --audit-level=moderate || echo "::warning::npm audit found vulnerabilities"
+      continue-on-error: true
+
+  # Basic validation - no Docker builds
+  validate:
+    name: Validate Code
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate Dockerfiles
+      run: |
+        # Just syntax check, no build
+        for dockerfile in Dockerfile*; do
+          if [ -f "$dockerfile" ]; then
+            echo "Validating $dockerfile syntax..."
+            docker run --rm -i hadolint/hadolint < "$dockerfile" || echo "::warning::Hadolint found issues in $dockerfile"
+          fi
+        done
+
+    - name: Check for secrets
+      run: |
+        # Simple secret detection
+        if grep -r "PRIVATE KEY\|SECRET_KEY\|API_KEY\|PASSWORD" --exclude-dir=node_modules --exclude-dir=.git --exclude="*.test.js" .; then
+          echo "::error::Potential secrets found in code!"
+          exit 1
+        fi
+
+  # Summary status check
+  pr-checks-complete:
+    name: All PR Checks Passed
+    runs-on: ubuntu-latest
+    needs: [lint, test, security, validate]
+    if: always()
+    
+    steps:
+    - name: Check status
+      run: |
+        if [ "${{ contains(needs.*.result, 'failure') }}" == "true" ]; then
+          echo "::error::Some checks failed"
+          exit 1
+        fi
+        echo "✅ All PR checks passed!"

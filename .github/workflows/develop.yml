@@ -1,0 +1,166 @@
+name: Develop Branch Pipeline
+
+on:
+  push:
+    branches: [ develop ]
+
+env:
+  NODE_VERSION: '20'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Run all tests first
+  test-suite:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run all tests with coverage
+      run: npm run test:ci
+      env:
+        NODE_ENV: test
+        BOT_USERNAME: '@TestBot'
+        GITHUB_WEBHOOK_SECRET: 'test-secret'
+        GITHUB_TOKEN: 'test-token'
+
+    - name: Upload coverage
+      uses: codecov/codecov-action@v5
+      with:
+        file: ./coverage/lcov.info
+        flags: all-tests
+        fail_ci_if_error: false
+
+  # Build all Docker images
+  docker-build:
+    name: Build Docker Images
+    runs-on: [self-hosted, Linux, X64]
+    needs: [test-suite]
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate metadata
+      id: meta
+      run: |
+        # Use commit SHA for develop builds
+        echo "version=develop-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+        echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+
+    - name: Build and push main webhook image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+        labels: |
+          org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.created=${{ steps.meta.outputs.date }}
+        cache-from: type=gha,scope=main-develop
+        cache-to: type=gha,mode=max,scope=main-develop
+        platforms: linux/amd64,linux/arm64
+
+    - name: Build and push Claude Code runner image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./Dockerfile.claudecode
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:develop
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:${{ steps.meta.outputs.version }}
+        labels: |
+          org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.created=${{ steps.meta.outputs.date }}
+        cache-from: type=gha,scope=claudecode-develop
+        cache-to: type=gha,mode=max,scope=claudecode-develop
+        platforms: linux/amd64,linux/arm64
+
+  # Integration tests with real containers
+  integration-test:
+    name: Integration Tests
+    runs-on: [self-hosted, Linux, X64]
+    needs: [docker-build]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup test environment
+      run: |
+        # Pull the images we just built
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:develop
+
+    - name: Run integration tests
+      run: |
+        # Test with the actual containers
+        export WEBHOOK_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop"
+        export CLAUDE_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:develop"
+        ./test/integration/test-full-flow.sh
+
+    - name: Run E2E tests
+      run: |
+        # Start services
+        docker compose -f docker-compose.staging.yml up -d
+        
+        # Wait for services
+        sleep 30
+        
+        # Run E2E test suite
+        npm run test:e2e
+        
+        # Cleanup
+        docker compose -f docker-compose.staging.yml down
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    environment: staging
+    
+    steps:
+    - name: Deploy to staging
+      run: |
+        echo "🚀 Deploying to staging environment"
+        # Add actual staging deployment steps here
+        # e.g., update K8s manifests, trigger deployment pipeline, etc.
+
+    - name: Notify success
+      run: |
+        echo "✅ Develop branch successfully built and deployed to staging"
+        echo "📦 Images available at:"
+        echo "  - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop"
+        echo "  - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:develop"

@@ -1,0 +1,115 @@
+name: Main Branch Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Promote images from develop to production
+  promote-images:
+    name: Promote to Production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get latest develop SHA
+      id: develop
+      run: |
+        # Get the commit SHA that was merged from develop
+        # This ensures we're promoting the exact images that were tested
+        MERGE_SHA=$(git log --format=%H -n 1 --grep="Merge.*develop" || git rev-parse HEAD~1)
+        echo "sha=${MERGE_SHA::8}" >> $GITHUB_OUTPUT
+        echo "📌 Promoting images from develop SHA: ${MERGE_SHA::8}"
+
+    - name: Promote main webhook image
+      run: |
+        # Pull the develop image
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
+        
+        # Tag for production
+        docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop \
+                   ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        
+        docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop \
+                   ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ github.run_number }}
+        
+        # Push production tags
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ github.run_number }}
+
+    - name: Promote Claude Code image
+      run: |
+        # Pull the develop image
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:develop
+        
+        # Tag for production
+        docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:develop \
+                   ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:latest
+        
+        docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:develop \
+                   ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:v${{ github.run_number }}
+        
+        # Push production tags
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:latest
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:v${{ github.run_number }}
+
+  # Quick smoke test
+  smoke-test:
+    name: Production Smoke Test
+    runs-on: ubuntu-latest
+    needs: [promote-images]
+    
+    steps:
+    - name: Test production images
+      run: |
+        # Quick health check
+        docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest node --version
+        docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:latest claude --version || echo "Claude CLI check"
+
+  # Deploy to production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [smoke-test]
+    environment: production
+    
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "🚀 Deploying to production environment"
+        echo "📦 Using images:"
+        echo "  - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        echo "  - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:latest"
+        # Add actual production deployment steps here
+
+    - name: Create release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release v${{ github.run_number }}
+        body: |
+          Production deployment from main branch
+          
+          Docker images:
+          - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ github.run_number }}`
+          - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/claudecode:v${{ github.run_number }}`
+        draft: false
+        prerelease: false

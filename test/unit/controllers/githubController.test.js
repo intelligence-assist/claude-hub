@@ -43,6 +43,10 @@ const githubService = require('../../../src/services/githubService');
 describe('GitHub Controller', () => {
   let req, res;
 
+  afterAll(() => {
+    githubController.cleanup();
+  });
+
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();

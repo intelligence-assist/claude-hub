@@ -26,6 +26,10 @@ describe('GitHub Controller - Check Suite Events', () => {
   let mockReq;
   let mockRes;
 
+  afterAll(() => {
+    githubController.cleanup();
+  });
+
   beforeEach(() => {
     mockReq = {
       headers: {
@@ -50,6 +54,9 @@ describe('GitHub Controller - Check Suite Events', () => {
     githubService.getFallbackLabels.mockReset();
     githubService.hasReviewedPRAtCommit.mockReset();
     githubService.managePRLabels.mockReset();
+    
+    // Clear the review cache to prevent test interference
+    githubController.clearReviewCache();
   });
 
   afterEach(() => {
@@ -314,7 +321,7 @@ describe('GitHub Controller - Check Suite Events', () => {
             number: 42,
             head: {
               ref: 'feature-branch',
-              sha: 'pr-sha-123'
+              sha: 'error-test-sha-456'
             }
           }
         ]
@@ -586,8 +593,8 @@ describe('GitHub Controller - Check Suite Events', () => {
     // Mock label management
     githubService.managePRLabels.mockResolvedValue();
 
-    // Mock Claude service to succeed for first PR
-    claudeService.processCommand.mockResolvedValueOnce('PR review completed successfully');
+    // Mock Claude service to succeed for PRs with valid SHA
+    claudeService.processCommand.mockResolvedValue('PR review completed successfully');
 
     await githubController.handleWebhook(mockReq, mockRes);
 
@@ -657,7 +664,7 @@ describe('GitHub Controller - Check Suite Events', () => {
             number: 42,
             head: {
               ref: 'feature-branch',
-              sha: 'pr-sha-123'
+              sha: 'already-reviewed-sha-789'
             }
           }
         ]
@@ -681,7 +688,7 @@ describe('GitHub Controller - Check Suite Events', () => {
       repoOwner: 'owner',
       repoName: 'repo',
       prNumber: 42,
-      commitSha: 'pr-sha-123'
+      commitSha: 'already-reviewed-sha-789'
     });
     
     // Verify no labels were added (review was skipped)

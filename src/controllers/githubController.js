@@ -7,6 +7,112 @@ const secureCredentials = require('../utils/secureCredentials');
 
 const logger = createLogger('githubController');
 
+// In-memory deduplication cache with TTL for race condition prevention
+const reviewCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Cleanup expired entries every minute (only in production)
+let cleanupInterval;
+if (process.env.NODE_ENV !== 'test') {
+  cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of reviewCache.entries()) {
+      if (now - value.timestamp > CACHE_TTL) {
+        reviewCache.delete(key);
+      }
+    }
+  }, 60000);
+}
+
+// Export cleanup function for tests
+function cleanup() {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
+  reviewCache.clear();
+}
+
+/**
+ * Attempts to acquire a lock for processing a PR review to prevent race conditions
+ * @param {string} repoFullName - Repository full name
+ * @param {number} prNumber - Pull request number  
+ * @param {string} commitSha - Commit SHA
+ * @param {string} requestId - Unique request identifier
+ * @returns {Object} { acquired: boolean, cacheKey: string, existing?: Object }
+ */
+function tryAcquireReviewLock(repoFullName, prNumber, commitSha, requestId) {
+  const cacheKey = createHash('sha256')
+    .update(`${repoFullName}:pr:${prNumber}:${commitSha}`)
+    .digest('hex');
+
+  const existing = reviewCache.get(cacheKey);
+  const now = Date.now();
+
+  if (existing) {
+    if (existing.status === 'processing') {
+      // Review in progress
+      return { acquired: false, cacheKey, existing };
+    }
+    
+    if (existing.status === 'completed') {
+      // Review already completed  
+      return { acquired: false, cacheKey, existing };
+    }
+  }
+
+  // Acquire lock
+  reviewCache.set(cacheKey, {
+    status: 'processing',
+    timestamp: now,
+    requestId,
+    repoFullName,
+    prNumber,
+    commitSha
+  });
+
+  return { acquired: true, cacheKey };
+}
+
+/**
+ * Marks a review as completed in the cache
+ * @param {string} cacheKey - Cache key from tryAcquireReviewLock
+ * @param {Object} result - Review result
+ */
+function markReviewCompleted(cacheKey, result) {
+  const existing = reviewCache.get(cacheKey);
+  if (existing) {
+    reviewCache.set(cacheKey, {
+      ...existing,
+      status: 'completed',
+      timestamp: Date.now(),
+      result
+    });
+  }
+}
+
+/**
+ * Marks a review as failed and removes from cache to allow retry
+ * @param {string} cacheKey - Cache key from tryAcquireReviewLock
+ */
+function markReviewFailed(cacheKey) {
+  reviewCache.delete(cacheKey);
+}
+
+/**
+ * Create hash function (crypto.createHash abstraction)
+ */
+function createHash(algorithm) {
+  return crypto.createHash(algorithm);
+}
+
+/**
+ * Clear the review cache - useful for testing
+ */
+function clearReviewCache() {
+  reviewCache.clear();
+}
+
 // Get bot username from environment variables - required
 const BOT_USERNAME = process.env.BOT_USERNAME;
 
@@ -443,6 +549,8 @@ Please check with an administrator to review the logs for more details.`
               error: null,
               skippedReason: null
             };
+            
+            let lockResult = null; // Track cache lock for cleanup
 
             try {
               // Extract SHA from PR data first, only fall back to check suite SHA if absolutely necessary
@@ -472,7 +580,31 @@ Please check with an administrator to review the logs for more details.`
               // The Combined Status API (legacy) won't show results for
               // modern GitHub Actions check runs.
 
-              // Check if we've already reviewed this PR at this commit
+              // Enhanced deduplication: check both in-memory cache and GitHub
+              const requestId = `${checkSuite.id}-${pr.number}`;
+              lockResult = tryAcquireReviewLock(repo.full_name, pr.number, commitSha, requestId);
+
+              if (!lockResult.acquired) {
+                const reason = lockResult.existing.status === 'processing' 
+                  ? 'Review already in progress' 
+                  : 'Review already completed';
+                
+                logger.info(
+                  {
+                    repo: repo.full_name,
+                    pr: pr.number,
+                    commitSha: commitSha,
+                    cacheStatus: lockResult.existing.status,
+                    originalRequestId: lockResult.existing.requestId,
+                    currentRequestId: requestId
+                  },
+                  'PR review request deduplicated - ' + reason
+                );
+                prResult.skippedReason = reason;
+                return prResult;
+              }
+
+              // Double-check with GitHub API as backup
               const alreadyReviewed = await githubService.hasReviewedPRAtCommit({
                 repoOwner: repo.owner.login,
                 repoName: repo.name,
@@ -481,13 +613,14 @@ Please check with an administrator to review the logs for more details.`
               });
 
               if (alreadyReviewed) {
+                markReviewCompleted(lockResult.cacheKey, { source: 'github_check' });
                 logger.info(
                   {
                     repo: repo.full_name,
                     pr: pr.number,
                     commitSha: commitSha
                   },
-                  'PR already reviewed at this commit - skipping duplicate review'
+                  'PR already reviewed at this commit (GitHub check) - skipping duplicate review'
                 );
                 prResult.skippedReason = 'Already reviewed at this commit';
                 return prResult;
@@ -752,6 +885,12 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
                 // Don't fail the review if label update fails
               }
 
+              // Mark review as completed in cache
+              markReviewCompleted(lockResult.cacheKey, { 
+                source: 'claude_review',
+                responseLength: claudeResponse ? claudeResponse.length : 0 
+              });
+
               prResult.success = true;
               return prResult;
             } catch (reviewError) {
@@ -784,6 +923,9 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
                   'Failed to remove review-in-progress label after error'
                 );
               }
+
+              // Mark review as failed in cache (remove to allow retry)
+              markReviewFailed(lockResult.cacheKey);
 
               prResult.error = reviewError.message || 'Unknown error during review';
               return prResult;
@@ -1026,5 +1168,7 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
 }
 
 module.exports = {
-  handleWebhook
+  handleWebhook,
+  clearReviewCache,
+  cleanup
 };

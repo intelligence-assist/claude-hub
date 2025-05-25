@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+const SignatureHelper = require('../../utils/signatureHelper');
 
 // Set required environment variables before requiring modules
 process.env.BOT_USERNAME = '@TestBot';
@@ -87,10 +87,11 @@ describe('GitHub Controller', () => {
     // Mock the environment variables
     process.env.GITHUB_WEBHOOK_SECRET = 'test_secret';
 
-    // Set up the signature
-    const payload = JSON.stringify(req.body);
-    const hmac = crypto.createHmac('sha256', process.env.GITHUB_WEBHOOK_SECRET);
-    req.headers['x-hub-signature-256'] = 'sha256=' + hmac.update(payload).digest('hex');
+    // Set up the signature using the helper
+    req.headers['x-hub-signature-256'] = SignatureHelper.createGitHubSignature(
+      req.body,
+      process.env.GITHUB_WEBHOOK_SECRET
+    );
 
     // Mock successful responses from services
     claudeService.processCommand.mockResolvedValue('Claude response');
@@ -160,10 +161,11 @@ describe('GitHub Controller', () => {
     // Remove the @TestBot mention
     req.body.comment.body = 'This is a regular comment';
 
-    // Update the signature
-    const payload = JSON.stringify(req.body);
-    const hmac = crypto.createHmac('sha256', process.env.GITHUB_WEBHOOK_SECRET);
-    req.headers['x-hub-signature-256'] = 'sha256=' + hmac.update(payload).digest('hex');
+    // Update the signature using the helper
+    req.headers['x-hub-signature-256'] = SignatureHelper.createGitHubSignature(
+      req.body,
+      process.env.GITHUB_WEBHOOK_SECRET
+    );
 
     await githubController.handleWebhook(req, res);
 

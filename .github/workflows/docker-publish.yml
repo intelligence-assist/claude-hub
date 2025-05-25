@@ -7,6 +7,13 @@ on:
       - master
     tags:
       - 'v*.*.*'
+    paths:
+      - 'Dockerfile*'
+      - 'package*.json'
+      - '.github/workflows/docker-publish.yml'
+      - 'src/**'
+      - 'scripts/**'
+      - 'claude-config*'
   pull_request:
     branches:
       - main
@@ -17,6 +24,7 @@ on:
       - '.github/workflows/docker-publish.yml'
       - 'src/**'
       - 'scripts/**'
+      - 'claude-config*'
 
 env:
   DOCKER_HUB_USERNAME: cheffromspace
@@ -73,13 +81,12 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,type=local,src=/tmp/.buildx-cache
-          cache-to: type=gha,mode=max,type=local,dest=/tmp/.buildx-cache-new,mode=max
-
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          cache-from: |
+            type=gha,scope=publish-main
+            type=local,src=/tmp/.buildx-cache-main
+          cache-to: |
+            type=gha,mode=max,scope=publish-main
+            type=local,dest=/tmp/.buildx-cache-main-new,mode=max
 
       - name: Update Docker Hub Description
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -132,10 +139,9 @@ jobs:
           push: true
           tags: ${{ steps.meta-claudecode.outputs.tags }}
           labels: ${{ steps.meta-claudecode.outputs.labels }}
-          cache-from: type=gha,type=local,src=/tmp/.buildx-cache-claudecode
-          cache-to: type=gha,mode=max,type=local,dest=/tmp/.buildx-cache-claudecode-new,mode=max
-
-      - name: Move Claude Code cache
-        run: |
-          rm -rf /tmp/.buildx-cache-claudecode
-          mv /tmp/.buildx-cache-claudecode-new /tmp/.buildx-cache-claudecode
+          cache-from: |
+            type=gha,scope=publish-claudecode
+            type=local,src=/tmp/.buildx-cache-claude
+          cache-to: |
+            type=gha,mode=max,scope=publish-claudecode
+            type=local,dest=/tmp/.buildx-cache-claude-new,mode=max

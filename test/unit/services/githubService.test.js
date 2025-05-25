@@ -11,7 +11,8 @@ jest.mock('@octokit/rest', () => ({
       listReviews: jest.fn()
     },
     repos: {
-      getCombinedStatusForRef: jest.fn()
+      getCombinedStatusForRef: jest.fn(),
+      listPullRequestsAssociatedWithCommit: jest.fn()
     }
   }))
 }));

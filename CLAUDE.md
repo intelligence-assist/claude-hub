@@ -94,12 +94,29 @@ The system automatically analyzes new issues and applies appropriate labels base
 When an issue is opened, Claude analyzes the title and description to suggest intelligent labels, with keyword-based fallback for reliability.
 
 ### Automated PR Review
-The system automatically triggers comprehensive PR reviews when all checks pass:
-- **Trigger**: `check_suite` webhook event with `conclusion: 'success'`
-- **Scope**: Reviews all PRs associated with the successful check suite
-- **Process**: Claude performs security, logic, performance, and code quality analysis
+The system automatically triggers comprehensive PR reviews when all checks pass using a robust, debounced approach to prevent duplicate reviews:
+
+#### Status-Based Trigger
+- **Trigger**: GitHub `status` webhook events with `state: 'success'`
+- **Timing**: Fires when the combined status becomes "success" (all checks passed)
+- **Reliability**: Single, definitive trigger point eliminates race conditions
+
+#### Race Condition Prevention
+- **Debouncing**: Configurable delay (default 30 seconds) prevents duplicate reviews when multiple status events fire rapidly
+- **Deduplication**: Commit SHA-based tracking ensures no duplicate reviews for the same commit
+- **Timer Management**: New status events reset existing timers for the same commit SHA
+
+#### Review Process
+- **Discovery**: Finds all PRs associated with the successful commit SHA
+- **Analysis**: Claude performs security, logic, performance, and code quality analysis
 - **Output**: Detailed review comments, line-specific feedback, and approval/change requests
 - **Integration**: Uses GitHub CLI (`gh`) commands for seamless review workflow
+- **Labels**: Automatically manages PR labels (`claude-review-in-progress`, `claude-review-complete`)
+
+#### Configuration
+- **Debounce Delay**: Set `PR_REVIEW_DEBOUNCE_DELAY` environment variable (milliseconds, default: 30000)
+- **Webhook Events**: Configure GitHub webhooks for `status` events
+- **Repository Setup**: Ensure appropriate labels exist in the target repository
 
 ## Architecture Overview
 
@@ -173,6 +190,9 @@ The `awsCredentialProvider.js` utility handles credential retrieval and rotation
 - `GITHUB_WEBHOOK_SECRET`: Secret for validating GitHub webhook payloads
 - `GITHUB_TOKEN`: GitHub token for API access
 - `ANTHROPIC_API_KEY`: Anthropic API key for Claude access
+
+### Optional Environment Variables
+- `PR_REVIEW_DEBOUNCE_DELAY`: Delay in milliseconds for debouncing PR reviews to prevent duplicates (default: 30000)
 
 ## Code Style Guidelines
 - JavaScript with Node.js

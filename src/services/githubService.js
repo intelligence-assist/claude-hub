@@ -477,6 +477,98 @@ async function hasReviewedPRAtCommit({ repoOwner, repoName, prNumber, commitSha 
 }
 
 /**
+ * Find pull requests that contain the given commit SHA
+ * @param {Object} params
+ * @param {string} params.repoOwner - Repository owner
+ * @param {string} params.repoName - Repository name
+ * @param {string} params.commitSha - Commit SHA to search for
+ * @returns {Promise<Array>} Array of PR objects that contain the commit
+ */
+async function findPRsForCommit({ repoOwner, repoName, commitSha }) {
+  // Validate parameters (outside try block so validation errors are thrown)
+  const repoPattern = /^[a-zA-Z0-9._-]+$/;
+  if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
+    throw new Error('Invalid repository owner or name - contains unsafe characters');
+  }
+
+  const shaPattern = /^[a-f0-9]{40}$/;
+  if (!shaPattern.test(commitSha)) {
+    throw new Error('Invalid commit SHA format');
+  }
+
+  try {
+
+    logger.info(
+      {
+        repo: `${repoOwner}/${repoName}`,
+        commitSha: commitSha
+      },
+      'Finding PRs that contain commit SHA'
+    );
+
+    // In test mode, return mock PR data
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
+      logger.info(
+        {
+          repo: `${repoOwner}/${repoName}`,
+          commitSha: commitSha
+        },
+        'TEST MODE: Returning mock PR data for commit'
+      );
+
+      return [
+        {
+          number: 42,
+          head: {
+            ref: 'feature-branch',
+            sha: commitSha
+          },
+          base: {
+            ref: 'main'
+          }
+        }
+      ];
+    }
+
+    // Use GitHub API to find PRs associated with the commit
+    const { data: pullRequests } = await client.repos.listPullRequestsAssociatedWithCommit({
+      owner: repoOwner,
+      repo: repoName,
+      commit_sha: commitSha
+    });
+
+    logger.info(
+      {
+        repo: `${repoOwner}/${repoName}`,
+        commitSha: commitSha,
+        prCount: pullRequests.length,
+        prNumbers: pullRequests.map(pr => pr.number)
+      },
+      'Found PRs containing commit SHA'
+    );
+
+    return pullRequests;
+  } catch (error) {
+    logger.error(
+      {
+        err: {
+          message: error.message,
+          status: error.response?.status,
+          responseData: error.response?.data
+        },
+        repo: `${repoOwner}/${repoName}`,
+        commitSha: commitSha
+      },
+      'Error finding PRs for commit SHA'
+    );
+
+    // If API call fails, return empty array to avoid blocking workflow
+    return [];
+  }
+}
+
+/**
  * Add or remove labels on a pull request
  * @param {Object} params
  * @param {string} params.repoOwner - Repository owner
@@ -576,5 +668,6 @@ module.exports = {
   getFallbackLabels,
   getCombinedStatus,
   hasReviewedPRAtCommit,
+  findPRsForCommit,
   managePRLabels
 };

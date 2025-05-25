@@ -21,7 +21,7 @@ jobs:
   
   test:
     name: Run Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     strategy:
       matrix:
         node-version: [18.x, 20.x]
@@ -34,9 +34,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
       
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
       
       - name: Run linter
         run: npm run lint
@@ -52,7 +53,7 @@ jobs:
 
   build:
     name: Build Docker Image
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     needs: test
     
     outputs:
@@ -95,13 +96,18 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,type=local,src=/tmp/.buildx-cache
+          cache-to: type=gha,mode=max,type=local,dest=/tmp/.buildx-cache-new,mode=max
           platforms: linux/amd64,linux/arm64
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   security-scan:
     name: Security Scanning
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     needs: build
     if: github.event_name != 'pull_request'
     

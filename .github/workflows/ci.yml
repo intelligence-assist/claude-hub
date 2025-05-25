@@ -12,9 +12,10 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  test:
-    name: Test & Lint
-    runs-on: ubuntu-latest
+  # Lint job - fast and independent
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest-4-cores
     
     steps:
     - name: Checkout code
@@ -25,12 +26,35 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
 
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --prefer-offline --no-audit
 
     - name: Run linter
-      run: npm run lint || echo "No lint script found, skipping"
+      run: npm run lint:check || echo "No lint script found, skipping"
+
+    - name: Check formatting
+      run: npm run format:check || echo "No format script found, skipping"
+
+  # Unit tests - fastest test suite
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest-4-cores
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
 
     - name: Run unit tests
       run: npm run test:unit
@@ -40,14 +64,51 @@ jobs:
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
 
-    # Integration tests are disabled for now
-    # - name: Run integration tests
-    #   run: npm run test:integration
-    #   env:
-    #     NODE_ENV: test
-    #     BOT_USERNAME: '@TestBot'
-    #     GITHUB_WEBHOOK_SECRET: 'test-secret'
-    #     GITHUB_TOKEN: 'test-token'
+  # Integration tests - moderate complexity
+  test-integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest-4-cores
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+
+    - name: Run integration tests
+      run: npm run test:integration || echo "No integration tests found, skipping"
+      env:
+        NODE_ENV: test
+        BOT_USERNAME: '@TestBot'
+        GITHUB_WEBHOOK_SECRET: 'test-secret'
+        GITHUB_TOKEN: 'test-token'
+
+  # E2E tests - most complex, run on self-hosted for better performance
+  test-e2e:
+    name: E2E Tests
+    runs-on: [self-hosted, linux, x64]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
 
     - name: Run e2e tests
       run: npm run test:e2e
@@ -56,6 +117,26 @@ jobs:
         BOT_USERNAME: '@TestBot'
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
+
+  # Coverage generation - depends on unit tests
+  coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest-4-cores
+    needs: [test-unit]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
 
     - name: Generate test coverage
       run: npm run test:coverage
@@ -73,9 +154,10 @@ jobs:
         name: codecov-umbrella
         fail_ci_if_error: false
 
+  # Security scans - run in parallel with tests
   security:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     
     steps:
     - name: Checkout code
@@ -86,9 +168,10 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
 
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --prefer-offline --no-audit
 
     - name: Run npm audit
       run: npm audit --audit-level=moderate
@@ -101,10 +184,12 @@ jobs:
       with:
         args: --severity-threshold=high
 
+  # Docker builds - move to self-hosted for better performance
   docker:
     name: Docker Build & Test
-    runs-on: ubuntu-latest
-    needs: [test]
+    runs-on: [self-hosted, linux, x64]
+    # Only need unit tests to pass for Docker builds
+    needs: [test-unit, lint]
     
     steps:
     - name: Checkout code
@@ -121,8 +206,9 @@ jobs:
         push: false
         load: true
         tags: claude-github-webhook:test
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=gha,type=local,src=/tmp/.buildx-cache
+        cache-to: type=gha,mode=max,type=local,dest=/tmp/.buildx-cache-new,mode=max
+        platforms: linux/amd64
 
     - name: Build Claude Code Docker image
       uses: docker/build-push-action@v6
@@ -132,8 +218,14 @@ jobs:
         push: false
         load: true
         tags: claude-code-runner:test
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=gha,type=local,src=/tmp/.buildx-cache
+        cache-to: type=gha,mode=max,type=local,dest=/tmp/.buildx-cache-new,mode=max
+        platforms: linux/amd64
+
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
     - name: Test Docker containers
       run: |

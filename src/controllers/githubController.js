@@ -553,7 +553,7 @@ function verifyWebhookSignature(req) {
  */
 async function handleWebhook(req, res) {
   try {
-    const event = req.headers['x-github-event'];
+    const event = req.headers['x-github-event']?.replace(/\n|\r/g, '');
     const delivery = req.headers['x-github-delivery'];
 
     // Log webhook receipt with key details

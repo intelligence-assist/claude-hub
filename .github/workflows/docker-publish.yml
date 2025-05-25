@@ -70,6 +70,8 @@ jobs:
             # SHA for branch builds (only for main/master)
             type=sha,prefix=main-,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,prefix=master-,enable=${{ github.ref == 'refs/heads/master' }}
+            # Fallback for any other branch
+            type=ref,event=branch
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5

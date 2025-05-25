@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
+const rateLimit = require('express-rate-limit');
 const { createLogger } = require('./utils/logger');
 const { StartupMetrics } = require('./utils/startup-metrics');
 const githubRoutes = require('./routes/github');
@@ -10,6 +11,24 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 const appLogger = createLogger('app');
 const startupMetrics = new StartupMetrics();
+
+// Configure rate limiting
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false // Disable the `X-RateLimit-*` headers
+});
+
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // Limit each IP to 30 webhook requests per minute
+  message: 'Too many webhook requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false // Count all requests, not just failed ones
+});
 
 // Record initial milestones
 startupMetrics.recordMilestone('env_loaded', 'Environment variables loaded');
@@ -38,6 +57,9 @@ app.use((req, res, next) => {
 // Middleware
 app.use(startupMetrics.metricsMiddleware());
 
+// Apply general rate limiting to all requests
+app.use(generalLimiter);
+
 app.use(
   bodyParser.json({
     verify: (req, res, buf) => {
@@ -49,8 +71,8 @@ app.use(
 
 startupMetrics.recordMilestone('middleware_configured', 'Express middleware configured');
 
-// Routes
-app.use('/api/webhooks/github', githubRoutes);
+// Routes with specific rate limiting
+app.use('/api/webhooks/github', webhookLimiter, githubRoutes);
 app.use('/api/claude', claudeRoutes);
 
 startupMetrics.recordMilestone('routes_configured', 'API routes configured');

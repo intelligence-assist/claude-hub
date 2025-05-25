@@ -167,6 +167,9 @@ The service supports multiple AWS authentication methods, with a focus on securi
 The `awsCredentialProvider.js` utility handles credential retrieval and rotation.
 
 ## Security Features
+- **Rate limiting**: Express-based rate limiting to prevent DoS attacks
+  - General limit: 100 requests per 15 minutes per IP
+  - Webhook limit: 30 requests per minute per IP
 - Webhook signature verification using HMAC
 - Credential scanning in pre-commit hooks
 - Container isolation for Claude execution

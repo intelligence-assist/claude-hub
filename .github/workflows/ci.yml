@@ -91,12 +91,10 @@ jobs:
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
 
-  # E2E tests - most complex, run on self-hosted for better performance
+  # E2E tests - only 1 scenario, run on GitHub for simplicity
   test-e2e:
     name: E2E Tests
-    runs-on: [self-hosted, Linux, X64]
-    # Security: Only run on self-hosted for trusted sources
-    if: github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
@@ -156,12 +154,10 @@ jobs:
         name: codecov-umbrella
         fail_ci_if_error: false
 
-  # Security scans - run in parallel with tests
+  # Security scans - run on GitHub for faster execution
   security:
     name: Security Scan
-    runs-on: [self-hosted, Linux, X64]
-    # Security: Only run on self-hosted for trusted sources
-    if: github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code

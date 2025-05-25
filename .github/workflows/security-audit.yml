@@ -11,7 +11,7 @@ on:
 
 jobs:
   security-audit:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     name: Security Audit
     
     steps:

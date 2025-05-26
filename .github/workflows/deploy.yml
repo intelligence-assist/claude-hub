@@ -76,8 +76,8 @@ jobs:
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    # Only build when files changed
-    if: needs.changes.outputs.docker == 'true' || needs.changes.outputs.src == 'true'
+    # Only build when files changed and not a pull request
+    if: github.event_name != 'pull_request' && (needs.changes.outputs.docker == 'true' || needs.changes.outputs.src == 'true')
     needs: [test, changes]
     
     outputs:

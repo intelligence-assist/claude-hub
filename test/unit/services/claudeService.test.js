@@ -181,11 +181,11 @@ describe('Claude Service', () => {
     }
   });
 
-  test('processCommand should write long commands to temp files', async () => {
+  test('processCommand should handle long commands properly', async () => {
     // Save original function for restoration
     const originalProcessCommand = claudeService.processCommand;
     
-    // Create a testing implementation that checks for file writing
+    // Create a testing implementation that checks for long command handling
     claudeService.processCommand = async (options) => {
       // Set up test environment
       const originalNodeEnv = process.env.NODE_ENV;
@@ -197,40 +197,46 @@ describe('Claude Service', () => {
         return 'mocked output';
       });
       
-      // Capture file write calls
-      writeFileSync.mockImplementation((_path, _content, _options) => {
-        // File write is mocked
+      // Configure execFileAsync mock
+      const execFileAsync = promisify(require('child_process').execFile);
+      execFileAsync.mockResolvedValue({
+        stdout: 'Claude response for long command',
+        stderr: ''
       });
       
       // Call the original implementation
-      try {
-        await originalProcessCommand(options);
-      } catch (_e) {
-        // Ignore errors, we just want to check if writeFileSync was called
-      }
+      const result = await originalProcessCommand(options);
       
-      // Verify temp file creation occurred
-      expect(writeFileSync).toHaveBeenCalled();
+      // Verify Docker was called with the command as an environment variable
+      expect(execFileAsync).toHaveBeenCalled();
+      const dockerArgs = execFileAsync.mock.calls[0][1];
+      
+      // Check that COMMAND env var is present in the docker args
+      // The format is ['-e', 'COMMAND=value']
+      const commandEnvIndex = dockerArgs.findIndex((arg) => 
+        typeof arg === 'string' && arg.startsWith('COMMAND=')
+      );
+      expect(commandEnvIndex).toBeGreaterThan(-1);
       
       // Restore environment
       process.env.NODE_ENV = originalNodeEnv;
       
-      return 'test response';
+      return result;
     };
     
     try {
       // Call the function with a long command
       const longCommand = 'A'.repeat(1000);
       
-      await claudeService.processCommand({
+      const result = await claudeService.processCommand({
         repoFullName: 'test/repo',
         issueNumber: 123,
         command: longCommand,
         isPullRequest: false
       });
       
-      // Verification happens in the override function
-      expect(writeFileSync).toHaveBeenCalled();
+      // Verify we got a response
+      expect(result).toBe('Claude response for long command');
     } finally {
       // Restore original function
       claudeService.processCommand = originalProcessCommand;

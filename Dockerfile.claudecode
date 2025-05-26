@@ -72,8 +72,12 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
   echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
   chmod 0440 /etc/sudoers.d/node-firewall
 
+# Create scripts directory and copy entrypoint scripts
+RUN mkdir -p /scripts/runtime
 COPY scripts/runtime/claudecode-entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY scripts/runtime/claudecode-tagging-entrypoint.sh /scripts/runtime/claudecode-tagging-entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh && \
+  chmod +x /scripts/runtime/claudecode-tagging-entrypoint.sh
 
 # Set the default shell to bash
 ENV SHELL /bin/zsh

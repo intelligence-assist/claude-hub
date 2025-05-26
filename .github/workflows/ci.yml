@@ -183,9 +183,9 @@ jobs:
   # Docker builds - only when relevant files change
   docker:
     name: Docker Build & Test
-    runs-on: [self-hosted, Linux, X64]
-    # Security: Only run on self-hosted for trusted sources
-    if: (github.event.pull_request.head.repo.owner.login == 'intelligence-assist' || github.event_name != 'pull_request') && (needs.changes.outputs.docker == 'true' || needs.changes.outputs.src == 'true')
+    runs-on: ubuntu-latest
+    # Only run on main branch or version tags, not on PRs
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && github.event_name != 'pull_request' && (needs.changes.outputs.docker == 'true' || needs.changes.outputs.src == 'true')
     # Only need unit tests to pass for Docker builds
     needs: [test-unit, lint, changes]
     

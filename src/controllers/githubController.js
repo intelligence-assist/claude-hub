@@ -127,73 +127,48 @@ async function handleWebhook(req, res) {
       );
 
       try {
-        // Process the issue with Claude for automatic tagging
-        const tagCommand = `Analyze this issue and apply appropriate labels:
+        // Process the issue with Claude for automatic tagging using CLI-based approach
+        const tagCommand = `Analyze this GitHub issue and apply appropriate labels using GitHub CLI commands.
 
-Title: ${issue.title}
-Description: ${issue.body || 'No description provided'}
+Issue Details:
+- Title: ${issue.title}
+- Description: ${issue.body || 'No description provided'}
+- Issue Number: ${issue.number}
 
-Available labels:
-- Priority: critical, high, medium, low
-- Type: bug, feature, enhancement, documentation, question, security
-- Complexity: trivial, simple, moderate, complex
-- Component: api, frontend, backend, database, auth, webhook, docker
+Instructions:
+1. First run 'gh label list' to see what labels are available in this repository
+2. Analyze the issue content to determine appropriate labels from these categories:
+   - Priority: critical, high, medium, low  
+   - Type: bug, feature, enhancement, documentation, question, security
+   - Complexity: trivial, simple, moderate, complex
+   - Component: api, frontend, backend, database, auth, webhook, docker
+3. Apply the labels using: gh issue edit ${issue.number} --add-label "label1,label2,label3"
+4. Do NOT comment on the issue - only apply labels silently
 
-Return ONLY a JSON object with the labels to apply:
-{
-  "labels": ["priority:medium", "type:feature", "complexity:simple", "component:api"]
-}`;
+Complete the auto-tagging task using only GitHub CLI commands.`;
 
-        logger.info('Sending issue to Claude for auto-tagging analysis');
+        logger.info('Sending issue to Claude for CLI-based auto-tagging');
         const claudeResponse = await claudeService.processCommand({
           repoFullName: repo.full_name,
           issueNumber: issue.number,
           command: tagCommand,
           isPullRequest: false,
-          branchName: null
+          branchName: null,
+          operationType: 'auto-tagging'
         });
 
-        // Parse Claude's response and apply labels
-        try {
-          // Extract JSON from Claude's response (it might have additional text) using safer approach
-          const jsonStart = claudeResponse.indexOf('{');
-          const jsonEnd = claudeResponse.lastIndexOf('}');
-          if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-            const jsonString = claudeResponse.substring(jsonStart, jsonEnd + 1);
-            const labelSuggestion = JSON.parse(jsonString);
-
-            if (labelSuggestion.labels && Array.isArray(labelSuggestion.labels)) {
-              // Apply the suggested labels
-              await githubService.addLabelsToIssue({
-                repoOwner: repo.owner.login,
-                repoName: repo.name,
-                issueNumber: issue.number,
-                labels: labelSuggestion.labels
-              });
-
-              // Auto-tagging completed - no comment needed for subtlety
-
-              const sanitizedLabels = sanitizeLabels(labelSuggestion.labels);
-              logger.info(
-                {
-                  repo: repo.full_name,
-                  issue: issue.number,
-                  labelCount: sanitizedLabels.length
-                },
-                'Auto-tagging completed successfully'
-              );
-            }
-          }
-        } catch (parseError) {
+        // With CLI-based approach, Claude handles the labeling directly
+        // Check if the response indicates success or if we need fallback
+        if (claudeResponse.includes('error') || claudeResponse.includes('failed')) {
           logger.warn(
             {
-              err: parseError,
-              claudeResponseLength: claudeResponse.length,
-              claudeResponsePreview: '[RESPONSE_CONTENT_REDACTED]'
+              repo: repo.full_name,
+              issue: issue.number,
+              responsePreview: claudeResponse.substring(0, 200)
             },
-            'Failed to parse Claude response for auto-tagging'
+            'Claude CLI tagging may have failed, attempting fallback'
           );
-
+          
           // Fall back to basic tagging based on keywords
           const fallbackLabels = await githubService.getFallbackLabels(issue.title, issue.body);
           if (fallbackLabels.length > 0) {
@@ -203,7 +178,17 @@ Return ONLY a JSON object with the labels to apply:
               issueNumber: issue.number,
               labels: fallbackLabels
             });
+            logger.info('Applied fallback labels successfully');
           }
+        } else {
+          logger.info(
+            {
+              repo: repo.full_name,
+              issue: issue.number,
+              responseLength: claudeResponse.length
+            },
+            'Auto-tagging completed with CLI approach'
+          );
         }
 
         return res.status(200).json({

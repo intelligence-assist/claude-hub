@@ -1,4 +1,4 @@
-/* eslint-disable no-sync */
+ 
 const fs = require('fs');
 
 // Mock dependencies

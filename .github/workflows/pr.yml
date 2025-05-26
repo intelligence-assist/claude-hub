@@ -222,7 +222,7 @@ jobs:
     name: Docker Build Test
     runs-on: ubuntu-latest
     if: needs.changes.outputs.docker == 'true' || needs.changes.outputs.src == 'true'
-    needs: [test-unit, lint, changes]
+    needs: [test-unit, lint, changes, security, codeql]
     
     steps:
     - name: Checkout code
@@ -276,7 +276,7 @@ jobs:
         docker rm test-webhook
 
     - name: Docker security scan
-      if: contains(github.event.head_commit.modified, 'Dockerfile')
+      if: needs.changes.outputs.docker == 'true'
       run: |
         # Run Hadolint on Dockerfile
         docker run --rm -i hadolint/hadolint < Dockerfile || echo "::warning::Dockerfile linting issues found"

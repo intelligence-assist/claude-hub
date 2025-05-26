@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const claudeService = require('../services/claudeService');
 const githubService = require('../services/githubService');
 const { createLogger } = require('../utils/logger');
-const { sanitizeBotMentions, sanitizeLabels } = require('../utils/sanitize');
+const { sanitizeBotMentions } = require('../utils/sanitize');
 const secureCredentials = require('../utils/secureCredentials');
 
 const logger = createLogger('githubController');
@@ -415,18 +415,58 @@ Please check with an administrator to review the logs for more details.`
         'Processing check_suite completed event'
       );
 
-      // Get the specific workflow that should trigger PR reviews
-      // This makes the system repository-independent and precisely controlled
+      // Skip if this check suite failed or was cancelled
+      if (checkSuite.conclusion !== 'success') {
+        logger.info(
+          {
+            repo: repo.full_name,
+            checkSuite: checkSuite.id,
+            conclusion: checkSuite.conclusion
+          },
+          'Check suite did not succeed - skipping PR review trigger'
+        );
+        return res.status(200).json({ message: 'Check suite not successful' });
+      }
+
+      // Skip if no pull requests are associated
+      if (!checkSuite.pull_requests || checkSuite.pull_requests.length === 0) {
+        logger.warn(
+          {
+            repo: repo.full_name,
+            checkSuite: checkSuite.id,
+            headBranch: checkSuite.head_branch
+          },
+          'Check suite succeeded but no pull requests found in payload - possible fork PR'
+        );
+        return res.status(200).json({ message: 'No pull requests associated with check suite' });
+      }
+
+      // Check if we should wait for all check suites or use a specific trigger
       const triggerWorkflowName = process.env.PR_REVIEW_TRIGGER_WORKFLOW;
+      const waitForAllChecks = process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS === 'true';
       
-      // Extract workflow name from check runs if available
-      const workflowName = checkSuite.check_runs_url ? 
-        await getWorkflowNameFromCheckSuite(checkSuite, repo) : null;
-      
-      // Check if this is the workflow that should trigger reviews
-      const shouldTriggerReview = triggerWorkflowName && 
-        (workflowName === triggerWorkflowName || 
-         checkSuite.head_branch === 'main' && triggerWorkflowName === 'default');
+      let shouldTriggerReview = false;
+      let triggerReason = '';
+
+      if (waitForAllChecks || !triggerWorkflowName) {
+        // Check if all check suites for the PR are complete and successful
+        const allChecksPassed = await checkAllCheckSuitesComplete({
+          repo,
+          pullRequests: checkSuite.pull_requests
+        });
+
+        shouldTriggerReview = allChecksPassed;
+        triggerReason = allChecksPassed ? 'All check suites passed' : 'Waiting for other check suites to complete';
+      } else {
+        // Use specific workflow trigger
+        const workflowName = checkSuite.check_runs_url ? 
+          await getWorkflowNameFromCheckSuite(checkSuite, repo) : null;
+        
+        shouldTriggerReview = workflowName === triggerWorkflowName;
+        triggerReason = shouldTriggerReview ? 
+          `Triggered by workflow: ${workflowName}` : 
+          `Workflow '${workflowName}' does not match trigger '${triggerWorkflowName}'`;
+      }
       
       logger.info(
         {
@@ -434,28 +474,16 @@ Please check with an administrator to review the logs for more details.`
           checkSuite: checkSuite.id,
           conclusion: checkSuite.conclusion,
           pullRequestCount: checkSuite.pull_requests?.length || 0,
-          workflowName,
-          triggerWorkflowName,
           shouldTriggerReview,
-          appName: checkSuite.app?.name,
-          appSlug: checkSuite.app?.slug,
-          reasons: !triggerWorkflowName ? 'PR_REVIEW_TRIGGER_WORKFLOW not configured' :
-            !shouldTriggerReview ? `workflow '${workflowName}' does not match trigger '${triggerWorkflowName}'` :
-              checkSuite.conclusion !== 'success' ? `conclusion is '${checkSuite.conclusion}' (not 'success')` :
-                !checkSuite.pull_requests?.length ? 'no pull requests associated with check suite' : 'all conditions met'
+          triggerReason,
+          waitForAllChecks,
+          triggerWorkflowName
         },
-        shouldTriggerReview && checkSuite.conclusion === 'success' && checkSuite.pull_requests?.length > 0
-          ? 'All checks passed - triggering automated PR review'
-          : 'Check suite completed but not triggering PR review'
+        shouldTriggerReview ? 'Triggering automated PR review' : 'Not triggering PR review'
       );
 
-      // Only proceed if this is the configured trigger workflow
-      if (
-        shouldTriggerReview &&
-        checkSuite.conclusion === 'success' &&
-        checkSuite.pull_requests &&
-        checkSuite.pull_requests.length > 0
-      ) {
+      // Only proceed if we should trigger the review
+      if (shouldTriggerReview) {
         try {
           // Process PRs in parallel for better performance
           const prPromises = checkSuite.pull_requests.map(async pr => {
@@ -1034,6 +1062,95 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
 }
 
 /**
+ * Checks if all check suites for a PR are complete and successful
+ * @param {Object} options - Options object
+ * @param {Object} options.repo - The repository object
+ * @param {Array} options.pullRequests - Array of pull requests
+ * @returns {Promise<boolean>} - True if all checks are complete and successful
+ */
+async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
+  const debounceDelayMs = parseInt(process.env.PR_REVIEW_DEBOUNCE_MS || '5000', 10);
+  
+  try {
+    // Add a small delay to account for GitHub's eventual consistency
+    await new Promise(resolve => setTimeout(resolve, debounceDelayMs));
+
+    // Check each PR's status
+    for (const pr of pullRequests) {
+      try {
+        // Get all check suites for this PR
+        const checkSuitesResponse = await githubService.makeGitHubRequest(
+          `https://api.github.com/repos/${repo.full_name}/commits/${pr.head.sha}/check-suites`
+        );
+
+        const checkSuites = checkSuitesResponse.check_suites || [];
+        
+        logger.info({
+          repo: repo.full_name,
+          pr: pr.number,
+          sha: pr.head.sha,
+          totalCheckSuites: checkSuites.length,
+          checkSuites: checkSuites.map(cs => ({
+            id: cs.id,
+            app: cs.app?.name,
+            status: cs.status,
+            conclusion: cs.conclusion
+          }))
+        }, 'Retrieved check suites for PR');
+
+        // Check if any check suite is still in progress or has failed
+        for (const suite of checkSuites) {
+          // Skip neutral conclusions (like skipped checks)
+          if (suite.conclusion === 'neutral' || suite.conclusion === 'skipped') {
+            continue;
+          }
+
+          // If any check is in progress, we should wait
+          if (suite.status !== 'completed') {
+            logger.info({
+              repo: repo.full_name,
+              pr: pr.number,
+              checkSuite: suite.id,
+              app: suite.app?.name,
+              status: suite.status
+            }, 'Check suite still in progress');
+            return false;
+          }
+
+          // If any check failed, we shouldn't review
+          if (suite.conclusion !== 'success') {
+            logger.info({
+              repo: repo.full_name,
+              pr: pr.number,
+              checkSuite: suite.id,
+              app: suite.app?.name,
+              conclusion: suite.conclusion
+            }, 'Check suite did not succeed');
+            return false;
+          }
+        }
+      } catch (error) {
+        logger.error({
+          err: error,
+          repo: repo.full_name,
+          pr: pr.number
+        }, 'Failed to check PR status');
+        return false;
+      }
+    }
+
+    // All checks passed!
+    return true;
+  } catch (error) {
+    logger.error({
+      err: error,
+      repo: repo.full_name
+    }, 'Failed to check all check suites');
+    return false;
+  }
+}
+
+/**
  * Extract workflow name from check suite by fetching check runs
  * @param {Object} checkSuite - The check suite object
  * @param {Object} repo - The repository object  
@@ -1070,5 +1187,6 @@ async function getWorkflowNameFromCheckSuite(checkSuite, repo) {
 
 module.exports = {
   handleWebhook,
-  getWorkflowNameFromCheckSuite
+  getWorkflowNameFromCheckSuite,
+  checkAllCheckSuitesComplete
 };

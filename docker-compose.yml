@@ -22,6 +22,10 @@ services:
       - DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
       - CLAUDE_USE_CONTAINERS=1
       - CLAUDE_CONTAINER_IMAGE=claudecode:latest
+      # Wait for all checks by default, or use specific workflow trigger
+      - PR_REVIEW_WAIT_FOR_ALL_CHECKS=${PR_REVIEW_WAIT_FOR_ALL_CHECKS:-true}
+      - PR_REVIEW_TRIGGER_WORKFLOW=${PR_REVIEW_TRIGGER_WORKFLOW:-}
+      - PR_REVIEW_DEBOUNCE_MS=${PR_REVIEW_DEBOUNCE_MS:-5000}
       # Point to secret files instead of env vars
       - GITHUB_TOKEN_FILE=/run/secrets/github_token
       - ANTHROPIC_API_KEY_FILE=/run/secrets/anthropic_api_key

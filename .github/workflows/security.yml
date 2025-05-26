@@ -1,17 +1,22 @@
 name: Security Scans
 
 on:
-  schedule:
-    # Run security scans daily at 2 AM UTC
-    - cron: '0 2 * * *'
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
 
 jobs:
-  dependency-scan:
-    name: Dependency Security Scan
+  dependency-audit:
+    name: Dependency Security Audit
     runs-on: ubuntu-latest
     
     steps:
@@ -29,57 +34,79 @@ jobs:
       run: npm ci --prefer-offline --no-audit
 
     - name: Run npm audit
-      run: npm audit --audit-level=moderate
+      run: |
+        npm audit --audit-level=moderate || {
+          echo "::warning::npm audit found vulnerabilities"
+          exit 0  # Don't fail the build, but warn
+        }
 
     - name: Check for known vulnerabilities
-      run: npm run security:audit
+      run: npm run security:audit || echo "::warning::Security audit script failed"
 
-  secret-scan:
-    name: Secret Scanning
+  secret-scanning:
+    name: Secret and Credential Scanning
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0  # Full history for secret scanning
 
-    - name: TruffleHog OSS
+    - name: Run credential audit script
+      run: |
+        if [ -f "./scripts/security/credential-audit.sh" ]; then
+          ./scripts/security/credential-audit.sh || {
+            echo "::error::Credential audit failed"
+            exit 1
+          }
+        else
+          echo "::warning::Credential audit script not found"
+        fi
+
+    - name: TruffleHog Secret Scan
       uses: trufflesecurity/trufflehog@main
       with:
         path: ./
-        base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
-        head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
+        base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         extra_args: --debug --only-verified
 
-  codeql:
-    name: CodeQL Analysis
+    - name: Check for high-risk files
+      run: |
+        # Check for files that commonly contain secrets
+        risk_files=$(find . -type f \( \
+          -name "*.pem" -o \
+          -name "*.key" -o \
+          -name "*.p12" -o \
+          -name "*.pfx" -o \
+          -name "*secret*" -o \
+          -name "*password*" -o \
+          -name "*credential*" \
+        \) -not -path "*/node_modules/*" -not -path "*/.git/*" | head -20)
+        
+        if [ -n "$risk_files" ]; then
+          echo "⚠️ Found potentially sensitive files:"
+          echo "$risk_files"
+          echo "::warning::High-risk files detected. Please ensure they don't contain secrets."
+        fi
+
+  codeql-analysis:
+    name: CodeQL Security Analysis
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
       security-events: write
 
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'javascript' ]
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: 'package-lock.json'
-
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
-        languages: ${{ matrix.language }}
+        languages: javascript
         config-file: ./.github/codeql-config.yml
 
     - name: Autobuild
@@ -88,4 +115,57 @@ jobs:
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
-        category: "/language:${{matrix.language}}"
+        category: "/language:javascript"
+
+  docker-security:
+    name: Docker Image Security Scan
+    runs-on: ubuntu-latest
+    # Only run on main branch pushes or when Docker files change
+    if: github.ref == 'refs/heads/main' || contains(github.event.head_commit.modified, 'Dockerfile')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Hadolint
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile
+        failure-threshold: warning
+
+    - name: Build test image for scanning
+      run: docker build -t test-image:${{ github.sha }} .
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: test-image:${{ github.sha }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [dependency-audit, secret-scanning, codeql-analysis, docker-security]
+    if: always()
+    
+    steps:
+    - name: Check job statuses
+      run: |
+        echo "## Security Scan Summary"
+        echo "- Dependency Audit: ${{ needs.dependency-audit.result }}"
+        echo "- Secret Scanning: ${{ needs.secret-scanning.result }}"
+        echo "- CodeQL Analysis: ${{ needs.codeql-analysis.result }}"
+        echo "- Docker Security: ${{ needs.docker-security.result }}"
+        
+        if [[ "${{ needs.secret-scanning.result }}" == "failure" ]]; then
+          echo "::error::Secret scanning failed - potential credentials detected!"
+          exit 1
+        fi

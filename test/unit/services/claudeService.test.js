@@ -50,7 +50,6 @@ jest.mock('../../../src/utils/secureCredentials', () => ({
 
 // Now require the module under test
 const { execFileSync } = require('child_process');
-const { writeFileSync } = require('fs');
 const { promisify } = require('util');
 const { sanitizeBotMentions } = require('../../../src/utils/sanitize');
 const claudeService = require('../../../src/services/claudeService');

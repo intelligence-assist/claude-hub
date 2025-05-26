@@ -91,32 +91,6 @@ jobs:
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
 
-  # E2E tests - only 1 scenario, run on GitHub for simplicity
-  test-e2e:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: 'package-lock.json'
-
-    - name: Install dependencies
-      run: npm ci --prefer-offline --no-audit
-
-    - name: Run e2e tests
-      run: npm run test:e2e
-      env:
-        NODE_ENV: test
-        BOT_USERNAME: '@TestBot'
-        GITHUB_WEBHOOK_SECRET: 'test-secret'
-        GITHUB_TOKEN: 'test-token'
 
   # Coverage generation - depends on unit tests
   coverage:

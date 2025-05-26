@@ -5,8 +5,8 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install git, Claude Code, Docker, and required dependencies with pinned versions and --no-install-recommends
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git=1:2.39.5-0+deb12u1 \
-    curl=7.88.1-10+deb12u8 \
+    git=1:2.39.5-0+deb12u2 \
+    curl=7.88.1-10+deb12u12 \
     python3=3.11.2-1+b1 \
     python3-pip=23.0.1+dfsg-1+deb12u1 \
     python3-venv=3.11.2-1+b1 \
@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
     && apt-get update \
-    && apt-get install -y --no-install-recommends docker-ce-cli=5:27.5.0-1~debian.12~bookworm \
+    && apt-get install -y --no-install-recommends docker-ce-cli=5:27.* \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Claude Code with pinned version

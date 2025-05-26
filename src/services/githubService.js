@@ -570,59 +570,45 @@ async function managePRLabels({ repoOwner, repoName, prNumber, labelsToAdd = [],
 }
 
 /**
- * Make a direct GitHub API request using the URL
- * @param {string} url - The GitHub API URL to request
- * @returns {Promise<Object>} - The response data
+ * Get check runs for a check suite
+ * @param {Object} params
+ * @param {string} params.repoOwner - Repository owner
+ * @param {string} params.repoName - Repository name
+ * @param {number} params.checkSuiteId - Check suite ID
+ * @returns {Promise<Object>} - The check runs data
  */
-async function makeGitHubRequest(url) {
+async function getCheckRunsForSuite({ repoOwner, repoName, checkSuiteId }) {
   try {
+    // Validate parameters
+    const repoPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
+      throw new Error('Invalid repository owner or name - contains unsafe characters');
+    }
+
     const client = getOctokit();
     if (!client) {
       throw new Error('GitHub client not initialized');
     }
 
-    // Define an allow-list of acceptable API paths
-    const allowedPaths = [
-      'repos/{owner}/{repo}/issues/{issue_number}/comments',
-      'repos/{owner}/{repo}/pulls/{pull_number}/reviews',
-      'repos/{owner}/{repo}/check-runs',
-      'repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs',
-      'repos/{owner}/{repo}/labels',
-      'repos/{owner}/{repo}/issues/{issue_number}/labels'
-    ];
-
-    // Validate that the URL is a GitHub API URL to prevent SSRF
-    if (!url.startsWith('https://api.github.com/')) {
-      throw new Error('Invalid GitHub API URL - must start with https://api.github.com/');
-    }
-    
-    // Extract the path from the full URL
-    const apiPath = url.substring('https://api.github.com/'.length);
-
-    // Validate the extracted path against the allow-list
-    const isValidPath = allowedPaths.some(pattern => {
-      const regex = new RegExp('^' + pattern.replace(/\{[^\}]+\}/g, '[^/]+') + '$');
-      return regex.test(apiPath);
-    });
-
-    if (!isValidPath) {
-      throw new Error('Invalid or disallowed API path');
-    }
-    
     logger.debug({
-      url,
-      apiPath
-    }, 'Making GitHub API request');
+      repo: `${repoOwner}/${repoName}`,
+      checkSuiteId
+    }, 'Getting check runs for suite');
 
-    // Use Octokit's request method for direct API calls
-    const { data } = await client.request(`GET /${apiPath}`);
+    // Use Octokit's built-in method
+    const { data } = await client.checks.listForSuite({
+      owner: repoOwner,
+      repo: repoName,
+      check_suite_id: checkSuiteId
+    });
     
     return data;
   } catch (error) {
     logger.error({
       err: error.message,
-      url
-    }, 'Failed to make GitHub API request');
+      repo: `${repoOwner}/${repoName}`,
+      checkSuiteId
+    }, 'Failed to get check runs');
     throw error;
   }
 }
@@ -635,5 +621,5 @@ module.exports = {
   getCombinedStatus,
   hasReviewedPRAtCommit,
   managePRLabels,
-  makeGitHubRequest
+  getCheckRunsForSuite
 };

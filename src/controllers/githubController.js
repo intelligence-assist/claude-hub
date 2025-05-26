@@ -1044,15 +1044,18 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
  */
 async function getWorkflowNameFromCheckSuite(checkSuite, repo) {
   try {
-    // Extract check runs URL and fetch the data
-    const checkRunsResponse = await githubService.makeGitHubRequest(checkSuite.check_runs_url);
+    // Get check runs for this check suite
+    const checkRunsResponse = await githubService.getCheckRunsForSuite({
+      repoOwner: repo.owner.login,
+      repoName: repo.name,
+      checkSuiteId: checkSuite.id
+    });
     const checkRuns = checkRunsResponse.check_runs || [];
     
     // Find the first check run with a workflow name
     for (const run of checkRuns) {
       if (run.name) {
         // The workflow name is typically the name of the check run
-        // or can be extracted from the details URL
         return run.name;
       }
     }

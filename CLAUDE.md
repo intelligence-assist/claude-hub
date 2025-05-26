@@ -174,6 +174,9 @@ The `awsCredentialProvider.js` utility handles credential retrieval and rotation
 - `GITHUB_TOKEN`: GitHub token for API access
 - `ANTHROPIC_API_KEY`: Anthropic API key for Claude access
 
+### Optional Environment Variables
+- `PR_REVIEW_TRIGGER_WORKFLOW`: Name of the specific GitHub Actions workflow that should trigger automated PR reviews (e.g., `"Pull Request CI"`). If not set, automated PR reviews are disabled. This makes the system repository-independent and prevents multiple reviews from different check suites.
+
 ## Code Style Guidelines
 - JavaScript with Node.js
 - Use async/await for asynchronous operations

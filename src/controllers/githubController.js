@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const claudeService = require('../services/claudeService');
 const githubService = require('../services/githubService');
 const { createLogger } = require('../utils/logger');
-const { sanitizeBotMentions, sanitizeLabels } = require('../utils/sanitize');
+const { sanitizeBotMentions } = require('../utils/sanitize');
 const secureCredentials = require('../utils/secureCredentials');
 
 const logger = createLogger('githubController');

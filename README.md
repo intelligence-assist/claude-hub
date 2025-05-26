@@ -40,7 +40,7 @@ For comprehensive documentation, see:
 
 ### Prerequisites
 
-- Node.js 16 or higher
+- Node.js 20 or higher
 - Docker and Docker Compose
 - GitHub account with access to the repositories you want to use
 

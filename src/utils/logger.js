@@ -6,7 +6,9 @@ const path = require('path');
 // Use home directory for logs to avoid permission issues
 const homeDir = process.env.HOME || '/tmp';
 const logsDir = path.join(homeDir, '.claude-webhook', 'logs');
+// eslint-disable-next-line no-sync
 if (!fs.existsSync(logsDir)) {
+  // eslint-disable-next-line no-sync
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
@@ -111,17 +113,22 @@ if (isProduction) {
   // Check log file size and rotate if necessary
   try {
     const maxSize = 10 * 1024 * 1024; // 10MB
+    // eslint-disable-next-line no-sync
     if (fs.existsSync(logFileName)) {
+      // eslint-disable-next-line no-sync
       const stats = fs.statSync(logFileName);
       if (stats.size > maxSize) {
         // Simple rotation - keep up to 5 backup files
         for (let i = 4; i >= 0; i--) {
           const oldFile = `${logFileName}.${i}`;
           const newFile = `${logFileName}.${i + 1}`;
+          // eslint-disable-next-line no-sync
           if (fs.existsSync(oldFile)) {
+            // eslint-disable-next-line no-sync
             fs.renameSync(oldFile, newFile);
           }
         }
+        // eslint-disable-next-line no-sync
         fs.renameSync(logFileName, `${logFileName}.0`);
 
         logger.info('Log file rotated');

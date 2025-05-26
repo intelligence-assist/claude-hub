@@ -6,6 +6,7 @@ const payloadPath = process.argv[2] || './test-payload.json';
 const webhookUrl = process.argv[3] || 'http://localhost:3001/api/webhooks/github';
 
 // Read the payload file
+// eslint-disable-next-line no-sync
 const payload = fs.readFileSync(payloadPath, 'utf8');
 
 // Calculate the signature using the utility

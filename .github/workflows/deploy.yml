@@ -165,7 +165,9 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [build, security-scan]
     runs-on: ubuntu-latest
-    environment: staging
+    environment: 
+      name: staging
+      url: ${{ vars.STAGING_URL }}
     
     steps:
       - uses: actions/checkout@v4
@@ -220,7 +222,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: 
       name: production
-      url: https://webhook.yourdomain.com
+      url: ${{ vars.PRODUCTION_URL }}
     
     steps:
       - uses: actions/checkout@v4
@@ -287,7 +289,7 @@ jobs:
               repo: context.repo.repo,
               deployment_id: deployment.data.id,
               state: 'success',
-              environment_url: 'https://webhook.yourdomain.com',
+              environment_url: '${{ vars.PRODUCTION_URL }}',
               description: `Deployed version ${context.ref.replace('refs/tags/', '')}`
             });
       

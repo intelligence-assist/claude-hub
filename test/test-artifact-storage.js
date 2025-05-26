@@ -47,7 +47,7 @@ async function testArtifactStorage() {
     
   } catch (error) {
     logger.error({ error: error.message, stack: error.stack }, 'Test failed');
-    process.exit(1);
+    throw error;
   }
 }
 

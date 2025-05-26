@@ -1,17 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="34" failures="0" errors="0" time="0.703">
-  <testsuite name="GitHub Controller - Check Suite Events" errors="0" failures="0" skipped="2" timestamp="2025-05-26T03:05:19" time="0.382" tests="9">
-    <testcase classname="GitHub Controller - Check Suite Events should trigger PR review when check suite succeeds with PRs and combined status passes" name="GitHub Controller - Check Suite Events should trigger PR review when check suite succeeds with PRs and combined status passes" time="0.005">
+<testsuites name="jest tests" tests="34" failures="0" errors="0" time="0.731">
+  <testsuite name="Claude Service" errors="0" failures="0" skipped="0" timestamp="2025-05-26T06:01:54" time="0.35" tests="4">
+    <testcase classname="Claude Service processCommand should handle test mode correctly" name="Claude Service processCommand should handle test mode correctly" time="0.003">
     </testcase>
-    <testcase classname="GitHub Controller - Check Suite Events should not trigger PR review when check suite fails" name="GitHub Controller - Check Suite Events should not trigger PR review when check suite fails" time="0.001">
+    <testcase classname="Claude Service processCommand should properly set up Docker command in production mode" name="Claude Service processCommand should properly set up Docker command in production mode" time="0.002">
+    </testcase>
+    <testcase classname="Claude Service processCommand should handle errors properly" name="Claude Service processCommand should handle errors properly" time="0.015">
+    </testcase>
+    <testcase classname="Claude Service processCommand should handle long commands properly" name="Claude Service processCommand should handle long commands properly" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="AWS Credential Provider" errors="0" failures="0" skipped="0" timestamp="2025-05-26T06:01:54" time="0.046" tests="7">
+    <testcase classname="AWS Credential Provider should get credentials from AWS profile" name="AWS Credential Provider should get credentials from AWS profile" time="0.002">
+    </testcase>
+    <testcase classname="AWS Credential Provider should cache credentials" name="AWS Credential Provider should cache credentials" time="0.001">
+    </testcase>
+    <testcase classname="AWS Credential Provider should clear credential cache" name="AWS Credential Provider should clear credential cache" time="0">
+    </testcase>
+    <testcase classname="AWS Credential Provider should get Docker environment variables" name="AWS Credential Provider should get Docker environment variables" time="0.001">
+    </testcase>
+    <testcase classname="AWS Credential Provider should throw error if AWS_PROFILE is not set" name="AWS Credential Provider should throw error if AWS_PROFILE is not set" time="0.006">
+    </testcase>
+    <testcase classname="AWS Credential Provider should throw error for non-existent profile" name="AWS Credential Provider should throw error for non-existent profile" time="0">
+    </testcase>
+    <testcase classname="AWS Credential Provider should throw error for incomplete credentials" name="AWS Credential Provider should throw error for incomplete credentials" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="githubService" errors="0" failures="0" skipped="0" timestamp="2025-05-26T06:01:54" time="0.062" tests="10">
+    <testcase classname="githubService getFallbackLabels should identify bug labels correctly" name="githubService getFallbackLabels should identify bug labels correctly" time="0.001">
+    </testcase>
+    <testcase classname="githubService getFallbackLabels should identify feature labels correctly" name="githubService getFallbackLabels should identify feature labels correctly" time="0">
+    </testcase>
+    <testcase classname="githubService getFallbackLabels should identify enhancement labels correctly" name="githubService getFallbackLabels should identify enhancement labels correctly" time="0.001">
+    </testcase>
+    <testcase classname="githubService getFallbackLabels should identify question labels correctly" name="githubService getFallbackLabels should identify question labels correctly" time="0">
+    </testcase>
+    <testcase classname="githubService getFallbackLabels should identify documentation labels correctly" name="githubService getFallbackLabels should identify documentation labels correctly" time="0">
+    </testcase>
+    <testcase classname="githubService getFallbackLabels should default to medium priority when no specific priority keywords found" name="githubService getFallbackLabels should default to medium priority when no specific priority keywords found" time="0">
+    </testcase>
+    <testcase classname="githubService getFallbackLabels should handle empty descriptions gracefully" name="githubService getFallbackLabels should handle empty descriptions gracefully" time="0.001">
+    </testcase>
+    <testcase classname="githubService addLabelsToIssue - test mode should return mock data in test mode" name="githubService addLabelsToIssue - test mode should return mock data in test mode" time="0">
+    </testcase>
+    <testcase classname="githubService createRepositoryLabels - test mode should return labels array in test mode" name="githubService createRepositoryLabels - test mode should return labels array in test mode" time="0.001">
+    </testcase>
+    <testcase classname="githubService postComment - test mode should return mock comment data in test mode" name="githubService postComment - test mode should return mock comment data in test mode" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="GitHub Controller - Check Suite Events" errors="0" failures="0" skipped="2" timestamp="2025-05-26T06:01:54" time="0.16" tests="9">
+    <testcase classname="GitHub Controller - Check Suite Events should trigger PR review when check suite succeeds with PRs and combined status passes" name="GitHub Controller - Check Suite Events should trigger PR review when check suite succeeds with PRs and combined status passes" time="0.003">
+    </testcase>
+    <testcase classname="GitHub Controller - Check Suite Events should not trigger PR review when check suite fails" name="GitHub Controller - Check Suite Events should not trigger PR review when check suite fails" time="0">
     </testcase>
     <testcase classname="GitHub Controller - Check Suite Events should not trigger PR review when check suite succeeds but has no PRs" name="GitHub Controller - Check Suite Events should not trigger PR review when check suite succeeds but has no PRs" time="0.001">
     </testcase>
     <testcase classname="GitHub Controller - Check Suite Events should handle multiple PRs in check suite in parallel" name="GitHub Controller - Check Suite Events should handle multiple PRs in check suite in parallel" time="0.001">
     </testcase>
-    <testcase classname="GitHub Controller - Check Suite Events should handle Claude service errors gracefully" name="GitHub Controller - Check Suite Events should handle Claude service errors gracefully" time="0.001">
+    <testcase classname="GitHub Controller - Check Suite Events should handle Claude service errors gracefully" name="GitHub Controller - Check Suite Events should handle Claude service errors gracefully" time="0">
     </testcase>
-    <testcase classname="GitHub Controller - Check Suite Events should not trigger when workflow does not match" name="GitHub Controller - Check Suite Events should not trigger when workflow does not match" time="0">
+    <testcase classname="GitHub Controller - Check Suite Events should not trigger when workflow does not match" name="GitHub Controller - Check Suite Events should not trigger when workflow does not match" time="0.001">
     </testcase>
     <testcase classname="GitHub Controller - Check Suite Events should skip PR review when combined status is not success" name="GitHub Controller - Check Suite Events should skip PR review when combined status is not success" time="0">
       <skipped/>
@@ -19,65 +67,17 @@
     <testcase classname="GitHub Controller - Check Suite Events should handle combined status API errors" name="GitHub Controller - Check Suite Events should handle combined status API errors" time="0">
       <skipped/>
     </testcase>
-    <testcase classname="GitHub Controller - Check Suite Events should skip PR review when already reviewed at same commit" name="GitHub Controller - Check Suite Events should skip PR review when already reviewed at same commit" time="0.001">
+    <testcase classname="GitHub Controller - Check Suite Events should skip PR review when already reviewed at same commit" name="GitHub Controller - Check Suite Events should skip PR review when already reviewed at same commit" time="0">
     </testcase>
   </testsuite>
-  <testsuite name="githubService" errors="0" failures="0" skipped="0" timestamp="2025-05-26T03:05:19" time="0.082" tests="10">
-    <testcase classname="githubService getFallbackLabels should identify bug labels correctly" name="githubService getFallbackLabels should identify bug labels correctly" time="0.001">
-    </testcase>
-    <testcase classname="githubService getFallbackLabels should identify feature labels correctly" name="githubService getFallbackLabels should identify feature labels correctly" time="0">
-    </testcase>
-    <testcase classname="githubService getFallbackLabels should identify enhancement labels correctly" name="githubService getFallbackLabels should identify enhancement labels correctly" time="0">
-    </testcase>
-    <testcase classname="githubService getFallbackLabels should identify question labels correctly" name="githubService getFallbackLabels should identify question labels correctly" time="0.001">
-    </testcase>
-    <testcase classname="githubService getFallbackLabels should identify documentation labels correctly" name="githubService getFallbackLabels should identify documentation labels correctly" time="0">
-    </testcase>
-    <testcase classname="githubService getFallbackLabels should default to medium priority when no specific priority keywords found" name="githubService getFallbackLabels should default to medium priority when no specific priority keywords found" time="0">
-    </testcase>
-    <testcase classname="githubService getFallbackLabels should handle empty descriptions gracefully" name="githubService getFallbackLabels should handle empty descriptions gracefully" time="0">
-    </testcase>
-    <testcase classname="githubService addLabelsToIssue - test mode should return mock data in test mode" name="githubService addLabelsToIssue - test mode should return mock data in test mode" time="0.001">
-    </testcase>
-    <testcase classname="githubService createRepositoryLabels - test mode should return labels array in test mode" name="githubService createRepositoryLabels - test mode should return labels array in test mode" time="0">
-    </testcase>
-    <testcase classname="githubService postComment - test mode should return mock comment data in test mode" name="githubService postComment - test mode should return mock comment data in test mode" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="GitHub Controller" errors="0" failures="0" skipped="0" timestamp="2025-05-26T03:05:19" time="0.05" tests="4">
+  <testsuite name="GitHub Controller" errors="0" failures="0" skipped="0" timestamp="2025-05-26T06:01:55" time="0.046" tests="4">
     <testcase classname="GitHub Controller should process a valid webhook with @TestBot mention" name="GitHub Controller should process a valid webhook with @TestBot mention" time="0.002">
     </testcase>
-    <testcase classname="GitHub Controller should reject a webhook with invalid signature" name="GitHub Controller should reject a webhook with invalid signature" time="0.017">
+    <testcase classname="GitHub Controller should reject a webhook with invalid signature" name="GitHub Controller should reject a webhook with invalid signature" time="0.014">
     </testcase>
     <testcase classname="GitHub Controller should ignore comments without @TestBot mention" name="GitHub Controller should ignore comments without @TestBot mention" time="0">
     </testcase>
-    <testcase classname="GitHub Controller should handle errors from Claude service" name="GitHub Controller should handle errors from Claude service" time="0.002">
-    </testcase>
-  </testsuite>
-  <testsuite name="Claude Service" errors="0" failures="0" skipped="0" timestamp="2025-05-26T03:05:19" time="0.101" tests="4">
-    <testcase classname="Claude Service processCommand should handle test mode correctly" name="Claude Service processCommand should handle test mode correctly" time="0.001">
-    </testcase>
-    <testcase classname="Claude Service processCommand should properly set up Docker command in production mode" name="Claude Service processCommand should properly set up Docker command in production mode" time="0.001">
-    </testcase>
-    <testcase classname="Claude Service processCommand should handle errors properly" name="Claude Service processCommand should handle errors properly" time="0.011">
-    </testcase>
-    <testcase classname="Claude Service processCommand should handle long commands properly" name="Claude Service processCommand should handle long commands properly" time="0.001">
-    </testcase>
-  </testsuite>
-  <testsuite name="AWS Credential Provider" errors="0" failures="0" skipped="0" timestamp="2025-05-26T03:05:20" time="0.035" tests="7">
-    <testcase classname="AWS Credential Provider should get credentials from AWS profile" name="AWS Credential Provider should get credentials from AWS profile" time="0.006">
-    </testcase>
-    <testcase classname="AWS Credential Provider should cache credentials" name="AWS Credential Provider should cache credentials" time="0.001">
-    </testcase>
-    <testcase classname="AWS Credential Provider should clear credential cache" name="AWS Credential Provider should clear credential cache" time="0.001">
-    </testcase>
-    <testcase classname="AWS Credential Provider should get Docker environment variables" name="AWS Credential Provider should get Docker environment variables" time="0">
-    </testcase>
-    <testcase classname="AWS Credential Provider should throw error if AWS_PROFILE is not set" name="AWS Credential Provider should throw error if AWS_PROFILE is not set" time="0.006">
-    </testcase>
-    <testcase classname="AWS Credential Provider should throw error for non-existent profile" name="AWS Credential Provider should throw error for non-existent profile" time="0.001">
-    </testcase>
-    <testcase classname="AWS Credential Provider should throw error for incomplete credentials" name="AWS Credential Provider should throw error for incomplete credentials" time="0.001">
+    <testcase classname="GitHub Controller should handle errors from Claude service" name="GitHub Controller should handle errors from Claude service" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>

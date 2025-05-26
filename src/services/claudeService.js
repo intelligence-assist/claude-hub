@@ -27,10 +27,42 @@ const ARTIFACT_BASE_DIR = path.join(os.homedir(), '.claude-webhook', 'artifacts'
 const ARTIFACT_RETENTION_DAYS = 30; // Keep artifacts for 30 days
 
 /**
+ * Validates repository name format and prevents path traversal
+ */
+function validateRepoFullName(repoFullName) {
+  if (!repoFullName || typeof repoFullName !== 'string') {
+    throw new Error('Invalid repository name: must be a non-empty string');
+  }
+  
+  // Check format: owner/repo
+  const parts = repoFullName.split('/');
+  if (parts.length !== 2) {
+    throw new Error('Invalid repository name format: must be owner/repo');
+  }
+  
+  const [owner, repo] = parts;
+  
+  // Validate owner and repo names (GitHub naming rules)
+  const validNamePattern = /^[a-zA-Z0-9][a-zA-Z0-9-_.]*$/;
+  if (!validNamePattern.test(owner) || !validNamePattern.test(repo)) {
+    throw new Error('Invalid repository name: contains invalid characters');
+  }
+  
+  // Prevent path traversal attempts
+  if (owner.includes('..') || repo.includes('..') || 
+      owner.includes('/') || repo.includes('/') ||
+      owner.includes('\\') || repo.includes('\\')) {
+    throw new Error('Invalid repository name: potential path traversal detected');
+  }
+  
+  return { owner, repo };
+}
+
+/**
  * Ensures the artifact directory exists with proper permissions
  */
 async function ensureArtifactDirectory(repoFullName) {
-  const [owner, repo] = repoFullName.split('/');
+  const { owner, repo } = validateRepoFullName(repoFullName);
   const artifactDir = path.join(ARTIFACT_BASE_DIR, owner, repo);
   
   try {
@@ -43,6 +75,19 @@ async function ensureArtifactDirectory(repoFullName) {
 }
 
 /**
+ * Sanitizes string for safe storage
+ */
+function sanitizeForStorage(str, maxLength = 1000) {
+  if (!str || typeof str !== 'string') return '';
+  // Remove null bytes and control characters except newlines and tabs
+  return str
+    .substring(0, maxLength)
+    .replace(/\0/g, '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+}
+
+/**
  * Saves Claude output as an artifact
  */
 async function saveArtifact({ repoFullName, issueNumber, operationType, command, output, metadata = {} }) {
@@ -50,16 +95,23 @@ async function saveArtifact({ repoFullName, issueNumber, operationType, command,
     const artifactDir = await ensureArtifactDirectory(repoFullName);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const safeOperationType = operationType.replace(/[^a-zA-Z0-9-]/g, '_');
-    const filename = `${timestamp}_${issueNumber || 'direct'}_${safeOperationType}.json`;
+    
+    // Validate issue number
+    const safeIssueNumber = issueNumber ? parseInt(issueNumber, 10) : null;
+    if (issueNumber && (!safeIssueNumber || safeIssueNumber < 1)) {
+      throw new Error('Invalid issue number');
+    }
+    
+    const filename = `${timestamp}_${safeIssueNumber || 'direct'}_${safeOperationType}.json`;
     const filepath = path.join(artifactDir, filename);
     
     const artifact = {
       timestamp: new Date().toISOString(),
       repository: repoFullName,
-      issueNumber,
-      operationType,
-      command: command.substring(0, 1000), // Limit command length for security
-      output,
+      issueNumber: safeIssueNumber,
+      operationType: sanitizeForStorage(operationType, 100),
+      command: sanitizeForStorage(command, 1000),
+      output: sanitizeForStorage(output, 1000000), // 1MB limit
       metadata: {
         ...metadata,
         outputLength: output.length,
@@ -685,13 +737,17 @@ Please complete this task fully and autonomously.`;
 }
 
 // Schedule periodic cleanup of old artifacts
-let cleanupInterval;
+let _cleanupInterval;
 if (process.env.NODE_ENV !== 'test') {
-  cleanupInterval = setInterval(() => {
+  const interval = setInterval(() => {
     cleanupOldArtifacts().catch(error => {
       logger.error({ error: error.message }, 'Scheduled artifact cleanup failed');
     });
   }, 24 * 60 * 60 * 1000); // Run once per day
+  
+  // Store interval ID for potential cleanup on shutdown
+  process.on('SIGTERM', () => clearInterval(interval));
+  process.on('SIGINT', () => clearInterval(interval));
 }
 
 module.exports = {

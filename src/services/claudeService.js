@@ -30,6 +30,7 @@ if (!BOT_USERNAME) {
  * @param {string} options.command - The command to process with Claude
  * @param {boolean} [options.isPullRequest=false] - Whether this is a pull request
  * @param {string} [options.branchName] - The branch name for pull requests
+ * @param {string} [options.operationType='default'] - Operation type: 'auto-tagging', 'pr-review', or 'default'
  * @returns {Promise<string>} - Claude's response
  */
 async function processCommand({
@@ -37,7 +38,8 @@ async function processCommand({
   issueNumber,
   command,
   isPullRequest = false,
-  branchName = null
+  branchName = null,
+  operationType = 'default'
 }) {
   try {
     logger.info(
@@ -91,12 +93,59 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
       });
     }
 
+    // Select appropriate entrypoint script based on operation type
+    let entrypointScript;
+    switch (operationType) {
+      case 'auto-tagging':
+        entrypointScript = '/scripts/runtime/claudecode-tagging-entrypoint.sh';
+        logger.info({ operationType }, 'Using minimal tools for auto-tagging operation');
+        break;
+      case 'pr-review':
+      case 'default':
+      default:
+        entrypointScript = '/scripts/runtime/claudecode-entrypoint.sh';
+        logger.info({ operationType }, 'Using full tool set for standard operation');
+        break;
+    }
+
     // Create unique container name (sanitized to prevent command injection)
     const sanitizedRepoName = repoFullName.replace(/[^a-zA-Z0-9\-_]/g, '-');
     const containerName = `claude-${sanitizedRepoName}-${Date.now()}`;
 
-    // Create the full prompt with context and instructions
-    const fullPrompt = `You are Claude, an AI assistant responding to a GitHub ${isPullRequest ? 'pull request' : 'issue'} via the ${BOT_USERNAME} webhook.
+    // Create the full prompt with context and instructions based on operation type
+    let fullPrompt;
+    
+    if (operationType === 'auto-tagging') {
+      fullPrompt = `You are Claude, an AI assistant analyzing a GitHub issue for automatic label assignment.
+
+**Context:**
+- Repository: ${repoFullName}
+- Issue Number: #${issueNumber}
+- Operation: Auto-tagging (Read-only + Label assignment)
+
+**Available Tools:**
+- Read: Access repository files and issue content
+- GitHub: Use 'gh' CLI for label operations only
+
+**Task:**
+Analyze the issue and apply appropriate labels using GitHub CLI commands. Use these categories:
+- Priority: critical, high, medium, low
+- Type: bug, feature, enhancement, documentation, question, security
+- Complexity: trivial, simple, moderate, complex
+- Component: api, frontend, backend, database, auth, webhook, docker
+
+**Process:**
+1. First run 'gh label list' to see available labels
+2. Analyze the issue content
+3. Use 'gh issue edit #{issueNumber} --add-label "label1,label2,label3"' to apply labels
+4. Do NOT comment on the issue - only apply labels
+
+**User Request:**
+${command}
+
+Complete the auto-tagging task using only the minimal required tools.`;
+    } else {
+      fullPrompt = `You are Claude, an AI assistant responding to a GitHub ${isPullRequest ? 'pull request' : 'issue'} via the ${BOT_USERNAME} webhook.
 
 **Context:**
 - Repository: ${repoFullName}
@@ -132,6 +181,7 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
 ${command}
 
 Please complete this task fully and autonomously.`;
+    }
 
     // Prepare environment variables for the container
     const envVars = {
@@ -139,6 +189,7 @@ Please complete this task fully and autonomously.`;
       ISSUE_NUMBER: issueNumber || '',
       IS_PULL_REQUEST: isPullRequest ? 'true' : 'false',
       BRANCH_NAME: branchName || '',
+      OPERATION_TYPE: operationType,
       COMMAND: fullPrompt,
       GITHUB_TOKEN: githubToken,
       ANTHROPIC_API_KEY: secureCredentials.get('ANTHROPIC_API_KEY')
@@ -220,8 +271,8 @@ Please complete this task fully and autonomously.`;
         }
       });
 
-    // Add the image name as the final argument
-    dockerArgs.push(dockerImageName);
+    // Add the image name and custom entrypoint
+    dockerArgs.push('--entrypoint', entrypointScript, dockerImageName);
 
     // Create sanitized version for logging (remove sensitive values)
     const sanitizedArgs = dockerArgs.map(arg => {

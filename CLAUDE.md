@@ -85,13 +85,26 @@ Use the demo repository for testing auto-tagging and webhook functionality:
 ## Features
 
 ### Auto-Tagging
-The system automatically analyzes new issues and applies appropriate labels based on:
+The system automatically analyzes new issues and applies appropriate labels using a secure, minimal-permission approach:
+
+**Security Features:**
+- **Minimal Tool Access**: Uses only `Read` and `GitHub` tools (no file editing or bash execution)
+- **Dedicated Container**: Runs in specialized container with restricted entrypoint script
+- **CLI-Based**: Uses `gh` CLI commands directly instead of JSON parsing for better reliability
+
+**Label Categories:**
 - **Priority**: critical, high, medium, low
 - **Type**: bug, feature, enhancement, documentation, question, security  
 - **Complexity**: trivial, simple, moderate, complex
 - **Component**: api, frontend, backend, database, auth, webhook, docker
 
-When an issue is opened, Claude analyzes the title and description to suggest intelligent labels, with keyword-based fallback for reliability.
+**Process Flow:**
+1. New issue triggers `issues.opened` webhook
+2. Dedicated Claude container starts with `claudecode-tagging-entrypoint.sh`
+3. Claude analyzes issue content using minimal tools
+4. Labels applied directly via `gh issue edit --add-label` commands
+5. No comments posted (silent operation)
+6. Fallback to keyword-based labeling if CLI approach fails
 
 ### Automated PR Review
 The system automatically triggers comprehensive PR reviews when all checks pass:
@@ -119,19 +132,31 @@ The system automatically triggers comprehensive PR reviews when all checks pass:
    - `awsCredentialProvider.js` - Secure AWS credential management
    - `sanitize.js` - Input sanitization and security
 
-### Execution Modes
-- **Direct mode**: Runs Claude Code CLI locally
-- **Container mode**: Runs Claude in isolated Docker containers with elevated privileges
+### Execution Modes & Security Architecture
+The system uses different execution modes based on operation type:
 
-### DevContainer Configuration
-The repository includes a `.devcontainer` configuration that allows Claude Code to run with:
+**Operation Types:**
+- **Auto-tagging**: Minimal permissions (`Read`, `GitHub` tools only)
+- **PR Review**: Standard permissions (full tool set)
+- **Default**: Standard permissions (full tool set)
+
+**Security Features:**
+- **Tool Allowlists**: Each operation type uses specific tool restrictions
+- **Dedicated Entrypoints**: Separate container entrypoint scripts for different operations
+- **No Dangerous Permissions**: System avoids `--dangerously-skip-permissions` flag
+- **Container Isolation**: Docker containers with minimal required capabilities
+
+**Container Entrypoints:**
+- `claudecode-tagging-entrypoint.sh`: Minimal tools for auto-tagging (`--allowedTools Read,GitHub`)
+- `claudecode-entrypoint.sh`: Full tools for general operations (`--allowedTools Bash,Create,Edit,Read,Write,GitHub`)
+
+**DevContainer Configuration:**
+The repository includes a `.devcontainer` configuration for development:
 - Privileged mode for system-level access
 - Network capabilities (NET_ADMIN, NET_RAW) for firewall management
 - System capabilities (SYS_TIME, DAC_OVERRIDE, AUDIT_WRITE, SYS_ADMIN)
 - Docker socket mounting for container management
 - Automatic firewall initialization via post-create command
-
-This configuration enables the use of `--dangerously-skip-permissions` flag when running Claude Code CLI.
 
 ### Workflow
 1. GitHub comment with bot mention (configured via BOT_USERNAME) triggers a webhook event

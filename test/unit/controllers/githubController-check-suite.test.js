@@ -3,6 +3,7 @@ process.env.BOT_USERNAME = '@TestBot';
 process.env.NODE_ENV = 'test';
 process.env.GITHUB_WEBHOOK_SECRET = 'test-secret';
 process.env.GITHUB_TOKEN = 'test-token';
+process.env.PR_REVIEW_TRIGGER_WORKFLOW = 'Pull Request CI';
 
 const githubController = require('../../../src/controllers/githubController');
 const claudeService = require('../../../src/services/claudeService');
@@ -19,7 +20,8 @@ jest.mock('../../../src/services/githubService', () => ({
   addLabelsToIssue: jest.fn(),
   getFallbackLabels: jest.fn(),
   hasReviewedPRAtCommit: jest.fn(),
-  managePRLabels: jest.fn()
+  managePRLabels: jest.fn(),
+  makeGitHubRequest: jest.fn()
 }));
 
 describe('GitHub Controller - Check Suite Events', () => {
@@ -50,6 +52,14 @@ describe('GitHub Controller - Check Suite Events', () => {
     githubService.getFallbackLabels.mockReset();
     githubService.hasReviewedPRAtCommit.mockReset();
     githubService.managePRLabels.mockReset();
+    githubService.makeGitHubRequest.mockReset();
+    
+    // Mock the check runs API response to return the expected workflow name
+    githubService.makeGitHubRequest.mockResolvedValue({
+      check_runs: [
+        { name: 'Pull Request CI' }
+      ]
+    });
   });
 
   afterEach(() => {
@@ -65,6 +75,7 @@ describe('GitHub Controller - Check Suite Events', () => {
         conclusion: 'success',
         head_sha: 'abc123def456',
         head_branch: 'feature-branch',
+        check_runs_url: 'https://api.github.com/repos/owner/repo/check-suites/12345/check-runs',
         pull_requests: [
           {
             number: 42,
@@ -426,6 +437,7 @@ describe('GitHub Controller - Check Suite Events', () => {
         conclusion: 'success',
         head_sha: 'abc123def456',
         head_branch: 'feature-branch',
+        check_runs_url: 'https://api.github.com/repos/owner/repo/check-suites/12345/check-runs',
         pull_requests: [
           {
             number: 42,
@@ -492,6 +504,7 @@ describe('GitHub Controller - Check Suite Events', () => {
         conclusion: 'success',
         head_sha: 'abc123def456',
         head_branch: 'feature-branch',
+        check_runs_url: 'https://api.github.com/repos/owner/repo/check-suites/12345/check-runs',
         pull_requests: [
           {
             number: 42,

@@ -418,6 +418,8 @@ Please check with an administrator to review the logs for more details.`
           status: checkSuite.status,
           headBranch: checkSuite.head_branch,
           headSha: checkSuite.head_sha,
+          appName: checkSuite.app?.name,
+          appSlug: checkSuite.app?.slug,
           pullRequestCount: checkSuite.pull_requests?.length || 0,
           pullRequests: checkSuite.pull_requests?.map(pr => ({
             number: pr.number,
@@ -428,8 +430,43 @@ Please check with an administrator to review the logs for more details.`
         'Processing check_suite completed event'
       );
 
-      // Only proceed if the check suite is for a pull request and conclusion is success
+      // Get the specific workflow that should trigger PR reviews
+      // This makes the system repository-independent and precisely controlled
+      const triggerWorkflowName = process.env.PR_REVIEW_TRIGGER_WORKFLOW;
+      
+      // Extract workflow name from check runs if available
+      const workflowName = checkSuite.check_runs_url ? 
+        await getWorkflowNameFromCheckSuite(checkSuite, repo) : null;
+      
+      // Check if this is the workflow that should trigger reviews
+      const shouldTriggerReview = triggerWorkflowName && 
+        (workflowName === triggerWorkflowName || 
+         checkSuite.head_branch === 'main' && triggerWorkflowName === 'default');
+      
+      logger.info(
+        {
+          repo: repo.full_name,
+          checkSuite: checkSuite.id,
+          conclusion: checkSuite.conclusion,
+          pullRequestCount: checkSuite.pull_requests?.length || 0,
+          workflowName,
+          triggerWorkflowName,
+          shouldTriggerReview,
+          appName: checkSuite.app?.name,
+          appSlug: checkSuite.app?.slug,
+          reasons: !triggerWorkflowName ? 'PR_REVIEW_TRIGGER_WORKFLOW not configured' :
+            !shouldTriggerReview ? `workflow '${workflowName}' does not match trigger '${triggerWorkflowName}'` :
+              checkSuite.conclusion !== 'success' ? `conclusion is '${checkSuite.conclusion}' (not 'success')` :
+                !checkSuite.pull_requests?.length ? 'no pull requests associated with check suite' : 'all conditions met'
+        },
+        shouldTriggerReview && checkSuite.conclusion === 'success' && checkSuite.pull_requests?.length > 0
+          ? 'All checks passed - triggering automated PR review'
+          : 'Check suite completed but not triggering PR review'
+      );
+
+      // Only proceed if this is the configured trigger workflow
       if (
+        shouldTriggerReview &&
         checkSuite.conclusion === 'success' &&
         checkSuite.pull_requests &&
         checkSuite.pull_requests.length > 0
@@ -1025,6 +1062,42 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
   }
 }
 
+/**
+ * Extract workflow name from check suite by fetching check runs
+ * @param {Object} checkSuite - The check suite object
+ * @param {Object} repo - The repository object  
+ * @returns {Promise<string|null>} - The workflow name or null
+ */
+async function getWorkflowNameFromCheckSuite(checkSuite, repo) {
+  try {
+    // Extract check runs URL and fetch the data
+    const checkRunsResponse = await githubService.makeGitHubRequest(checkSuite.check_runs_url);
+    const checkRuns = checkRunsResponse.check_runs || [];
+    
+    // Find the first check run with a workflow name
+    for (const run of checkRuns) {
+      if (run.name) {
+        // The workflow name is typically the name of the check run
+        // or can be extracted from the details URL
+        return run.name;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    logger.error(
+      {
+        err: error,
+        checkSuiteId: checkSuite.id,
+        repo: repo.full_name
+      },
+      'Failed to extract workflow name from check suite'
+    );
+    return null;
+  }
+}
+
 module.exports = {
-  handleWebhook
+  handleWebhook,
+  getWorkflowNameFromCheckSuite
 };

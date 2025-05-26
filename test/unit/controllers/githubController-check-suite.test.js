@@ -21,7 +21,7 @@ jest.mock('../../../src/services/githubService', () => ({
   getFallbackLabels: jest.fn(),
   hasReviewedPRAtCommit: jest.fn(),
   managePRLabels: jest.fn(),
-  makeGitHubRequest: jest.fn()
+  getCheckRunsForSuite: jest.fn()
 }));
 
 describe('GitHub Controller - Check Suite Events', () => {
@@ -52,10 +52,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     githubService.getFallbackLabels.mockReset();
     githubService.hasReviewedPRAtCommit.mockReset();
     githubService.managePRLabels.mockReset();
-    githubService.makeGitHubRequest.mockReset();
+    githubService.getCheckRunsForSuite.mockReset();
     
     // Mock the check runs API response to return the expected workflow name
-    githubService.makeGitHubRequest.mockResolvedValue({
+    githubService.getCheckRunsForSuite.mockResolvedValue({
       check_runs: [
         { name: 'Pull Request CI' }
       ]
@@ -341,7 +341,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     };
 
     // Mock workflow name that doesn't match our trigger
-    githubService.makeGitHubRequest.mockResolvedValue({
+    githubService.getCheckRunsForSuite.mockResolvedValue({
       check_runs: [
         { name: 'CodeQL Analysis' } // Different workflow than 'Pull Request CI'
       ]

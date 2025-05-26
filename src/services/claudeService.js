@@ -1,6 +1,4 @@
 const { execFileSync } = require('child_process');
-// Use sync methods for file operations that need to be synchronous
-const fsSync = require('fs');
 const path = require('path');
 // const os = require('os');
 const { createLogger } = require('../utils/logger');
@@ -146,25 +144,8 @@ Please complete this task fully and autonomously.`;
       ANTHROPIC_API_KEY: secureCredentials.get('ANTHROPIC_API_KEY')
     };
 
-    // Build docker run command - properly escape values for shell
-    Object.entries(envVars)
-      .filter(([_, value]) => value !== undefined && value !== '')
-      .map(([key, value]) => {
-        // Convert to string and escape shell special characters in the value
-        const stringValue = String(value);
-        // Write complex values to files for safer handling
-        if (key === 'COMMAND' && stringValue.length > 500) {
-          const crypto = require('crypto');
-          const randomSuffix = crypto.randomBytes(16).toString('hex');
-          const tmpFile = `/tmp/claude-command-${Date.now()}-${randomSuffix}.txt`;
-          fsSync.writeFileSync(tmpFile, stringValue, { mode: 0o600 }); // Secure file permissions
-          return `-e ${key}="$(cat ${tmpFile})"`;
-        }
-        // Escape for shell with double quotes (more reliable than single quotes)
-        const escapedValue = stringValue.replace(/["\\$`!]/g, '\\$&');
-        return `-e ${key}="${escapedValue}"`;
-      })
-      .join(' ');
+    // Note: Environment variables will be added as separate arguments to docker command
+    // This is safer than building a shell command string
 
     // Run the container
     logger.info(
@@ -228,13 +209,12 @@ Please complete this task fully and autonomously.`;
     Object.entries(envVars)
       .filter(([_, value]) => value !== undefined && value !== '')
       .forEach(([key, value]) => {
-        // Write complex values to files for safer handling
+        // For long commands, we need to pass them differently
+        // Docker doesn't support reading env values from files with @ syntax
         if (key === 'COMMAND' && String(value).length > 500) {
-          const crypto = require('crypto');
-          const randomSuffix = crypto.randomBytes(16).toString('hex');
-          const tmpFile = `/tmp/claude-command-${Date.now()}-${randomSuffix}.txt`;
-          fsSync.writeFileSync(tmpFile, String(value), { mode: 0o600 }); // Secure file permissions
-          dockerArgs.push('-e', `${key}=@${tmpFile}`);
+          // We'll pass the command via stdin or mount it as a volume
+          // For now, let's just pass it directly but properly escaped
+          dockerArgs.push('-e', `${key}=${String(value)}`);
         } else {
           dockerArgs.push('-e', `${key}=${String(value)}`);
         }
@@ -272,26 +252,7 @@ Please complete this task fully and autonomously.`;
     try {
       logger.info({ dockerArgs: sanitizedArgs }, 'Executing Docker command');
 
-      // Clear any temporary command files after execution
-      const cleanupTempFiles = () => {
-        try {
-          const tempFiles = execFileSync('find', ['/tmp', '-name', 'claude-command-*.txt', '-type', 'f'])
-            .toString()
-            .split('\n');
-          tempFiles
-            .filter(f => f)
-            .forEach(file => {
-              try {
-                fsSync.unlinkSync(file);
-                logger.info(`Removed temp file: ${file}`);
-              } catch {
-                logger.warn(`Failed to remove temp file: ${file}`);
-              }
-            });
-        } catch {
-          logger.warn('Failed to clean up temp files');
-        }
-      };
+      // No longer using temp files for commands
 
       // Get container lifetime from environment variable or use default (2 hours)
       const containerLifetimeMs = parseInt(process.env.CONTAINER_LIFETIME_MS, 10) || 7200000; // 2 hours in milliseconds
@@ -306,8 +267,7 @@ Please complete this task fully and autonomously.`;
         timeout: containerLifetimeMs // Container lifetime in milliseconds
       });
 
-      // Clean up temporary files used for command passing
-      cleanupTempFiles();
+      // No cleanup needed anymore
 
       let responseText = result.stdout.trim();
 
@@ -357,23 +317,7 @@ Please complete this task fully and autonomously.`;
 
       return responseText;
     } catch (error) {
-      // Clean up temporary files even when there's an error
-      try {
-        const tempFiles = execFileSync('find', ['/tmp', '-name', 'claude-command-*.txt', '-type', 'f'])
-          .toString()
-          .split('\n');
-        tempFiles
-          .filter(f => f)
-          .forEach(file => {
-            try {
-              fsSync.unlinkSync(file);
-            } catch {
-              // Ignore cleanup errors
-            }
-          });
-      } catch {
-        // Ignore cleanup errors
-      }
+      // No cleanup needed - we're not using temp files anymore
 
       // Sanitize stderr and stdout to remove any potential credentials
       const sanitizeOutput = output => {

@@ -569,6 +569,39 @@ async function managePRLabels({ repoOwner, repoName, prNumber, labelsToAdd = [],
   }
 }
 
+/**
+ * Make a direct GitHub API request using the URL
+ * @param {string} url - The GitHub API URL to request
+ * @returns {Promise<Object>} - The response data
+ */
+async function makeGitHubRequest(url) {
+  try {
+    const client = getOctokit();
+    if (!client) {
+      throw new Error('GitHub client not initialized');
+    }
+
+    // Extract the path from the full URL
+    const apiPath = url.replace('https://api.github.com/', '');
+    
+    logger.debug({
+      url,
+      apiPath
+    }, 'Making GitHub API request');
+
+    // Use Octokit's request method for direct API calls
+    const { data } = await client.request(`GET /${apiPath}`);
+    
+    return data;
+  } catch (error) {
+    logger.error({
+      err: error.message,
+      url
+    }, 'Failed to make GitHub API request');
+    throw error;
+  }
+}
+
 module.exports = {
   postComment,
   addLabelsToIssue,
@@ -576,5 +609,6 @@ module.exports = {
   getFallbackLabels,
   getCombinedStatus,
   hasReviewedPRAtCommit,
-  managePRLabels
+  managePRLabels,
+  makeGitHubRequest
 };

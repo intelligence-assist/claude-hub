@@ -150,7 +150,7 @@ class AWSCredentialProvider {
    * Get credentials from AWS profile
    */
   async getProfileCredentials(profileName) {
-    const fs = require('fs');
+    const { promises: fs } = require('fs');
     const path = require('path');
     const os = require('os');
 
@@ -159,8 +159,8 @@ class AWSCredentialProvider {
 
     try {
       // Read credentials file
-      const credentialsContent = fs.readFileSync(credentialsPath, 'utf8');
-      const configContent = fs.readFileSync(configPath, 'utf8');
+      const credentialsContent = await fs.readFile(credentialsPath, 'utf8');
+      const configContent = await fs.readFile(configPath, 'utf8');
 
       // Parse credentials for the specific profile
       const profileRegex = new RegExp(`\\[${profileName}\\]([^\\[]*)`);

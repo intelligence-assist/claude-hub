@@ -1,7 +1,12 @@
+/* eslint-disable no-sync */
 const fs = require('fs');
 
 // Mock dependencies
-jest.mock('fs');
+jest.mock('fs', () => ({
+  promises: {
+    readFile: jest.fn()
+  }
+}));
 jest.mock('../../../src/utils/logger', () => ({
   createLogger: jest.fn().mockReturnValue({
     info: jest.fn(),
@@ -44,11 +49,11 @@ region = us-west-2
     awsCredentialProvider.clearCache();
 
     // Mock file system
-    fs.readFileSync.mockImplementation(filePath => {
+    fs.promises.readFile.mockImplementation(filePath => {
       if (filePath.endsWith('credentials')) {
-        return mockCredentialsFile;
+        return Promise.resolve(mockCredentialsFile);
       } else if (filePath.endsWith('config')) {
-        return mockConfigFile;
+        return Promise.resolve(mockConfigFile);
       }
       throw new Error(`Unexpected file path: ${filePath}`);
     });
@@ -64,7 +69,7 @@ region = us-west-2
     });
 
     expect(awsCredentialProvider.credentialSource).toBe('AWS Profile (test-profile)');
-    expect(fs.readFileSync).toHaveBeenCalledTimes(2);
+    expect(fs.promises.readFile).toHaveBeenCalledTimes(2);
   });
 
   test('should cache credentials', async () => {
@@ -72,19 +77,19 @@ region = us-west-2
     awsCredentialProvider.clearCache();
     
     // Reset mock counters
-    fs.readFileSync.mockClear();
+    fs.promises.readFile.mockClear();
     
     // First call should read from files
     const credentials1 = await awsCredentialProvider.getCredentials();
     
-    // Count how many times readFileSync was called on first request
-    const firstCallCount = fs.readFileSync.mock.calls.length;
+    // Count how many times readFile was called on first request
+    const firstCallCount = fs.promises.readFile.mock.calls.length;
     
     // Should be exactly 2 calls (credentials and config files)
     expect(firstCallCount).toBe(2);
     
     // Reset counter to clearly see calls for second request
-    fs.readFileSync.mockClear();
+    fs.promises.readFile.mockClear();
     
     // Second call should use cached credentials and not read files again
     const credentials2 = await awsCredentialProvider.getCredentials();
@@ -93,7 +98,7 @@ region = us-west-2
     expect(credentials1).toBe(credentials2);
     
     // Verify no additional file reads occurred on second call
-    expect(fs.readFileSync).not.toHaveBeenCalled();
+    expect(fs.promises.readFile).not.toHaveBeenCalled();
   });
 
   test('should clear credential cache', async () => {
@@ -103,7 +108,7 @@ region = us-west-2
 
     expect(credentials1).not.toBe(credentials2);
     // Should read files twice (once for each getCredentials call)
-    expect(fs.readFileSync).toHaveBeenCalledTimes(4);
+    expect(fs.promises.readFile).toHaveBeenCalledTimes(4);
   });
 
   test('should get Docker environment variables', async () => {
@@ -148,8 +153,8 @@ region = us-west-2
 aws_access_key_id = test-access-key
     `;
 
-    fs.readFileSync.mockImplementationOnce(() => incompleteCredentials);
-    fs.readFileSync.mockImplementationOnce(() => mockConfigFile);
+    fs.promises.readFile.mockImplementationOnce(() => Promise.resolve(incompleteCredentials));
+    fs.promises.readFile.mockImplementationOnce(() => Promise.resolve(mockConfigFile));
 
     await expect(awsCredentialProvider.getCredentials()).rejects.toThrow(
       'Incomplete credentials for profile \'test-profile\''

@@ -8,6 +8,7 @@ services:
       - /app/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.aws:/root/.aws:ro
+      - ${HOME}/.claude-webhook/artifacts:/root/.claude-webhook/artifacts
     secrets:
       - github_token
       - anthropic_api_key

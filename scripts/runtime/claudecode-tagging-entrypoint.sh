@@ -66,7 +66,7 @@ sudo -u node -E env \
     ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
     GH_TOKEN="${GITHUB_TOKEN}" \
     /usr/local/share/npm-global/bin/claude \
-    --allowedTools Read,GitHub \
+    --allowedTools "Read,Bash(gh label list),Bash(gh label list:*),Bash(gh issue edit:*),Bash(gh issue view:*)" \
     --print "${COMMAND}" \
     > "${RESPONSE_FILE}" 2>&1
 

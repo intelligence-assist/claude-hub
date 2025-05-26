@@ -42,6 +42,12 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Build Claude Code container: `./scripts/build/build-claudecode.sh`
 - Update production image: `./update-production-image.sh`
 
+**Rebuilding After Entrypoint Script Changes:**
+When modifying `/scripts/runtime/claudecode-entrypoint.sh` or `/scripts/runtime/claudecode-tagging-entrypoint.sh`:
+1. Run `./scripts/build/build-claudecode.sh` to rebuild the Claude Code runner container
+2. Restart services with `docker compose restart webhook` to use the updated container
+3. The build process automatically copies the modified scripts into the container
+
 ### AWS Credential Management
 - Create AWS profile: `./scripts/create-aws-profile.sh`
 - Migrate from static credentials: `./scripts/migrate-aws-credentials.sh`
@@ -157,6 +163,38 @@ The repository includes a `.devcontainer` configuration for development:
 - System capabilities (SYS_TIME, DAC_OVERRIDE, AUDIT_WRITE, SYS_ADMIN)
 - Docker socket mounting for container management
 - Automatic firewall initialization via post-create command
+
+### Docker Containers
+The project uses multiple Docker containers for different purposes:
+
+**1. Main Webhook Service (`Dockerfile`)**
+- Runs the Express.js webhook server on port 3002
+- Contains Docker CLI to spawn Claude Code execution containers
+- Uses Node.js 24-slim base image for minimal footprint
+- Includes Claude Code CLI but doesn't execute it directly
+- Mounts Docker socket at runtime for container management
+
+**2. Claude Code Execution (`Dockerfile.claudecode`)**
+- Primary container for executing Claude commands from webhooks
+- Contains full development environment (git, zsh, fzf, delta, gh CLI)
+- Pre-authenticated Claude configuration mounted from host
+- Two entrypoint scripts for different security contexts:
+  - `/scripts/runtime/claudecode-entrypoint.sh`: Full tool access
+  - `/scripts/runtime/claudecode-tagging-entrypoint.sh`: Minimal tools (Read, GitHub only)
+- Network and system capabilities for firewall management
+- Runs as root to manage permissions dynamically
+
+**3. Setup Container (`Dockerfile.setup`)**
+- Interactive container for initial Claude authentication
+- Configured for AWS Bedrock authentication
+- Simple bash entrypoint for manual setup tasks
+- Uses AWS profiles instead of environment variables
+
+**4. Standalone Claude Runner (`Dockerfile.claude`)** *(Deprecated)*
+- Basic Ubuntu container with Claude Code and AWS CLI
+- Originally designed for standalone Claude execution
+- Superseded by `Dockerfile.claudecode`
+- Consider removing to reduce maintenance burden
 
 ### Workflow
 1. GitHub comment with bot mention (configured via BOT_USERNAME) triggers a webhook event

@@ -74,9 +74,9 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
 
 # Create scripts directory and copy entrypoint scripts
 RUN mkdir -p /scripts/runtime
-COPY scripts/runtime/claudecode-entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY scripts/runtime/claudecode-entrypoint.sh /scripts/runtime/claudecode-entrypoint.sh
 COPY scripts/runtime/claudecode-tagging-entrypoint.sh /scripts/runtime/claudecode-tagging-entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh && \
+RUN chmod +x /scripts/runtime/claudecode-entrypoint.sh && \
   chmod +x /scripts/runtime/claudecode-tagging-entrypoint.sh
 
 # Set the default shell to bash
@@ -86,5 +86,5 @@ ENV DEVCONTAINER=true
 # Run as root to allow permission management
 USER root
 
-# Use the custom entrypoint
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# Default entrypoint (will be overridden by docker run --entrypoint)
+ENTRYPOINT ["/scripts/runtime/claudecode-entrypoint.sh"]

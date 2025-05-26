@@ -1,6 +1,7 @@
 const { execFileSync } = require('child_process');
 const path = require('path');
-// const os = require('os');
+const fs = require('fs').promises;
+const os = require('os');
 const { createLogger } = require('../utils/logger');
 // const awsCredentialProvider = require('../utils/awsCredentialProvider');
 const { sanitizeBotMentions } = require('../utils/sanitize');
@@ -20,6 +21,109 @@ if (!BOT_USERNAME) {
 }
 
 // Using the shared sanitization utility from utils/sanitize.js
+
+// Artifact storage configuration
+const ARTIFACT_BASE_DIR = path.join(os.homedir(), '.claude-webhook', 'artifacts');
+const ARTIFACT_RETENTION_DAYS = 30; // Keep artifacts for 30 days
+
+/**
+ * Ensures the artifact directory exists with proper permissions
+ */
+async function ensureArtifactDirectory(repoFullName) {
+  const [owner, repo] = repoFullName.split('/');
+  const artifactDir = path.join(ARTIFACT_BASE_DIR, owner, repo);
+  
+  try {
+    await fs.mkdir(artifactDir, { recursive: true, mode: 0o700 });
+    return artifactDir;
+  } catch (error) {
+    logger.error({ error: error.message, artifactDir }, 'Failed to create artifact directory');
+    throw error;
+  }
+}
+
+/**
+ * Saves Claude output as an artifact
+ */
+async function saveArtifact({ repoFullName, issueNumber, operationType, command, output, metadata = {} }) {
+  try {
+    const artifactDir = await ensureArtifactDirectory(repoFullName);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const safeOperationType = operationType.replace(/[^a-zA-Z0-9-]/g, '_');
+    const filename = `${timestamp}_${issueNumber || 'direct'}_${safeOperationType}.json`;
+    const filepath = path.join(artifactDir, filename);
+    
+    const artifact = {
+      timestamp: new Date().toISOString(),
+      repository: repoFullName,
+      issueNumber,
+      operationType,
+      command: command.substring(0, 1000), // Limit command length for security
+      output,
+      metadata: {
+        ...metadata,
+        outputLength: output.length,
+        savedAt: new Date().toISOString()
+      }
+    };
+    
+    await fs.writeFile(filepath, JSON.stringify(artifact, null, 2), { mode: 0o600 });
+    
+    logger.info({ 
+      filepath, 
+      repo: repoFullName, 
+      issue: issueNumber,
+      operationType,
+      outputLength: output.length 
+    }, 'Artifact saved successfully');
+    
+    return filepath;
+  } catch (error) {
+    // Log error but don't fail the main operation
+    logger.error({ 
+      error: error.message, 
+      repo: repoFullName, 
+      issue: issueNumber 
+    }, 'Failed to save artifact');
+    return null;
+  }
+}
+
+/**
+ * Cleans up old artifacts based on retention policy
+ */
+async function cleanupOldArtifacts() {
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - ARTIFACT_RETENTION_DAYS);
+    
+    async function cleanDirectory(dir) {
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          
+          if (entry.isDirectory()) {
+            await cleanDirectory(fullPath);
+          } else if (entry.isFile() && entry.name.endsWith('.json')) {
+            const stats = await fs.stat(fullPath);
+            if (stats.mtime < cutoffDate) {
+              await fs.unlink(fullPath);
+              logger.debug({ filepath: fullPath }, 'Deleted old artifact');
+            }
+          }
+        }
+      } catch (error) {
+        logger.error({ error: error.message, dir }, 'Error cleaning directory');
+      }
+    }
+    
+    await cleanDirectory(ARTIFACT_BASE_DIR);
+  } catch (error) {
+    logger.error({ error: error.message }, 'Failed to cleanup old artifacts');
+  }
+}
 
 /**
  * Processes a command using Claude Code CLI
@@ -41,6 +145,8 @@ async function processCommand({
   branchName = null,
   operationType = 'default'
 }) {
+  const startTime = Date.now();
+  
   try {
     logger.info(
       {
@@ -96,16 +202,16 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
     // Select appropriate entrypoint script based on operation type
     let entrypointScript;
     switch (operationType) {
-      case 'auto-tagging':
-        entrypointScript = '/scripts/runtime/claudecode-tagging-entrypoint.sh';
-        logger.info({ operationType }, 'Using minimal tools for auto-tagging operation');
-        break;
-      case 'pr-review':
-      case 'default':
-      default:
-        entrypointScript = '/scripts/runtime/claudecode-entrypoint.sh';
-        logger.info({ operationType }, 'Using full tool set for standard operation');
-        break;
+    case 'auto-tagging':
+      entrypointScript = '/scripts/runtime/claudecode-tagging-entrypoint.sh';
+      logger.info({ operationType }, 'Using minimal tools for auto-tagging operation');
+      break;
+    case 'pr-review':
+    case 'default':
+    default:
+      entrypointScript = '/scripts/runtime/claudecode-entrypoint.sh';
+      logger.info({ operationType }, 'Using full tool set for standard operation');
+      break;
     }
 
     // Create unique container name (sanitized to prevent command injection)
@@ -355,6 +461,21 @@ Please complete this task fully and autonomously.`;
       // Sanitize response to prevent infinite loops by removing bot mentions
       responseText = sanitizeBotMentions(responseText);
 
+      // Save the full output as an artifact
+      await saveArtifact({
+        repoFullName,
+        issueNumber,
+        operationType,
+        command,
+        output: responseText,
+        metadata: {
+          containerName,
+          executionTime: Date.now() - startTime,
+          isPullRequest,
+          branchName
+        }
+      });
+
       logger.info(
         {
           repo: repoFullName,
@@ -563,6 +684,17 @@ Please complete this task fully and autonomously.`;
   }
 }
 
+// Schedule periodic cleanup of old artifacts
+let cleanupInterval;
+if (process.env.NODE_ENV !== 'test') {
+  cleanupInterval = setInterval(() => {
+    cleanupOldArtifacts().catch(error => {
+      logger.error({ error: error.message }, 'Scheduled artifact cleanup failed');
+    });
+  }, 24 * 60 * 60 * 1000); // Run once per day
+}
+
 module.exports = {
-  processCommand
+  processCommand,
+  cleanupOldArtifacts
 };

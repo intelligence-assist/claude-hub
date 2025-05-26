@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const claudeService = require('../services/claudeService');
 const githubService = require('../services/githubService');
 const { createLogger } = require('../utils/logger');
-const { sanitizeBotMentions, sanitizeLabels } = require('../utils/sanitize');
+const { sanitizeBotMentions } = require('../utils/sanitize');
 const secureCredentials = require('../utils/secureCredentials');
 
 const logger = createLogger('githubController');
@@ -137,13 +137,16 @@ Issue Details:
 
 Instructions:
 1. First run 'gh label list' to see what labels are available in this repository
-2. Analyze the issue content to determine appropriate labels from these categories:
-   - Priority: critical, high, medium, low  
-   - Type: bug, feature, enhancement, documentation, question, security
-   - Complexity: trivial, simple, moderate, complex
-   - Component: api, frontend, backend, database, auth, webhook, docker
-3. Apply the labels using: gh issue edit ${issue.number} --add-label "label1,label2,label3"
-4. Do NOT comment on the issue - only apply labels silently
+2. Analyze the issue content and look for labels that match these concepts (labels may have prefixes like "type:", "priority:", "component:", etc.):
+   - Priority-related: critical, high, medium, low  
+   - Type-related: bug, feature, enhancement, documentation, question, security
+   - Complexity-related: trivial, simple, moderate, complex
+   - Component-related: api, frontend, backend, database, auth, webhook, docker
+3. Apply labels using: gh issue edit ${issue.number} --add-label "label1,label2,label3"
+4. IMPORTANT: Use the exact label names from 'gh label list' output, including any prefixes or formatting
+5. MANDATORY: You MUST apply at least 1 label, preferably 2-4 labels that best match the issue
+6. If unsure, at minimum apply a type label (like bug, feature, or question) based on the issue content
+7. Do NOT comment on the issue - only apply labels silently
 
 Complete the auto-tagging task using only GitHub CLI commands.`;
 

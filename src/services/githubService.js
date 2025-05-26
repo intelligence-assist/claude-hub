@@ -586,12 +586,18 @@ async function makeGitHubRequest(url) {
       'repos/{owner}/{repo}/issues/{issue_number}/comments',
       'repos/{owner}/{repo}/pulls/{pull_number}/reviews',
       'repos/{owner}/{repo}/check-runs',
+      'repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs',
       'repos/{owner}/{repo}/labels',
       'repos/{owner}/{repo}/issues/{issue_number}/labels'
     ];
 
+    // Validate that the URL is a GitHub API URL to prevent SSRF
+    if (!url.startsWith('https://api.github.com/')) {
+      throw new Error('Invalid GitHub API URL - must start with https://api.github.com/');
+    }
+    
     // Extract the path from the full URL
-    const apiPath = url.replace('https://api.github.com/', '');
+    const apiPath = url.substring('https://api.github.com/'.length);
 
     // Validate the extracted path against the allow-list
     const isValidPath = allowedPaths.some(pattern => {

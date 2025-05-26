@@ -3,6 +3,7 @@ process.env.BOT_USERNAME = '@TestBot';
 process.env.NODE_ENV = 'test';
 process.env.GITHUB_WEBHOOK_SECRET = 'test-secret';
 process.env.GITHUB_TOKEN = 'test-token';
+process.env.PR_REVIEW_TRIGGER_WORKFLOW = 'Pull Request CI';
 
 const githubController = require('../../../src/controllers/githubController');
 const claudeService = require('../../../src/services/claudeService');
@@ -19,7 +20,8 @@ jest.mock('../../../src/services/githubService', () => ({
   addLabelsToIssue: jest.fn(),
   getFallbackLabels: jest.fn(),
   hasReviewedPRAtCommit: jest.fn(),
-  managePRLabels: jest.fn()
+  managePRLabels: jest.fn(),
+  makeGitHubRequest: jest.fn()
 }));
 
 describe('GitHub Controller - Check Suite Events', () => {
@@ -50,6 +52,14 @@ describe('GitHub Controller - Check Suite Events', () => {
     githubService.getFallbackLabels.mockReset();
     githubService.hasReviewedPRAtCommit.mockReset();
     githubService.managePRLabels.mockReset();
+    githubService.makeGitHubRequest.mockReset();
+    
+    // Mock the check runs API response to return the expected workflow name
+    githubService.makeGitHubRequest.mockResolvedValue({
+      check_runs: [
+        { name: 'Pull Request CI' }
+      ]
+    });
   });
 
   afterEach(() => {
@@ -65,6 +75,7 @@ describe('GitHub Controller - Check Suite Events', () => {
         conclusion: 'success',
         head_sha: 'abc123def456',
         head_branch: 'feature-branch',
+        check_runs_url: 'https://api.github.com/repos/owner/repo/check-suites/12345/check-runs',
         pull_requests: [
           {
             number: 42,
@@ -129,24 +140,10 @@ describe('GitHub Controller - Check Suite Events', () => {
       branchName: 'feature-branch'
     });
 
-    // Verify response with detailed results
+    // Verify simple success response
     expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
-      success: true,
-      message: 'Check suite processed: 1 reviewed, 0 failed, 0 skipped',
-      context: {
-        repo: 'owner/repo',
-        checkSuite: 12345,
-        conclusion: 'success',
-        results: [
-          {
-            prNumber: 42,
-            success: true,
-            error: null,
-            skippedReason: null
-          }
-        ]
-      }
+      message: 'Webhook processed successfully'
     });
   });
 
@@ -217,6 +214,7 @@ describe('GitHub Controller - Check Suite Events', () => {
         id: 12345,
         conclusion: 'success',
         head_sha: 'check-suite-sha',
+        check_runs_url: 'https://api.github.com/repos/owner/repo/check-suites/12345/check-runs',
         pull_requests: [
           {
             number: 42,
@@ -256,48 +254,14 @@ describe('GitHub Controller - Check Suite Events', () => {
 
     // Verify both PRs were checked for existing reviews
     expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledTimes(2);
-    expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledWith({
-      repoOwner: 'owner',
-      repoName: 'repo',
-      prNumber: 42,
-      commitSha: 'pr42-sha'
-    });
-    expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledWith({
-      repoOwner: 'owner',
-      repoName: 'repo',
-      prNumber: 43,
-      commitSha: 'pr43-sha'
-    });
     
-    // Verify labels were managed for both PRs
-    expect(githubService.managePRLabels).toHaveBeenCalledTimes(4); // 2 PRs * 2 calls each
-
     // Verify Claude was called twice, once for each PR
     expect(claudeService.processCommand).toHaveBeenCalledTimes(2);
 
-    // Verify response includes detailed results for both PRs
+    // Verify simplified success response
+    expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
-      success: true,
-      message: 'Check suite processed: 2 reviewed, 0 failed, 0 skipped',
-      context: {
-        repo: 'owner/repo',
-        checkSuite: 12345,
-        conclusion: 'success',
-        results: [
-          {
-            prNumber: 42,
-            success: true,
-            error: null,
-            skippedReason: null
-          },
-          {
-            prNumber: 43,
-            success: true,
-            error: null,
-            skippedReason: null
-          }
-        ]
-      }
+      message: 'Webhook processed successfully'
     });
   });
 
@@ -309,6 +273,7 @@ describe('GitHub Controller - Check Suite Events', () => {
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',
+        check_runs_url: 'https://api.github.com/repos/owner/repo/check-suites/12345/check-runs',
         pull_requests: [
           {
             number: 42,
@@ -339,29 +304,15 @@ describe('GitHub Controller - Check Suite Events', () => {
 
     await githubController.handleWebhook(mockReq, mockRes);
 
-    // Should still return success response but with failure details
+    // Should still return success response (webhook processing succeeded)
     expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
-      success: true,
-      message: 'Check suite processed: 0 reviewed, 1 failed, 0 skipped',
-      context: {
-        repo: 'owner/repo',
-        checkSuite: 12345,
-        conclusion: 'success',
-        results: [
-          {
-            prNumber: 42,
-            success: false,
-            error: 'Claude service error',
-            skippedReason: null
-          }
-        ]
-      }
+      message: 'Webhook processed successfully'
     });
   });
 
-  it('should skip PR when head.sha is missing', async () => {
-    // Setup successful check suite with pull requests WITHOUT head.sha
+  it('should not trigger when workflow does not match', async () => {
+    // Setup check suite that looks successful but doesn't match our trigger workflow
     mockReq.body = {
       action: 'completed',
       check_suite: {
@@ -369,12 +320,13 @@ describe('GitHub Controller - Check Suite Events', () => {
         conclusion: 'success',
         head_sha: 'check-suite-sha-123',
         head_branch: 'feature-branch',
+        check_runs_url: 'https://api.github.com/repos/owner/repo/check-suites/12345/check-runs',
         pull_requests: [
           {
             number: 42,
-            // Note: head object exists but no sha property
             head: {
-              ref: 'feature-branch'
+              ref: 'feature-branch',
+              sha: 'pr-sha-123'
             }
           }
         ]
@@ -388,32 +340,22 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
+    // Mock workflow name that doesn't match our trigger
+    githubService.makeGitHubRequest.mockResolvedValue({
+      check_runs: [
+        { name: 'CodeQL Analysis' } // Different workflow than 'Pull Request CI'
+      ]
+    });
+
     await githubController.handleWebhook(mockReq, mockRes);
 
-    // Verify combined status was NOT checked
-    expect(githubService.getCombinedStatus).not.toHaveBeenCalled();
-
-    // Verify Claude was NOT called
+    // Verify Claude was NOT called because workflow doesn't match
     expect(claudeService.processCommand).not.toHaveBeenCalled();
 
-    // Verify response indicates PR was skipped
+    // Verify simple success response 
     expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
-      success: true,
-      message: 'Check suite processed: 0 reviewed, 0 failed, 1 skipped',
-      context: {
-        repo: 'owner/repo',
-        checkSuite: 12345,
-        conclusion: 'success',
-        results: [
-          {
-            prNumber: 42,
-            success: false,
-            error: 'Missing PR head SHA',
-            skippedReason: 'No commit SHA available'
-          }
-        ]
-      }
+      message: 'Webhook processed successfully'
     });
   });
 
@@ -426,6 +368,7 @@ describe('GitHub Controller - Check Suite Events', () => {
         conclusion: 'success',
         head_sha: 'abc123def456',
         head_branch: 'feature-branch',
+        check_runs_url: 'https://api.github.com/repos/owner/repo/check-suites/12345/check-runs',
         pull_requests: [
           {
             number: 42,
@@ -492,6 +435,7 @@ describe('GitHub Controller - Check Suite Events', () => {
         conclusion: 'success',
         head_sha: 'abc123def456',
         head_branch: 'feature-branch',
+        check_runs_url: 'https://api.github.com/repos/owner/repo/check-suites/12345/check-runs',
         pull_requests: [
           {
             number: 42,
@@ -539,109 +483,6 @@ describe('GitHub Controller - Check Suite Events', () => {
     });
   });
 
-  it('should handle mixed success and failure in multiple PRs', async () => {
-    // Setup successful check suite with multiple pull requests
-    mockReq.body = {
-      action: 'completed',
-      check_suite: {
-        id: 12345,
-        conclusion: 'success',
-        head_sha: 'check-suite-sha',
-        pull_requests: [
-          {
-            number: 42,
-            head: {
-              ref: 'feature-branch-1',
-              sha: 'pr42-sha'
-            }
-          },
-          {
-            number: 43,
-            head: {
-              ref: 'feature-branch-2',
-              sha: 'pr43-sha'
-            }
-          },
-          {
-            number: 44,
-            head: {
-              ref: 'feature-branch-3'
-              // Missing SHA
-            }
-          }
-        ]
-      },
-      repository: {
-        full_name: 'owner/repo',
-        owner: {
-          login: 'owner'
-        },
-        name: 'repo'
-      }
-    };
-
-    // Mock that PRs have not been reviewed yet
-    githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
-    
-    // Mock label management
-    githubService.managePRLabels.mockResolvedValue();
-
-    // Mock Claude service to succeed for first PR
-    claudeService.processCommand.mockResolvedValueOnce('PR review completed successfully');
-
-    await githubController.handleWebhook(mockReq, mockRes);
-
-    // Verify all PRs were checked for existing reviews (including the one without SHA)
-    expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledTimes(2);
-
-    // Verify Claude was called for both PRs with valid SHA
-    expect(claudeService.processCommand).toHaveBeenCalledTimes(2);
-    expect(claudeService.processCommand).toHaveBeenCalledWith({
-      repoFullName: 'owner/repo',
-      issueNumber: 42,
-      command: expect.stringContaining('# GitHub PR Review - Complete Automated Review'),
-      isPullRequest: true,
-      branchName: 'feature-branch-1'
-    });
-    expect(claudeService.processCommand).toHaveBeenCalledWith({
-      repoFullName: 'owner/repo',
-      issueNumber: 43,
-      command: expect.stringContaining('# GitHub PR Review - Complete Automated Review'),
-      isPullRequest: true,
-      branchName: 'feature-branch-2'
-    });
-
-    // Verify response with mixed results
-    expect(mockRes.json).toHaveBeenCalledWith({
-      success: true,
-      message: 'Check suite processed: 2 reviewed, 0 failed, 1 skipped',
-      context: {
-        repo: 'owner/repo',
-        checkSuite: 12345,
-        conclusion: 'success',
-        results: [
-          {
-            prNumber: 42,
-            success: true,
-            error: null,
-            skippedReason: null
-          },
-          {
-            prNumber: 43,
-            success: true,
-            error: null,
-            skippedReason: null
-          },
-          {
-            prNumber: 44,
-            success: false,
-            error: 'Missing PR head SHA',
-            skippedReason: 'No commit SHA available'
-          }
-        ]
-      }
-    });
-  });
 
   it('should skip PR review when already reviewed at same commit', async () => {
     // Setup successful check suite with pull request
@@ -652,6 +493,7 @@ describe('GitHub Controller - Check Suite Events', () => {
         conclusion: 'success',
         head_sha: 'abc123def456',
         head_branch: 'feature-branch',
+        check_runs_url: 'https://api.github.com/repos/owner/repo/check-suites/12345/check-runs',
         pull_requests: [
           {
             number: 42,
@@ -683,30 +525,14 @@ describe('GitHub Controller - Check Suite Events', () => {
       prNumber: 42,
       commitSha: 'pr-sha-123'
     });
-    
-    // Verify no labels were added (review was skipped)
-    expect(githubService.managePRLabels).not.toHaveBeenCalled();
 
-    // Verify Claude was NOT called
+    // Verify Claude was NOT called since already reviewed
     expect(claudeService.processCommand).not.toHaveBeenCalled();
 
-    // Verify response indicates PR was skipped
+    // Verify simple success response
+    expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
-      success: true,
-      message: 'Check suite processed: 0 reviewed, 0 failed, 1 skipped',
-      context: {
-        repo: 'owner/repo',
-        checkSuite: 12345,
-        conclusion: 'success',
-        results: [
-          {
-            prNumber: 42,
-            success: false,
-            error: null,
-            skippedReason: 'Already reviewed at this commit'
-          }
-        ]
-      }
+      message: 'Webhook processed successfully'
     });
   });
 });

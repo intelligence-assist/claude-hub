@@ -8,6 +8,7 @@ services:
       - /app/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.aws:/root/.aws:ro
+      - ${HOME}/.claude:/home/claudeuser/.claude
     secrets:
       - github_token
       - anthropic_api_key

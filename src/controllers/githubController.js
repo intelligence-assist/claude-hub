@@ -853,16 +853,9 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
             'Check suite PR review processing completed'
           );
 
-          // Return detailed status
+          // Return simple success response
           return res.status(200).json({
-            success: true,
-            message: `Check suite processed: ${successCount} reviewed, ${failureCount} failed, ${skippedCount} skipped`,
-            context: {
-              repo: repo.full_name,
-              checkSuite: checkSuite.id,
-              conclusion: checkSuite.conclusion,
-              results: prResults
-            }
+            message: 'Webhook processed successfully'
           });
         } catch (error) {
           logger.error(
@@ -901,14 +894,7 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
         // TODO: Could query GitHub API to find PRs for this branch/SHA
         // For now, just acknowledge the webhook
         return res.status(200).json({
-          success: true,
-          message: 'Check suite completed but no PRs found in payload',
-          context: {
-            repo: repo.full_name,
-            checkSuite: checkSuite.id,
-            conclusion: checkSuite.conclusion,
-            headBranch: checkSuite.head_branch
-          }
+          message: 'Webhook processed successfully'
         });
       } else {
         // Log the specific reason why PR review was not triggered

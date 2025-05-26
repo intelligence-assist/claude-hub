@@ -581,8 +581,19 @@ async function makeGitHubRequest(url) {
       throw new Error('GitHub client not initialized');
     }
 
+    // Validate that the URL is a GitHub API URL to prevent SSRF
+    if (!url.startsWith('https://api.github.com/')) {
+      throw new Error('Invalid GitHub API URL');
+    }
+
     // Extract the path from the full URL
-    const apiPath = url.replace('https://api.github.com/', '');
+    const apiPath = url.substring('https://api.github.com/'.length);
+    
+    // Additional validation: ensure the path doesn't contain any URL-encoded characters
+    // that could be used for path traversal
+    if (apiPath.includes('..') || apiPath.includes('%2e%2e') || apiPath.includes('%252e')) {
+      throw new Error('Invalid API path');
+    }
     
     logger.debug({
       url,

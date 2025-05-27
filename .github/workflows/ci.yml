@@ -111,7 +111,7 @@ jobs:
       run: npm ci --prefer-offline --no-audit
 
     - name: Generate test coverage
-      run: npm run test:coverage
+      run: jest --coverage --testPathPattern='test/(unit|integration).*\.test\.js$'
       env:
         NODE_ENV: test
         BOT_USERNAME: '@TestBot'

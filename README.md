@@ -7,395 +7,278 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A webhook service that enables Claude Code to respond to GitHub mentions and execute commands within repository contexts. This microservice allows Claude to analyze code, answer questions, and optionally make changes when mentioned in GitHub comments.
+![Claude GitHub Webhook brain factory - AI brain connected to GitHub octocat via assembly line of Docker containers](./brain_factory.png)
 
-## ⚡ Performance Optimizations
+Deploy Claude Code as a GitHub bot. Mention @Claude in any issue or PR, and watch AI-powered code analysis happen in real-time. Production-ready microservice with container isolation, automated PR reviews, and intelligent issue labeling.
 
-This repository uses highly optimized CI/CD pipelines:
-- **Parallel test execution** for faster feedback loops
-- **Conditional Docker builds** (only when code/Dockerfile changes)
-- **Strategic runner distribution** (GitHub for tests, self-hosted for heavy builds)
-- **Advanced caching strategies** for significantly faster subsequent builds
-- **Build performance profiling** with timing and size metrics
-
-## Documentation
-
-For comprehensive documentation, see:
-- [Complete Workflow Guide](./docs/complete-workflow.md) - Full technical workflow documentation
-- [GitHub Integration](./docs/github-workflow.md) - GitHub-specific features and setup
-- [Container Setup](./docs/container-setup.md) - Docker container configuration
-- [Container Limitations](./docs/container-limitations.md) - Known constraints and workarounds
-- [AWS Authentication Best Practices](./docs/aws-authentication-best-practices.md) - Secure AWS credential management
-- [Scripts Documentation](./SCRIPTS.md) - Organized scripts and their usage
-
-## Use Cases
-
-- Trigger Claude when mentioned in GitHub comments with your configured bot username
-- Allow Claude to research repository code and answer questions
-- Direct API access for Claude without GitHub webhook requirements
-- Stateless container execution mode for isolation and scalability
-- Optionally permit Claude to make code changes when requested
-
-## 🚀 Setup Guide
-
-### Prerequisites
-
-- Node.js 20 or higher
-- Docker and Docker Compose
-- GitHub account with access to the repositories you want to use
-
-### Quick Setup
-
-1. **Clone this repository**
-   ```bash
-   git clone https://github.com/yourusername/claude-github-webhook.git
-   cd claude-github-webhook
-   ```
-
-2. **Setup secure credentials**
-   ```bash
-   ./scripts/setup/setup-secure-credentials.sh
-   ```
-   This creates secure credential files with proper permissions.
-
-3. **Start the service**
-   ```bash
-   docker compose up -d
-   ```
-   The service will be available at `http://localhost:8082`
-
-### Manual Configuration (Alternative)
-
-If you prefer to configure manually instead of using the setup script:
-   ```
-   cp .env.example .env
-   nano .env  # or use your preferred editor
-   ```
-
-   **a. GitHub Webhook Secret**
-   - Generate a secure random string to use as your webhook secret
-   - You can use this command to generate one:
-     ```
-     node -e "console.log(require('crypto').randomBytes(20).toString('hex'))"
-     ```
-   - Save this value in your `.env` file as `GITHUB_WEBHOOK_SECRET`
-   - You'll use this same value when setting up the webhook in GitHub
-
-   **b. GitHub Personal Access Token**
-   - Go to GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens
-   - Click "Generate new token"
-   - Name your token (e.g., "Claude GitHub Webhook")
-   - Set the expiration as needed
-   - Select the repositories you want Claude to access
-   - Under "Repository permissions":
-     - Issues: Read and write (to post comments)
-     - Contents: Read (to read repository code)
-   - Click "Generate token"
-   - Copy the generated token to your `.env` file as `GITHUB_TOKEN`
-
-   **c. AWS Credentials (for Claude via Bedrock)**
-   - You need AWS Bedrock credentials to access Claude
-   - Update the following values in your `.env` file:
-     ```
-     AWS_ACCESS_KEY_ID=your_aws_access_key
-     AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-     AWS_REGION=us-east-1
-     CLAUDE_CODE_USE_BEDROCK=1
-     ANTHROPIC_MODEL=anthropic.claude-3-sonnet-20240229-v1:0
-     ```
-   - Note: You don't need a Claude/Anthropic API key when using Bedrock
-
-   **d. Bot Configuration**
-   - Set the `BOT_USERNAME` environment variable in your `.env` file to the GitHub mention you want to use
-   - This setting is required to prevent infinite loops
-   - Example: `BOT_USERNAME=@MyBot`
-   - No default is provided - this must be explicitly configured
-   - Set `BOT_EMAIL` for the email address used in git commits made by the bot
-   - Set `DEFAULT_AUTHORIZED_USER` to specify the default GitHub username authorized to use the bot
-   - Use `AUTHORIZED_USERS` for a comma-separated list of GitHub usernames allowed to use the bot
-
-   **e. Server Port and Other Settings**
-   - By default, the server runs on port 3000
-   - To use a different port, set the `PORT` environment variable in your `.env` file
-   - Set `DEFAULT_GITHUB_OWNER` and `DEFAULT_GITHUB_USER` for CLI defaults when using the webhook CLI
-   - Set `TEST_REPO_FULL_NAME` to configure the default repository for test scripts
-   - Review other settings in the `.env` file for customization options
-
-   **AWS Credentials**: The service now supports multiple AWS authentication methods:
-   - **Instance Profiles** (EC2): Automatically uses instance metadata
-   - **Task Roles** (ECS): Automatically uses container credentials
-   - **Temporary Credentials**: Set `AWS_SESSION_TOKEN` for STS credentials
-   - **Static Credentials**: Fall back to `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
-   
-   For migration from static credentials, run:
-   ```
-   ./scripts/aws/migrate-aws-credentials.sh
-   ```
-
-4. **Start the server**
-   ```
-   npm start
-   ```
-   For development with auto-restart:
-   ```
-   npm run dev
-   ```
-
-### GitHub Webhook Configuration
-
-1. **Go to your GitHub repository**
-2. **Navigate to Settings → Webhooks**
-3. **Click "Add webhook"**
-4. **Configure the webhook:**
-   - Payload URL: `https://claude.jonathanflatt.org/api/webhooks/github`
-   - Content type: `application/json`
-   - Secret: The same value you set for `GITHUB_WEBHOOK_SECRET` in your `.env` file
-   - Events: Select "Send me everything" if you want to handle multiple event types, or choose specific events
-   - Active: Check this box to enable the webhook
-5. **Click "Add webhook"**
-
-### Testing Your Setup
-
-1. **Verify the webhook is receiving events**
-   - After setting up the webhook, GitHub will send a ping event
-   - Check your server logs to confirm it's receiving events
-
-2. **Test with a sample comment**
-   - Create a new issue or pull request in your repository
-   - Add a comment mentioning your configured bot username followed by a question, like:
-     ```
-     @MyBot What does this repository do?
-     ```
-     (Replace @MyBot with your configured BOT_USERNAME)
-   - Claude should respond with a new comment in the thread
-
-3. **Using the test utilities**
-   - You can use the included test utility to verify your webhook setup:
-     ```
-     node test-outgoing-webhook.js
-     ```
-   - This will start a test server and provide instructions for testing
-
-   - To test the direct Claude API:
-     ```
-     node test-claude-api.js owner/repo
-     ```
-   - To test the container-based execution:
-     ```
-     ./scripts/build/build.sh claudecode  # First build the container
-     node test-claude-api.js owner/repo container "Your command here"
-     ```
-
-## Automated PR Review
-
-The webhook service includes an intelligent automated PR review system that triggers comprehensive code reviews when all CI checks pass successfully.
-
-### How It Works
-
-1. **Trigger**: When a `check_suite` webhook event is received with `conclusion: 'success'`
-2. **Validation**: The system queries GitHub's Combined Status API to verify **all** required status checks have passed
-3. **Review**: Only when all checks are successful, Claude performs a comprehensive PR review
-4. **Output**: Detailed review comments, line-specific feedback, and approval/change requests
-
-### Review Process
-
-When triggered, Claude automatically:
-
-- **Analyzes PR changes**: Reviews all modified files and their context
-- **Security assessment**: Checks for potential vulnerabilities, injection attacks, authentication issues
-- **Logic review**: Identifies bugs, edge cases, and potential runtime errors  
-- **Performance evaluation**: Flags inefficient algorithms and unnecessary computations
-- **Code quality**: Reviews organization, maintainability, and adherence to best practices
-- **Error handling**: Verifies proper exception handling and edge case coverage
-- **Test coverage**: Assesses test quality and effectiveness
-
-### Key Features
-
-- **Prevents duplicate reviews**: Uses Combined Status API to ensure reviews only happen once all checks complete
-- **Comprehensive analysis**: Covers security, performance, logic, and maintainability
-- **Line-specific feedback**: Provides targeted comments on specific code lines when issues are found
-- **Professional tone**: Balances constructive criticism with positive reinforcement
-- **Approval workflow**: Concludes with either approval or change requests based on findings
-
-### Configuration
-
-The automated PR review system is enabled by default and requires:
-
-- `check_suite` webhook events (included in "Send me everything")
-- `pull_request` webhook events for PR context
-- GitHub token with appropriate repository permissions
-
-### Supported Events
-
-The webhook service responds to these GitHub events:
-
-- **`issue_comment`**: Manual Claude mentions in issue/PR comments
-- **`pull_request_review_comment`**: Manual Claude mentions in PR review comments  
-- **`issues` (opened)**: Automatic issue labeling and analysis
-- **`check_suite` (completed)**: Automated PR reviews when all CI checks pass
-
-## Troubleshooting
-
-See the [Complete Workflow Guide](./docs/complete-workflow.md#troubleshooting) for detailed troubleshooting information.
-
-### Quick Checks
-- Verify webhook signature matches
-- Check Docker daemon is running
-- Confirm AWS/Bedrock credentials are valid
-- Ensure GitHub token has correct permissions
-
-## Security: Pre-commit Hooks
-
-This project includes pre-commit hooks that automatically scan for credentials and secrets before commits. This helps prevent accidental exposure of sensitive information.
-
-### Features
-
-- **Credential Detection**: Scans for AWS keys, GitHub tokens, API keys, and other secrets
-- **Multiple Scanners**: Uses both `detect-secrets` and `gitleaks` for comprehensive coverage
-- **Code Quality**: Also includes hooks for trailing whitespace, JSON/YAML validation, and more
-
-### Usage
-
-Pre-commit hooks are automatically installed when you run `./scripts/setup/setup.sh`. They run automatically on every commit.
-
-To manually run the hooks:
-```bash
-pre-commit run --all-files
-```
-
-For more information, see [pre-commit setup documentation](./docs/pre-commit-setup.md).
-
-## Direct Claude API
-
-The server provides a direct API endpoint for Claude that doesn't rely on GitHub webhooks. This allows you to integrate Claude with other systems or test Claude's responses.
-
-### API Endpoint
-
-```
-POST /api/claude
-```
-
-### Request Body
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| repoFullName | string | The repository name in the format "owner/repo" |
-| command | string | The command or question to send to Claude |
-| authToken | string | Optional authentication token (required if CLAUDE_API_AUTH_REQUIRED=1) |
-| useContainer | boolean | Whether to use container-based execution (optional, defaults to false) |
-
-### Example Request
-
-```json
-{
-  "repoFullName": "owner/repo",
-  "command": "Explain what this repository does",
-  "authToken": "your-auth-token",
-  "useContainer": true
-}
-```
-
-### Example Response
-
-```json
-{
-  "message": "Command processed successfully",
-  "response": "This repository is a webhook server that integrates Claude with GitHub..."
-}
-```
-
-### Authentication
-
-To secure the API, you can enable authentication by setting the following environment variables:
-
-```
-CLAUDE_API_AUTH_REQUIRED=1
-CLAUDE_API_AUTH_TOKEN=your-secret-token
-```
-
-### Container-Based Execution
-
-The container-based execution mode provides isolation and better scalability. When enabled, each request will:
-
-1. Launch a new Docker container with Claude Code CLI
-2. Clone the repository inside the container (or use cached repository)
-3. Analyze the repository structure and content
-4. Generate a helpful response based on the analysis
-5. Clean up resources
-
-> Note: Due to technical limitations with running Claude in containers, the current implementation uses automatic repository analysis instead of direct Claude execution. See [Container Limitations](./docs/container-limitations.md) for details.
-
-To enable container-based execution:
-
-1. Build the Claude container:
-   ```
-   ./scripts/build/build.sh claude
-   ```
-
-2. Set the environment variables:
-   ```
-   CLAUDE_USE_CONTAINERS=1
-   CLAUDE_CONTAINER_IMAGE=claudecode:latest
-   REPO_CACHE_DIR=/path/to/cache  # Optional
-   REPO_CACHE_MAX_AGE_MS=3600000  # Optional, defaults to 1 hour (in milliseconds)
-   CONTAINER_LIFETIME_MS=7200000  # Optional, container execution timeout in milliseconds (defaults to 2 hours)
-   ```
-
-### Container Test Utility
-
-A dedicated test script is provided for testing container execution directly:
+## What This Does
 
 ```bash
-./test/container/test-container.sh
+# In any GitHub issue or PR:
+@ClaudeBot explain this code architecture
+@ClaudeBot review this PR for security vulnerabilities  
+@ClaudeBot suggest performance improvements
 ```
 
-This utility will:
-1. Force container mode
-2. Execute the command in a container
-3. Display the Claude response
-4. Show execution timing information
+Claude analyzes your entire repository context, understands your codebase, and provides expert-level responses directly in GitHub comments. No context switching. No manual copy-paste. Just seamless AI integration where you work.
+
+## Key Features
+
+### Intelligent Automation 🤖
+- **Auto-labeling**: New issues automatically tagged by content analysis
+- **PR Reviews**: Comprehensive code reviews when CI checks pass
+- **Context-aware**: Claude understands your entire repository structure
+- **Stateless execution**: Each request runs in isolated Docker containers
+
+### Performance Architecture ⚡
+- Parallel test execution with strategic runner distribution
+- Conditional Docker builds (only when code changes)
+- Repository caching for sub-second response times
+- Advanced build profiling with timing metrics
+
+### Enterprise Security 🔒
+- Webhook signature verification (HMAC-SHA256)
+- AWS IAM role-based authentication
+- Pre-commit credential scanning
+- Container isolation with minimal permissions
+- Fine-grained GitHub token scoping
+
+## Quick Start
+
+```bash
+# Clone and setup
+git clone https://github.com/yourusername/claude-github-webhook.git
+cd claude-github-webhook
+./scripts/setup/setup-secure-credentials.sh
+
+# Launch with Docker Compose
+docker compose up -d
+```
+
+Service runs on `http://localhost:8082` by default.
+
+## Production Deployment
+
+### 1. Environment Configuration
+
+```bash
+# Core settings
+BOT_USERNAME=@ClaudeBot              # GitHub mention trigger
+GITHUB_WEBHOOK_SECRET=<generated>     # Webhook validation
+GITHUB_TOKEN=<fine-grained-pat>       # Repository access
+
+# AWS Bedrock (recommended)
+AWS_REGION=us-east-1
+ANTHROPIC_MODEL=anthropic.claude-3-sonnet-20240229-v1:0
+CLAUDE_CODE_USE_BEDROCK=1
+
+# Security
+AUTHORIZED_USERS=user1,user2,user3    # Allowed GitHub usernames
+CLAUDE_API_AUTH_REQUIRED=1            # Enable API authentication
+```
+
+### 2. GitHub Webhook Setup
+
+1. Navigate to Repository → Settings → Webhooks
+2. Add webhook:
+   - **Payload URL**: `https://your-domain.com/api/webhooks/github`
+   - **Content type**: `application/json`
+   - **Secret**: Your `GITHUB_WEBHOOK_SECRET`
+   - **Events**: Select "Send me everything"
+
+### 3. AWS Authentication Options
+
+```bash
+# Option 1: IAM Instance Profile (EC2)
+# Automatically uses instance metadata
+
+# Option 2: ECS Task Role
+# Automatically uses container credentials
+
+# Option 3: AWS Profile
+./scripts/aws/setup-aws-profiles.sh
+
+# Option 4: Static Credentials (not recommended)
+AWS_ACCESS_KEY_ID=xxx
+AWS_SECRET_ACCESS_KEY=xxx
+```
+
+## Advanced Usage
+
+### Direct API Access
+
+Integrate Claude without GitHub webhooks:
+
+```bash
+curl -X POST http://localhost:8082/api/claude \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repoFullName": "owner/repo",
+    "command": "Analyze security vulnerabilities",
+    "authToken": "your-token",
+    "useContainer": true
+  }'
+```
+
+### CLI Tool
+
+```bash
+# Basic usage
+./cli/claude-webhook myrepo "Review the authentication flow"
+
+# PR review
+./cli/claude-webhook owner/repo "Review this PR" -p -b feature-branch
+
+# Specific issue
+./cli/claude-webhook myrepo "Fix this bug" -i 42
+```
+
+### Container Execution Modes
+
+Different operations use tailored security profiles:
+
+- **Auto-tagging**: Minimal permissions (Read + GitHub tools only)
+- **PR Reviews**: Standard permissions (full tool access)
+- **Custom Commands**: Configurable via `--allowedTools` flag
+
+## Architecture Deep Dive
+
+### Request Flow
+
+```
+GitHub Event → Webhook Endpoint → Signature Verification
+     ↓                                      ↓
+Container Spawn ← Command Parser ← Event Processor
+     ↓
+Claude Analysis → GitHub API → Comment/Label/Review
+```
+
+### Container Lifecycle
+
+1. **Spawn**: New Docker container per request
+2. **Clone**: Repository fetched (or cache hit)
+3. **Execute**: Claude analyzes with configured tools
+4. **Respond**: Results posted via GitHub API
+5. **Cleanup**: Container destroyed, cache updated
+
+### Security Layers
+
+- **Network**: Webhook signature validation
+- **Authentication**: GitHub user allowlist
+- **Authorization**: Fine-grained token permissions
+- **Execution**: Container isolation
+- **Tools**: Operation-specific allowlists
+
+## Performance Tuning
 
 ### Repository Caching
 
-The container mode includes an intelligent repository caching mechanism:
-
-- Repositories are cached to improve performance for repeated queries
-- Cache is automatically refreshed after the configured expiration time
-- You can configure the cache location and max age via environment variables:
-  ```
-  REPO_CACHE_DIR=/path/to/cache
-  REPO_CACHE_MAX_AGE_MS=3600000  # 1 hour in milliseconds
-  ```
-
-For detailed information about container mode setup and usage, see [Container Setup Documentation](./docs/container-setup.md).
-
-## Development
-
-To run the server in development mode with auto-restart:
-
+```bash
+REPO_CACHE_DIR=/cache/repos
+REPO_CACHE_MAX_AGE_MS=3600000    # 1 hour
 ```
+
+### Container Optimization
+
+```bash
+CONTAINER_LIFETIME_MS=7200000     # 2 hour timeout
+CLAUDE_CONTAINER_IMAGE=claudecode:latest
+```
+
+### CI/CD Pipeline
+
+- Parallel Jest test execution
+- Docker layer caching
+- Conditional image builds
+- Self-hosted runners for heavy operations
+
+## Monitoring & Debugging
+
+### Health Check
+```bash
+curl http://localhost:8082/health
+```
+
+### Logs
+```bash
+docker compose logs -f webhook
+```
+
+### Test Suite
+```bash
+npm test                    # All tests
+npm run test:unit          # Unit only
+npm run test:integration   # Integration only
+npm run test:coverage      # With coverage report
+```
+
+### Debug Mode
+```bash
+DEBUG=claude:* npm run dev
+```
+
+## Documentation
+
+- [Complete Workflow](./docs/complete-workflow.md) - End-to-end technical guide
+- [Container Setup](./docs/container-setup.md) - Docker configuration details
+- [AWS Best Practices](./docs/aws-authentication-best-practices.md) - IAM and credential management
+- [GitHub Integration](./docs/github-workflow.md) - Webhook events and permissions
+- [Scripts Reference](./SCRIPTS.md) - Utility scripts documentation
+
+## Contributing
+
+### Development Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Setup pre-commit hooks
+./scripts/setup/setup-precommit.sh
+
+# Run in dev mode
 npm run dev
 ```
 
-## Testing
+### Code Standards
 
-Run tests with:
+- Node.js 20+ with async/await patterns
+- Jest for testing with >80% coverage target
+- ESLint + Prettier for code formatting
+- Conventional commits for version management
 
-```bash
-# Run all tests
-npm test
+### Security Checklist
 
-# Run only unit tests
-npm run test:unit
+- [ ] No hardcoded credentials
+- [ ] All inputs sanitized
+- [ ] Webhook signatures verified
+- [ ] Container permissions minimal
+- [ ] Logs redact sensitive data
 
-# Run only integration tests
-npm run test:integration
+## Troubleshooting
 
-# Run only E2E tests
-npm run test:e2e
+### Common Issues
 
-# Run tests with coverage report
-npm run test:coverage
-```
+**Webhook not responding**
+- Verify signature secret matches
+- Check GitHub token permissions
+- Confirm webhook URL is accessible
 
-See [Test Documentation](test/README.md) for more details on the testing framework.
+**Claude timeouts**
+- Increase `CONTAINER_LIFETIME_MS`
+- Check AWS Bedrock quotas
+- Verify network connectivity
+
+**Permission denied**
+- Confirm user in `AUTHORIZED_USERS`
+- Check GitHub token scopes
+- Verify AWS IAM permissions
+
+### Support
+
+- Report issues: [GitHub Issues](https://github.com/yourusername/claude-github-webhook/issues)
+- Detailed troubleshooting: [Complete Workflow Guide](./docs/complete-workflow.md#troubleshooting)
+
+## License
+
+MIT - See the [LICENSE file](LICENSE) for details.

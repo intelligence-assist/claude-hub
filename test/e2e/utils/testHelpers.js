@@ -80,6 +80,13 @@ function skipIfEnvVarsMissing(requiredVars) {
 function conditionalDescribe(suiteName, suiteFunction, options = {}) {
   const { dockerImage, requiredEnvVars = [] } = options;
 
+  // For coverage job, skip E2E tests that require Docker images
+  if (process.env.SKIP_E2E_TESTS === 'true' && dockerImage) {
+    console.warn(`⚠️ Skipping test suite '${suiteName}': E2E tests disabled (SKIP_E2E_TESTS=true)`);
+    describe.skip(suiteName, suiteFunction);
+    return;
+  }
+
   describe(suiteName, () => {
     beforeAll(async () => {
       // Check Docker image

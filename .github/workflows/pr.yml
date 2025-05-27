@@ -126,6 +126,7 @@ jobs:
         BOT_USERNAME: '@TestBot'
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
+        SKIP_E2E_TESTS: 'true'
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5

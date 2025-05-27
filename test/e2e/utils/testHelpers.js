@@ -81,32 +81,28 @@ function conditionalDescribe(suiteName, suiteFunction, options = {}) {
   const { dockerImage, requiredEnvVars = [] } = options;
 
   describe(suiteName, () => {
-    let shouldSkip = false;
-
     beforeAll(async () => {
       // Check Docker image
       if (dockerImage) {
-        shouldSkip = await skipIfDockerImageMissing(dockerImage);
+        const imageExists = await dockerImageExists(dockerImage);
+        if (!imageExists) {
+          console.warn(`⚠️ Skipping test suite '${suiteName}': Docker image '${dockerImage}' not found`);
+          throw new Error(`Docker image '${dockerImage}' not found - skipping tests`);
+        }
       }
 
       // Check environment variables
-      if (!shouldSkip && requiredEnvVars.length > 0) {
-        shouldSkip = skipIfEnvVarsMissing(requiredEnvVars);
-      }
-
-      if (shouldSkip) {
-        console.log(`Skipping entire test suite: ${suiteName}`);
+      if (requiredEnvVars.length > 0) {
+        const { missing, hasAll } = checkRequiredEnvVars(requiredEnvVars);
+        if (!hasAll) {
+          console.warn(`⚠️ Skipping test suite '${suiteName}': Missing environment variables: ${missing.join(', ')}`);
+          throw new Error(`Missing environment variables: ${missing.join(', ')} - skipping tests`);
+        }
       }
     });
 
-    // Run the actual tests if not skipping
-    if (!shouldSkip) {
-      suiteFunction();
-    } else {
-      test('Skipped due to missing requirements', () => {
-        console.log('Test suite was skipped');
-      });
-    }
+    // Run the actual test suite
+    suiteFunction();
   });
 }
 

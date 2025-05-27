@@ -37,7 +37,7 @@ jobs:
         run: npm ci --prefer-offline --no-audit
       
       - name: Run linter
-        run: npm run lint
+        run: npm run lint:check
       
       - name: Run tests
         run: npm test

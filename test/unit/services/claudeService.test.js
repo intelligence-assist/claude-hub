@@ -73,7 +73,7 @@ describe('Claude Service', () => {
     });
 
     // Verify test mode response
-    expect(result).toContain('Hello! I\'m Claude responding to your request.');
+    expect(result).toContain("Hello! I'm Claude responding to your request.");
     expect(result).toContain('test/repo');
     expect(sanitizeBotMentions).toHaveBeenCalled();
 

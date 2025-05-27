@@ -86,7 +86,9 @@ function conditionalDescribe(suiteName, suiteFunction, options = {}) {
       if (dockerImage) {
         const imageExists = await dockerImageExists(dockerImage);
         if (!imageExists) {
-          console.warn(`⚠️ Skipping test suite '${suiteName}': Docker image '${dockerImage}' not found`);
+          console.warn(
+            `⚠️ Skipping test suite '${suiteName}': Docker image '${dockerImage}' not found`
+          );
           throw new Error(`Docker image '${dockerImage}' not found - skipping tests`);
         }
       }
@@ -95,7 +97,9 @@ function conditionalDescribe(suiteName, suiteFunction, options = {}) {
       if (requiredEnvVars.length > 0) {
         const { missing, hasAll } = checkRequiredEnvVars(requiredEnvVars);
         if (!hasAll) {
-          console.warn(`⚠️ Skipping test suite '${suiteName}': Missing environment variables: ${missing.join(', ')}`);
+          console.warn(
+            `⚠️ Skipping test suite '${suiteName}': Missing environment variables: ${missing.join(', ')}`
+          );
           throw new Error(`Missing environment variables: ${missing.join(', ')} - skipping tests`);
         }
       }

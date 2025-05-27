@@ -418,7 +418,7 @@ async function getCombinedStatus({ repoOwner, repoName, ref }) {
  * Check if we've already reviewed this PR at the given commit SHA
  * @param {Object} params
  * @param {string} params.repoOwner - Repository owner
- * @param {string} params.repoName - Repository name  
+ * @param {string} params.repoName - Repository name
  * @param {number} params.prNumber - Pull request number
  * @param {string} params.commitSha - Commit SHA to check
  * @returns {Promise<boolean>} True if already reviewed at this SHA
@@ -456,9 +456,11 @@ async function hasReviewedPRAtCommit({ repoOwner, repoName, prNumber, commitSha 
     // Check if any review mentions this specific commit SHA
     const botUsername = process.env.BOT_USERNAME || 'ClaudeBot';
     const existingReview = reviews.find(review => {
-      return review.user.login === botUsername && 
-             review.body && 
-             review.body.includes(`commit: ${commitSha}`);
+      return (
+        review.user.login === botUsername &&
+        review.body &&
+        review.body.includes(`commit: ${commitSha}`)
+      );
     });
 
     return !!existingReview;
@@ -498,22 +500,27 @@ async function getCheckSuitesForRef({ repoOwner, repoName, ref }) {
       throw new Error('Invalid ref - contains unsafe characters');
     }
 
-    logger.info({
-      repo: `${repoOwner}/${repoName}`,
-      ref
-    }, 'Getting check suites for ref');
+    logger.info(
+      {
+        repo: `${repoOwner}/${repoName}`,
+        ref
+      },
+      'Getting check suites for ref'
+    );
 
     // In test mode, return mock data
     const client = getOctokit();
     if (process.env.NODE_ENV === 'test' || !client) {
       return {
         total_count: 1,
-        check_suites: [{
-          id: 12345,
-          app: { slug: 'github-actions', name: 'GitHub Actions' },
-          status: 'completed',
-          conclusion: 'success'
-        }]
+        check_suites: [
+          {
+            id: 12345,
+            app: { slug: 'github-actions', name: 'GitHub Actions' },
+            status: 'completed',
+            conclusion: 'success'
+          }
+        ]
       };
     }
 
@@ -526,12 +533,15 @@ async function getCheckSuitesForRef({ repoOwner, repoName, ref }) {
 
     return data;
   } catch (error) {
-    logger.error({
-      err: error.message,
-      repo: `${repoOwner}/${repoName}`,
-      ref
-    }, 'Failed to get check suites');
-    
+    logger.error(
+      {
+        err: error.message,
+        repo: `${repoOwner}/${repoName}`,
+        ref
+      },
+      'Failed to get check suites'
+    );
+
     throw error;
   }
 }
@@ -545,7 +555,13 @@ async function getCheckSuitesForRef({ repoOwner, repoName, ref }) {
  * @param {string[]} params.labelsToAdd - Labels to add
  * @param {string[]} params.labelsToRemove - Labels to remove
  */
-async function managePRLabels({ repoOwner, repoName, prNumber, labelsToAdd = [], labelsToRemove = [] }) {
+async function managePRLabels({
+  repoOwner,
+  repoName,
+  prNumber,
+  labelsToAdd = [],
+  labelsToRemove = []
+}) {
   try {
     // Validate parameters
     const repoPattern = /^[a-zA-Z0-9._-]+$/;

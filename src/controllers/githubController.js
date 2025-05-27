@@ -168,7 +168,7 @@ Complete the auto-tagging task using only GitHub CLI commands.`;
             },
             'Claude CLI tagging may have failed, attempting fallback'
           );
-          
+
           // Fall back to basic tagging based on keywords
           const fallbackLabels = await githubService.getFallbackLabels(issue.title, issue.body);
           if (fallbackLabels.length > 0) {
@@ -444,7 +444,7 @@ Please check with an administrator to review the logs for more details.`
       // Check if we should wait for all check suites or use a specific trigger
       const triggerWorkflowName = process.env.PR_REVIEW_TRIGGER_WORKFLOW;
       const waitForAllChecks = process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS === 'true';
-      
+
       let shouldTriggerReview = false;
       let triggerReason = '';
 
@@ -456,22 +456,25 @@ Please check with an administrator to review the logs for more details.`
         });
 
         shouldTriggerReview = allChecksPassed;
-        triggerReason = allChecksPassed ? 'All check suites passed' : 'Waiting for other check suites to complete';
+        triggerReason = allChecksPassed
+          ? 'All check suites passed'
+          : 'Waiting for other check suites to complete';
       } else {
         // Use specific workflow trigger
         const workflowName = await getWorkflowNameFromCheckSuite(checkSuite, repo);
-        
+
         // For GitHub Actions, we need to check the actual workflow name
         // Since we can't reliably get it from the check suite alone,
         // we'll assume PR_REVIEW_TRIGGER_WORKFLOW matches if it's GitHub Actions
-        const effectiveWorkflowName = workflowName === 'GitHub Actions' ? triggerWorkflowName : workflowName;
-        
+        const effectiveWorkflowName =
+          workflowName === 'GitHub Actions' ? triggerWorkflowName : workflowName;
+
         shouldTriggerReview = effectiveWorkflowName === triggerWorkflowName;
-        triggerReason = shouldTriggerReview ? 
-          `Triggered by workflow: ${triggerWorkflowName}` : 
-          `Workflow '${workflowName}' does not match trigger '${triggerWorkflowName}'`;
+        triggerReason = shouldTriggerReview
+          ? `Triggered by workflow: ${triggerWorkflowName}`
+          : `Workflow '${workflowName}' does not match trigger '${triggerWorkflowName}'`;
       }
-      
+
       logger.info(
         {
           repo: repo.full_name,
@@ -1074,7 +1077,7 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
  */
 async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
   const debounceDelayMs = parseInt(process.env.PR_REVIEW_DEBOUNCE_MS || '5000', 10);
-  
+
   try {
     // Add a small delay to account for GitHub's eventual consistency
     await new Promise(resolve => setTimeout(resolve, debounceDelayMs));
@@ -1091,19 +1094,22 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
         });
 
         const checkSuites = checkSuitesResponse.check_suites || [];
-        
-        logger.info({
-          repo: repo.full_name,
-          pr: pr.number,
-          sha: pr.head.sha,
-          totalCheckSuites: checkSuites.length,
-          checkSuites: checkSuites.map(cs => ({
-            id: cs.id,
-            app: cs.app?.name,
-            status: cs.status,
-            conclusion: cs.conclusion
-          }))
-        }, 'Retrieved check suites for PR');
+
+        logger.info(
+          {
+            repo: repo.full_name,
+            pr: pr.number,
+            sha: pr.head.sha,
+            totalCheckSuites: checkSuites.length,
+            checkSuites: checkSuites.map(cs => ({
+              id: cs.id,
+              app: cs.app?.name,
+              status: cs.status,
+              conclusion: cs.conclusion
+            }))
+          },
+          'Retrieved check suites for PR'
+        );
 
         // Check if any check suite is still in progress or has failed
         for (const suite of checkSuites) {
@@ -1114,34 +1120,43 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
 
           // If any check is in progress, we should wait
           if (suite.status !== 'completed') {
-            logger.info({
-              repo: repo.full_name,
-              pr: pr.number,
-              checkSuite: suite.id,
-              app: suite.app?.name,
-              status: suite.status
-            }, 'Check suite still in progress');
+            logger.info(
+              {
+                repo: repo.full_name,
+                pr: pr.number,
+                checkSuite: suite.id,
+                app: suite.app?.name,
+                status: suite.status
+              },
+              'Check suite still in progress'
+            );
             return false;
           }
 
           // If any check failed, we shouldn't review
           if (suite.conclusion !== 'success') {
-            logger.info({
-              repo: repo.full_name,
-              pr: pr.number,
-              checkSuite: suite.id,
-              app: suite.app?.name,
-              conclusion: suite.conclusion
-            }, 'Check suite did not succeed');
+            logger.info(
+              {
+                repo: repo.full_name,
+                pr: pr.number,
+                checkSuite: suite.id,
+                app: suite.app?.name,
+                conclusion: suite.conclusion
+              },
+              'Check suite did not succeed'
+            );
             return false;
           }
         }
       } catch (error) {
-        logger.error({
-          err: error,
-          repo: repo.full_name,
-          pr: pr.number
-        }, 'Failed to check PR status');
+        logger.error(
+          {
+            err: error,
+            repo: repo.full_name,
+            pr: pr.number
+          },
+          'Failed to check PR status'
+        );
         return false;
       }
     }
@@ -1149,10 +1164,13 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
     // All checks passed!
     return true;
   } catch (error) {
-    logger.error({
-      err: error,
-      repo: repo.full_name
-    }, 'Failed to check all check suites');
+    logger.error(
+      {
+        err: error,
+        repo: repo.full_name
+      },
+      'Failed to check all check suites'
+    );
     return false;
   }
 }
@@ -1160,7 +1178,7 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
 /**
  * Extract workflow name from check suite by fetching check runs
  * @param {Object} checkSuite - The check suite object
- * @param {Object} repo - The repository object  
+ * @param {Object} repo - The repository object
  * @returns {Promise<string|null>} - The workflow name or null
  */
 async function getWorkflowNameFromCheckSuite(checkSuite, repo) {
@@ -1171,7 +1189,7 @@ async function getWorkflowNameFromCheckSuite(checkSuite, repo) {
       // or head branch if available
       return checkSuite.app.name || 'GitHub Actions';
     }
-    
+
     // For other apps, return the app name
     return checkSuite.app ? checkSuite.app.name : null;
   } catch (error) {

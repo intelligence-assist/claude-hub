@@ -96,16 +96,16 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
     // Select appropriate entrypoint script based on operation type
     let entrypointScript;
     switch (operationType) {
-      case 'auto-tagging':
-        entrypointScript = '/scripts/runtime/claudecode-tagging-entrypoint.sh';
-        logger.info({ operationType }, 'Using minimal tools for auto-tagging operation');
-        break;
-      case 'pr-review':
-      case 'default':
-      default:
-        entrypointScript = '/scripts/runtime/claudecode-entrypoint.sh';
-        logger.info({ operationType }, 'Using full tool set for standard operation');
-        break;
+    case 'auto-tagging':
+      entrypointScript = '/scripts/runtime/claudecode-tagging-entrypoint.sh';
+      logger.info({ operationType }, 'Using minimal tools for auto-tagging operation');
+      break;
+    case 'pr-review':
+    case 'default':
+    default:
+      entrypointScript = '/scripts/runtime/claudecode-entrypoint.sh';
+      logger.info({ operationType }, 'Using full tool set for standard operation');
+      break;
     }
 
     // Create unique container name (sanitized to prevent command injection)

@@ -56,6 +56,11 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Test Claude container: `./test/test-claudecode-docker.sh`
 - Test full workflow: `./test/test-full-flow.sh`
 
+### PR Review Debugging
+- Debug PR review configuration: `./scripts/debug/debug-pr-review.sh`
+- Monitor webhook events: `docker compose logs -f webhook | grep -E "(check_suite|PR review)"`
+- Test check_suite webhooks: `node test/debug-check-suite-webhook.js`
+
 ### CI/CD Commands
 - Run linting: `npm run lint` (auto-fix) or `npm run lint:check` (check only)
 - Run formatting: `npm run format` (auto-fix) or `npm run format:check` (check only)

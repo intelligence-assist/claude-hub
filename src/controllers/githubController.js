@@ -484,7 +484,12 @@ Please check with an administrator to review the logs for more details.`
           shouldTriggerReview,
           triggerReason,
           waitForAllChecks,
-          triggerWorkflowName
+          triggerWorkflowName,
+          environmentConfig: {
+            PR_REVIEW_WAIT_FOR_ALL_CHECKS: process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS,
+            PR_REVIEW_TRIGGER_WORKFLOW: process.env.PR_REVIEW_TRIGGER_WORKFLOW,
+            PR_REVIEW_DEBOUNCE_MS: process.env.PR_REVIEW_DEBOUNCE_MS
+          }
         },
         shouldTriggerReview ? 'Triggering automated PR review' : 'Not triggering PR review'
       );
@@ -1080,6 +1085,14 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
 
   try {
     // Add a small delay to account for GitHub's eventual consistency
+    logger.info(
+      {
+        repo: repo.full_name,
+        pullRequestCount: pullRequests.length,
+        debounceDelayMs: debounceDelayMs
+      },
+      'Starting check suite status verification with debounce delay'
+    );
     await new Promise(resolve => setTimeout(resolve, debounceDelayMs));
 
     // Check each PR's status
@@ -1108,7 +1121,7 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
               conclusion: cs.conclusion
             }))
           },
-          'Retrieved check suites for PR'
+          'Retrieved check suites for PR - analyzing status'
         );
 
         // Check if any check suite is still in progress or has failed

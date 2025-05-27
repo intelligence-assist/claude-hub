@@ -1069,14 +1069,17 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
 }
 
 /**
- * Checks if all check suites for a PR are complete and successful
+ * Checks if all meaningful check suites for a PR are complete and successful
+ * Uses smart logic to handle conditional jobs, timeouts, and skipped checks
  * @param {Object} options - Options object
  * @param {Object} options.repo - The repository object
  * @param {Array} options.pullRequests - Array of pull requests
- * @returns {Promise<boolean>} - True if all checks are complete and successful
+ * @returns {Promise<boolean>} - True if all meaningful checks are complete and successful
  */
 async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
   const debounceDelayMs = parseInt(process.env.PR_REVIEW_DEBOUNCE_MS || '5000', 10);
+  const maxWaitTimeMs = parseInt(process.env.PR_REVIEW_MAX_WAIT_MS || '1800000', 10); // 30 min default
+  const conditionalJobTimeoutMs = parseInt(process.env.PR_REVIEW_CONDITIONAL_TIMEOUT_MS || '300000', 10); // 5 min default
 
   try {
     // Add a small delay to account for GitHub's eventual consistency
@@ -1094,6 +1097,7 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
         });
 
         const checkSuites = checkSuitesResponse.check_suites || [];
+        const now = Date.now();
 
         logger.info(
           {
@@ -1105,20 +1109,126 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
               id: cs.id,
               app: cs.app?.name,
               status: cs.status,
-              conclusion: cs.conclusion
+              conclusion: cs.conclusion,
+              createdAt: cs.created_at,
+              updatedAt: cs.updated_at
             }))
           },
           'Retrieved check suites for PR'
         );
 
-        // Check if any check suite is still in progress or has failed
+        // Categorize check suites for smarter processing
+        const meaningfulSuites = [];
+        const skippedSuites = [];
+        const timeoutSuites = [];
+
         for (const suite of checkSuites) {
-          // Skip neutral conclusions (like skipped checks)
+          const createdTime = new Date(suite.created_at).getTime();
+          const updatedTime = new Date(suite.updated_at).getTime();
+          const ageMs = now - createdTime;
+          const stalenessMs = now - updatedTime;
+
+          // Skip suites that were explicitly skipped or marked neutral
           if (suite.conclusion === 'neutral' || suite.conclusion === 'skipped') {
+            skippedSuites.push({
+              id: suite.id,
+              app: suite.app?.name,
+              conclusion: suite.conclusion,
+              reason: 'explicitly_skipped'
+            });
             continue;
           }
 
-          // If any check is in progress, we should wait
+          // Skip suites that never started and are old (likely conditional jobs that didn't trigger)
+          if (suite.status === 'queued' && ageMs > conditionalJobTimeoutMs) {
+            timeoutSuites.push({
+              id: suite.id,
+              app: suite.app?.name,
+              status: suite.status,
+              ageMs: ageMs,
+              reason: 'conditional_job_timeout'
+            });
+            logger.info(
+              {
+                repo: repo.full_name,
+                pr: pr.number,
+                checkSuite: suite.id,
+                app: suite.app?.name,
+                ageMs: ageMs,
+                conditionalJobTimeoutMs: conditionalJobTimeoutMs
+              },
+              'Skipping check suite that never started (likely conditional job)'
+            );
+            continue;
+          }
+
+          // Skip suites that have been stale for too long without updates
+          if (suite.status === 'in_progress' && stalenessMs > maxWaitTimeMs) {
+            timeoutSuites.push({
+              id: suite.id,
+              app: suite.app?.name,
+              status: suite.status,
+              stalenessMs: stalenessMs,
+              reason: 'stale_in_progress'
+            });
+            logger.warn(
+              {
+                repo: repo.full_name,
+                pr: pr.number,
+                checkSuite: suite.id,
+                app: suite.app?.name,
+                stalenessMs: stalenessMs
+              },
+              'Skipping stale check suite that has been in progress too long'
+            );
+            continue;
+          }
+
+          // This is a meaningful check suite that we should wait for
+          meaningfulSuites.push(suite);
+        }
+
+        logger.info(
+          {
+            repo: repo.full_name,
+            pr: pr.number,
+            totalSuites: checkSuites.length,
+            meaningfulSuites: meaningfulSuites.length,
+            skippedSuites: skippedSuites.length,
+            timeoutSuites: timeoutSuites.length,
+            skippedDetails: skippedSuites,
+            timeoutDetails: timeoutSuites
+          },
+          'Categorized check suites for smart processing'
+        );
+
+        // If no meaningful suites found, something might be wrong
+        if (meaningfulSuites.length === 0) {
+          logger.warn(
+            {
+              repo: repo.full_name,
+              pr: pr.number,
+              totalSuites: checkSuites.length
+            },
+            'No meaningful check suites found - all were skipped or timed out'
+          );
+          // If we only have skipped/neutral suites, consider that as "passed"
+          if (checkSuites.length > 0 && skippedSuites.length + timeoutSuites.length === checkSuites.length) {
+            logger.info(
+              {
+                repo: repo.full_name,
+                pr: pr.number
+              },
+              'All check suites were skipped/conditional - considering as passed'
+            );
+            continue; // Move to next PR
+          }
+          return false;
+        }
+
+        // Check meaningful check suites
+        for (const suite of meaningfulSuites) {
+          // If any meaningful check is still in progress, we should wait
           if (suite.status !== 'completed') {
             logger.info(
               {
@@ -1128,12 +1238,12 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
                 app: suite.app?.name,
                 status: suite.status
               },
-              'Check suite still in progress'
+              'Meaningful check suite still in progress'
             );
             return false;
           }
 
-          // If any check failed, we shouldn't review
+          // If any meaningful check failed, we shouldn't review
           if (suite.conclusion !== 'success') {
             logger.info(
               {
@@ -1143,11 +1253,20 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
                 app: suite.app?.name,
                 conclusion: suite.conclusion
               },
-              'Check suite did not succeed'
+              'Meaningful check suite did not succeed'
             );
             return false;
           }
         }
+
+        logger.info(
+          {
+            repo: repo.full_name,
+            pr: pr.number,
+            passedSuites: meaningfulSuites.length
+          },
+          'All meaningful check suites completed successfully'
+        );
       } catch (error) {
         logger.error(
           {
@@ -1161,7 +1280,14 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
       }
     }
 
-    // All checks passed!
+    // All meaningful checks passed!
+    logger.info(
+      {
+        repo: repo.full_name,
+        prCount: pullRequests.length
+      },
+      'All PRs have meaningful check suites completed successfully'
+    );
     return true;
   } catch (error) {
     logger.error(

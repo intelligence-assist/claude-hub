@@ -23,8 +23,9 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     && apt-get install -y --no-install-recommends docker-ce-cli=5:27.* \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Claude Code with pinned version
-RUN npm install -g @anthropic-ai/claude-code@1.0.3
+# Install Claude Code (latest version)
+# hadolint ignore=DL3016
+RUN npm install -g @anthropic-ai/claude-code
 
 # Create docker group first, then create a non-root user for running the application
 RUN groupadd -g 999 docker 2>/dev/null || true \

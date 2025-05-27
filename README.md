@@ -47,8 +47,8 @@ Claude analyzes your entire repository context, understands your codebase, and p
 
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/claude-github-webhook.git
-cd claude-github-webhook
+git clone https://github.com/intelligence-assist/claude-hub.git
+cd claude-hub
 ./scripts/setup/setup-secure-credentials.sh
 
 # Launch with Docker Compose
@@ -276,7 +276,7 @@ npm run dev
 
 ### Support
 
-- Report issues: [GitHub Issues](https://github.com/yourusername/claude-github-webhook/issues)
+- Report issues: [GitHub Issues](https://github.com/intelligence-assist/claude-hub/issues)
 - Detailed troubleshooting: [Complete Workflow Guide](./docs/complete-workflow.md#troubleshooting)
 
 ## License

@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git=1:2.39.5-0+deb12u2 \
     curl=7.88.1-10+deb12u12 \
     python3=3.11.2-1+b1 \
-    python3-pip=23.0.1+dfsg-1+deb12u1 \
+    python3-pip=23.0.1+dfsg-1 \
     python3-venv=3.11.2-1+b1 \
     expect=5.45.4-2+b1 \
     ca-certificates=20230311 \

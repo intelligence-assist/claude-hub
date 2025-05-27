@@ -488,6 +488,11 @@ async function makeGitHubRequest(url) {
       throw new Error('GitHub client not initialized');
     }
 
+    // Validate that the URL is a GitHub API URL to prevent SSRF
+    if (!url.startsWith('https://api.github.com/')) {
+      throw new Error('Invalid GitHub API URL');
+    }
+
     // Extract the path from the full URL
     const apiPath = url.replace('https://api.github.com', '');
     

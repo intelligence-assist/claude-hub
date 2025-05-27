@@ -28,7 +28,6 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - **Run tests**: `npm test`
 - Run specific test types:
   - Unit tests: `npm run test:unit`
-  - Integration tests: `npm run test:integration`
   - End-to-end tests: `npm run test:e2e`
   - Test with coverage: `npm run test:coverage`
   - Watch mode: `npm run test:watch`

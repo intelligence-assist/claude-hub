@@ -178,5 +178,4 @@ describe('githubService', () => {
       expect(axios.post).not.toHaveBeenCalled();
     });
   });
-
 });

@@ -9,25 +9,44 @@
 
 ![Claude GitHub Webhook brain factory - AI brain connected to GitHub octocat via assembly line of Docker containers](./assets/brain_factory.png)
 
-Deploy Claude Code as a GitHub bot. Mention @Claude in any issue or PR, and watch AI-powered code analysis happen in real-time. Production-ready microservice with container isolation, automated PR reviews, and intelligent issue labeling.
+Deploy Claude Code as a fully autonomous GitHub bot. Mention @Claude in any issue or PR, and watch AI-powered development happen end-to-end. Claude can implement complete features, review code, merge PRs, wait for CI builds, and run for hours autonomously until tasks are completed. Production-ready microservice with container isolation, automated workflows, and intelligent project management.
 
 ## What This Does
 
 ```bash
 # In any GitHub issue or PR:
-@ClaudeBot explain this code architecture
+@ClaudeBot implement user authentication with OAuth
 @ClaudeBot review this PR for security vulnerabilities  
-@ClaudeBot suggest performance improvements
+@ClaudeBot fix the failing CI tests and merge when ready
+@ClaudeBot refactor the database layer for better performance
 ```
 
-Claude analyzes your entire repository context, understands your codebase, and provides expert-level responses directly in GitHub comments. No context switching. No manual copy-paste. Just seamless AI integration where you work.
+Claude autonomously handles complete development workflows. It analyzes your entire repository, implements features from scratch, conducts thorough code reviews, manages pull requests, monitors CI/CD pipelines, and responds to automated feedback - all without human intervention. No context switching. No manual oversight required. Just seamless autonomous development where you work.
+
+## Autonomous Workflow Capabilities
+
+### End-to-End Development 🚀
+- **Feature Implementation**: From requirements to fully tested, production-ready code
+- **Code Review & Quality**: Comprehensive analysis including security, performance, and best practices
+- **PR Lifecycle Management**: Creates branches, commits changes, pushes code, and manages merge process
+- **CI/CD Monitoring**: Actively waits for builds, analyzes test results, and fixes failures
+- **Automated Code Response**: Responds to automated review comments and adapts based on feedback
+
+### Intelligent Task Management 🧠
+- **Multi-hour Operations**: Continues working autonomously until complex tasks are 100% complete
+- **Dependency Resolution**: Handles blockers, waits for external processes, and resumes work automatically
+- **Context Preservation**: Maintains project state and progress across long-running operations
+- **Adaptive Problem Solving**: Iterates on solutions based on test results and code review feedback
 
 ## Key Features
 
-### Intelligent Automation 🤖
+### Autonomous Development 🤖
+- **Complete Feature Implementation**: Claude codes entire features from requirements to deployment
+- **Intelligent PR Management**: Automatically creates, reviews, and merges pull requests
+- **CI/CD Integration**: Waits for builds, responds to test failures, and handles automated workflows
+- **Long-running Tasks**: Operates autonomously for hours until complex projects are completed
 - **Auto-labeling**: New issues automatically tagged by content analysis
-- **PR Reviews**: Comprehensive code reviews when CI checks pass
-- **Context-aware**: Claude understands your entire repository structure
+- **Context-aware**: Claude understands your entire repository structure and development patterns
 - **Stateless execution**: Each request runs in isolated Docker containers
 
 ### Performance Architecture ⚡
@@ -135,31 +154,38 @@ curl -X POST http://localhost:8082/api/claude \
 
 ### Container Execution Modes
 
-Different operations use tailored security profiles:
+Different operations use tailored security profiles for autonomous execution:
 
 - **Auto-tagging**: Minimal permissions (Read + GitHub tools only)
-- **PR Reviews**: Standard permissions (full tool access)
+- **PR Reviews**: Standard permissions (full tool access with automated merge capabilities)
+- **Feature Development**: Full development permissions (code editing, testing, CI monitoring)
+- **Long-running Tasks**: Extended container lifetime with checkpoint/resume functionality
 - **Custom Commands**: Configurable via `--allowedTools` flag
 
 ## Architecture Deep Dive
 
-### Request Flow
+### Autonomous Request Flow
 
 ```
 GitHub Event → Webhook Endpoint → Signature Verification
      ↓                                      ↓
 Container Spawn ← Command Parser ← Event Processor
      ↓
-Claude Analysis → GitHub API → Comment/Label/Review
+Claude Analysis → Feature Implementation → Testing & CI
+     ↓                     ↓                    ↓
+GitHub API ← Code Review ← PR Management ← Build Monitoring
+     ↓
+Autonomous Merge/Deploy → Task Completion
 ```
 
-### Container Lifecycle
+### Autonomous Container Lifecycle
 
-1. **Spawn**: New Docker container per request
-2. **Clone**: Repository fetched (or cache hit)
-3. **Execute**: Claude analyzes with configured tools
-4. **Respond**: Results posted via GitHub API
-5. **Cleanup**: Container destroyed, cache updated
+1. **Spawn**: New Docker container per request with extended lifetime for long tasks
+2. **Clone**: Repository fetched (or cache hit) with full development setup
+3. **Execute**: Claude implements features, runs tests, monitors CI, handles feedback autonomously
+4. **Iterate**: Continuous development cycle until task completion
+5. **Deploy**: Results pushed, PRs merged, tasks marked complete
+6. **Cleanup**: Container destroyed after successful task completion
 
 ### Security Layers
 

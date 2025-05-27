@@ -200,7 +200,9 @@ The `awsCredentialProvider.js` utility handles credential retrieval and rotation
 - `ANTHROPIC_API_KEY`: Anthropic API key for Claude access
 
 ### Optional Environment Variables
-- `PR_REVIEW_TRIGGER_WORKFLOW`: Name of the specific GitHub Actions workflow that should trigger automated PR reviews (e.g., `"Pull Request CI"`). If not set, automated PR reviews are disabled. This makes the system repository-independent and prevents multiple reviews from different check suites.
+- `PR_REVIEW_WAIT_FOR_ALL_CHECKS`: Set to `"true"` to wait for all check suites to complete successfully before triggering PR review (default: `"true"`). This prevents duplicate reviews from different check suites.
+- `PR_REVIEW_TRIGGER_WORKFLOW`: Name of a specific GitHub Actions workflow that should trigger PR reviews (e.g., `"Pull Request CI"`). Only used if `PR_REVIEW_WAIT_FOR_ALL_CHECKS` is `"false"`.
+- `PR_REVIEW_DEBOUNCE_MS`: Delay in milliseconds before checking all check suites status (default: `"5000"`). This accounts for GitHub's eventual consistency.
 
 ## Code Style Guidelines
 - JavaScript with Node.js

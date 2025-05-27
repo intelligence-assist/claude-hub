@@ -7,7 +7,7 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-![Claude GitHub Webhook brain factory - AI brain connected to GitHub octocat via assembly line of Docker containers](./brain_factory.png)
+![Claude GitHub Webhook brain factory - AI brain connected to GitHub octocat via assembly line of Docker containers](./assets/brain_factory.png)
 
 Deploy Claude Code as a GitHub bot. Mention @Claude in any issue or PR, and watch AI-powered code analysis happen in real-time. Production-ready microservice with container isolation, automated PR reviews, and intelligent issue labeling.
 

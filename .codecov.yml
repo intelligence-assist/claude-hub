@@ -1,0 +1,23 @@
+codecov:
+  require_ci_to_pass: false
+  
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        base: auto
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+        base: auto
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
+
+github_checks:
+  annotations: false

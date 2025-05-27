@@ -1162,6 +1162,29 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
             continue;
           }
 
+          // Skip empty check suites that have no check runs (common with misconfigured external apps)
+          if (suite.status === 'queued' && suite.latest_check_runs_count === 0 && ageMs > 60000) { // 1 minute grace period
+            timeoutSuites.push({
+              id: suite.id,
+              app: suite.app?.name,
+              status: suite.status,
+              ageMs: ageMs,
+              reason: 'empty_check_suite'
+            });
+            logger.info(
+              {
+                repo: repo.full_name,
+                pr: pr.number,
+                checkSuite: suite.id,
+                app: suite.app?.name,
+                ageMs: ageMs,
+                checkRunsCount: suite.latest_check_runs_count
+              },
+              'Skipping empty check suite with no check runs (likely misconfigured external app)'
+            );
+            continue;
+          }
+
           // Skip suites that have been stale for too long without updates
           if (suite.status === 'in_progress' && stalenessMs > maxWaitTimeMs) {
             timeoutSuites.push({

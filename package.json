@@ -11,7 +11,7 @@
     "test:e2e": "jest --testMatch='**/test/e2e/**/*.test.js'",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
-    "test:ci": "jest --ci --coverage",
+    "test:ci": "jest --ci --coverage --testPathPattern='test/(unit|integration).*\\.test\\.js$'",
     "pretest": "./scripts/utils/ensure-test-dirs.sh",
     "lint": "eslint src/ test/ --fix",
     "lint:check": "eslint src/ test/",

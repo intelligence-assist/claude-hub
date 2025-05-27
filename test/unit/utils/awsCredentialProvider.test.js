@@ -1,4 +1,3 @@
- 
 const fs = require('fs');
 
 // Mock dependencies
@@ -75,28 +74,28 @@ region = us-west-2
   test('should cache credentials', async () => {
     // First clear any existing cache
     awsCredentialProvider.clearCache();
-    
+
     // Reset mock counters
     fs.promises.readFile.mockClear();
-    
+
     // First call should read from files
     const credentials1 = await awsCredentialProvider.getCredentials();
-    
+
     // Count how many times readFile was called on first request
     const firstCallCount = fs.promises.readFile.mock.calls.length;
-    
+
     // Should be exactly 2 calls (credentials and config files)
     expect(firstCallCount).toBe(2);
-    
+
     // Reset counter to clearly see calls for second request
     fs.promises.readFile.mockClear();
-    
+
     // Second call should use cached credentials and not read files again
     const credentials2 = await awsCredentialProvider.getCredentials();
-    
+
     // Verify credentials are the same object (cached)
     expect(credentials1).toBe(credentials2);
-    
+
     // Verify no additional file reads occurred on second call
     expect(fs.promises.readFile).not.toHaveBeenCalled();
   });

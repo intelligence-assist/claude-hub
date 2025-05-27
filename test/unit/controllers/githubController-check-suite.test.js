@@ -55,12 +55,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     githubService.hasReviewedPRAtCommit.mockReset();
     githubService.managePRLabels.mockReset();
     githubService.getCheckSuitesForRef.mockReset();
-    
+
     // Mock the check runs API response to return the expected workflow name
     githubService.getCheckSuitesForRef.mockResolvedValue({
-      check_runs: [
-        { name: 'Pull Request CI' }
-      ]
+      check_runs: [{ name: 'Pull Request CI' }]
     });
   });
 
@@ -105,14 +103,12 @@ describe('GitHub Controller - Check Suite Events', () => {
 
     // Mock workflow name extraction to match PR_REVIEW_TRIGGER_WORKFLOW
     githubService.getCheckSuitesForRef.mockResolvedValue({
-      check_runs: [
-        { name: 'Pull Request CI' }
-      ]
+      check_runs: [{ name: 'Pull Request CI' }]
     });
 
     // Mock that PR has not been reviewed yet
     githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
-    
+
     // Mock label management
     githubService.managePRLabels.mockResolvedValue();
 
@@ -128,7 +124,7 @@ describe('GitHub Controller - Check Suite Events', () => {
       prNumber: 42,
       commitSha: 'pr-sha-123'
     });
-    
+
     // Verify labels were managed (in-progress and complete)
     expect(githubService.managePRLabels).toHaveBeenCalledTimes(2);
     expect(githubService.managePRLabels).toHaveBeenCalledWith({
@@ -140,7 +136,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     });
     expect(githubService.managePRLabels).toHaveBeenCalledWith({
       repoOwner: 'owner',
-      repoName: 'repo',  
+      repoName: 'repo',
       prNumber: 42,
       labelsToAdd: ['claude-review-complete'],
       labelsToRemove: ['claude-review-in-progress', 'claude-review-needed']
@@ -284,7 +280,7 @@ describe('GitHub Controller - Check Suite Events', () => {
 
     // Mock that neither PR has been reviewed yet
     githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
-    
+
     // Mock label management
     githubService.managePRLabels.mockResolvedValue();
 
@@ -295,7 +291,7 @@ describe('GitHub Controller - Check Suite Events', () => {
 
     // Verify both PRs were checked for existing reviews
     expect(githubService.hasReviewedPRAtCommit).toHaveBeenCalledTimes(2);
-    
+
     // Verify Claude was called twice, once for each PR
     expect(claudeService.processCommand).toHaveBeenCalledTimes(2);
 
@@ -354,7 +350,7 @@ describe('GitHub Controller - Check Suite Events', () => {
 
     // Mock that PR has not been reviewed yet
     githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
-    
+
     // Mock label management
     githubService.managePRLabels.mockResolvedValue();
 
@@ -417,7 +413,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     // Verify Claude was NOT called because workflow doesn't match
     expect(claudeService.processCommand).not.toHaveBeenCalled();
 
-    // Verify simple success response 
+    // Verify simple success response
     expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
       message: 'Webhook processed successfully'
@@ -555,7 +551,6 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     });
   });
-
 
   it('should skip PR review when already reviewed at same commit', async () => {
     // Setup successful check suite with pull request

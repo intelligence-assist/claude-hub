@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 app.post('/webhook', (req, res) => {
   const event = req.headers['x-github-event'];
   const delivery = req.headers['x-github-delivery'];
-  
+
   logger.info(
     {
       event,

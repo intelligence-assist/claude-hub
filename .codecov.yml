@@ -8,11 +8,15 @@ coverage:
         target: auto
         threshold: 1%
         base: auto
+        # Only check coverage on main branch
+        if_ci_failed: error
     patch:
       default:
         target: auto
         threshold: 1%
         base: auto
+        # Only check coverage on main branch  
+        if_ci_failed: error
 
 comment:
   layout: "reach,diff,flags,tree"
@@ -20,4 +24,5 @@ comment:
   require_changes: false
 
 github_checks:
+  # Disable check suites to prevent hanging on non-main branches
   annotations: false

@@ -27,6 +27,8 @@ services:
       - PR_REVIEW_WAIT_FOR_ALL_CHECKS=${PR_REVIEW_WAIT_FOR_ALL_CHECKS:-true}
       - PR_REVIEW_TRIGGER_WORKFLOW=${PR_REVIEW_TRIGGER_WORKFLOW:-}
       - PR_REVIEW_DEBOUNCE_MS=${PR_REVIEW_DEBOUNCE_MS:-5000}
+      # Force review mode for testing
+      - PR_REVIEW_FORCE_ON_SUCCESS=${PR_REVIEW_FORCE_ON_SUCCESS:-false}
       # Point to secret files instead of env vars
       - GITHUB_TOKEN_FILE=/run/secrets/github_token
       - ANTHROPIC_API_KEY_FILE=/run/secrets/anthropic_api_key

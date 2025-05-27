@@ -9,18 +9,18 @@
  */
 async function dockerImageExists(imageName) {
   const { spawn } = require('child_process');
-  
-  return new Promise((resolve) => {
+
+  return new Promise(resolve => {
     const child = spawn('docker', ['images', '-q', imageName], {
       stdio: ['pipe', 'pipe', 'pipe']
     });
 
     let stdout = '';
-    child.stdout.on('data', (data) => {
+    child.stdout.on('data', data => {
       stdout += data.toString();
     });
 
-    child.on('close', (code) => {
+    child.on('close', code => {
       resolve(code === 0 && stdout.trim().length > 0);
     });
 
@@ -119,14 +119,14 @@ function conditionalDescribe(suiteName, suiteFunction, options = {}) {
  */
 async function waitFor(condition, timeout = 10000, interval = 100) {
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeout) {
     if (await condition()) {
       return true;
     }
     await new Promise(resolve => setTimeout(resolve, interval));
   }
-  
+
   return false;
 }
 
@@ -139,17 +139,17 @@ async function waitFor(condition, timeout = 10000, interval = 100) {
  */
 async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
   let lastError;
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
-      
+
       if (attempt === maxRetries) {
         throw lastError;
       }
-      
+
       const delay = baseDelay * Math.pow(2, attempt);
       await new Promise(resolve => setTimeout(resolve, delay));
     }

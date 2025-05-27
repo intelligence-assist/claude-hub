@@ -19,33 +19,33 @@ const logFileName = path.join(logsDir, 'app.log');
 // Configure different transports based on environment
 const transport = isProduction
   ? {
-    targets: [
-      // File transport for production
-      {
-        target: 'pino/file',
-        options: { destination: logFileName, mkdir: true }
-      },
-      // Console pretty transport
-      {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          levelFirst: true,
-          translateTime: 'SYS:standard'
+      targets: [
+        // File transport for production
+        {
+          target: 'pino/file',
+          options: { destination: logFileName, mkdir: true }
         },
-        level: 'info'
-      }
-    ]
-  }
-  : {
-    // Just use pretty logs in development
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      levelFirst: true,
-      translateTime: 'SYS:standard'
+        // Console pretty transport
+        {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            levelFirst: true,
+            translateTime: 'SYS:standard'
+          },
+          level: 'info'
+        }
+      ]
     }
-  };
+  : {
+      // Just use pretty logs in development
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        levelFirst: true,
+        translateTime: 'SYS:standard'
+      }
+    };
 
 // Configure the logger
 const logger = pino({
@@ -64,45 +64,305 @@ const logger = pino({
   },
   redact: {
     paths: [
+      // HTTP headers that might contain credentials
       'headers.authorization',
+      'headers["x-api-key"]',
+      'headers["x-auth-token"]',
+      'headers["x-github-token"]',
+      'headers.bearer',
+      '*.headers.authorization',
+      '*.headers["x-api-key"]',
+      '*.headers["x-auth-token"]',
+      '*.headers["x-github-token"]',
+      '*.headers.bearer',
+
+      // Generic sensitive field patterns (top-level)
+      'password',
+      'passwd',
+      'pass',
+      'token',
+      'secret',
+      'secretKey',
+      'secret_key',
+      'apiKey',
+      'api_key',
+      'credential',
+      'credentials',
+      'key',
+      'private',
+      'privateKey',
+      'private_key',
+      'auth',
+      'authentication',
+
+      // Generic sensitive field patterns (nested)
       '*.password',
+      '*.passwd',
+      '*.pass',
       '*.token',
       '*.secret',
       '*.secretKey',
+      '*.secret_key',
+      '*.apiKey',
+      '*.api_key',
+      '*.credential',
+      '*.credentials',
+      '*.key',
+      '*.private',
+      '*.privateKey',
+      '*.private_key',
+      '*.auth',
+      '*.authentication',
+
+      // Specific environment variables (top-level)
       'AWS_SECRET_ACCESS_KEY',
       'AWS_ACCESS_KEY_ID',
+      'AWS_SESSION_TOKEN',
+      'AWS_SECURITY_TOKEN',
       'GITHUB_TOKEN',
       'GH_TOKEN',
       'ANTHROPIC_API_KEY',
+      'GITHUB_WEBHOOK_SECRET',
+      'WEBHOOK_SECRET',
+      'BOT_TOKEN',
+      'API_KEY',
+      'SECRET_KEY',
+      'ACCESS_TOKEN',
+      'REFRESH_TOKEN',
+      'JWT_SECRET',
+      'DATABASE_URL',
+      'DB_PASSWORD',
+      'REDIS_PASSWORD',
+
+      // Nested in any object (*)
       '*.AWS_SECRET_ACCESS_KEY',
       '*.AWS_ACCESS_KEY_ID',
+      '*.AWS_SESSION_TOKEN',
+      '*.AWS_SECURITY_TOKEN',
       '*.GITHUB_TOKEN',
       '*.GH_TOKEN',
       '*.ANTHROPIC_API_KEY',
+      '*.GITHUB_WEBHOOK_SECRET',
+      '*.WEBHOOK_SECRET',
+      '*.BOT_TOKEN',
+      '*.API_KEY',
+      '*.SECRET_KEY',
+      '*.ACCESS_TOKEN',
+      '*.REFRESH_TOKEN',
+      '*.JWT_SECRET',
+      '*.DATABASE_URL',
+      '*.DB_PASSWORD',
+      '*.REDIS_PASSWORD',
+
+      // Docker-related sensitive content
       'dockerCommand',
       '*.dockerCommand',
+      'dockerArgs',
+      '*.dockerArgs',
+      'command',
+      '*.command',
+
+      // Environment variable containers
       'envVars.AWS_SECRET_ACCESS_KEY',
       'envVars.AWS_ACCESS_KEY_ID',
+      'envVars.AWS_SESSION_TOKEN',
+      'envVars.AWS_SECURITY_TOKEN',
       'envVars.GITHUB_TOKEN',
       'envVars.GH_TOKEN',
       'envVars.ANTHROPIC_API_KEY',
+      'envVars.GITHUB_WEBHOOK_SECRET',
+      'envVars.WEBHOOK_SECRET',
+      'envVars.BOT_TOKEN',
+      'envVars.API_KEY',
+      'envVars.SECRET_KEY',
+      'envVars.ACCESS_TOKEN',
+      'envVars.REFRESH_TOKEN',
+      'envVars.JWT_SECRET',
+      'envVars.DATABASE_URL',
+      'envVars.DB_PASSWORD',
+      'envVars.REDIS_PASSWORD',
+
       'env.AWS_SECRET_ACCESS_KEY',
       'env.AWS_ACCESS_KEY_ID',
+      'env.AWS_SESSION_TOKEN',
+      'env.AWS_SECURITY_TOKEN',
       'env.GITHUB_TOKEN',
       'env.GH_TOKEN',
       'env.ANTHROPIC_API_KEY',
+      'env.GITHUB_WEBHOOK_SECRET',
+      'env.WEBHOOK_SECRET',
+      'env.BOT_TOKEN',
+      'env.API_KEY',
+      'env.SECRET_KEY',
+      'env.ACCESS_TOKEN',
+      'env.REFRESH_TOKEN',
+      'env.JWT_SECRET',
+      'env.DATABASE_URL',
+      'env.DB_PASSWORD',
+      'env.REDIS_PASSWORD',
+
+      // Process environment variables (using bracket notation for nested objects)
+      'process["env"]["AWS_SECRET_ACCESS_KEY"]',
+      'process["env"]["AWS_ACCESS_KEY_ID"]',
+      'process["env"]["AWS_SESSION_TOKEN"]',
+      'process["env"]["AWS_SECURITY_TOKEN"]',
+      'process["env"]["GITHUB_TOKEN"]',
+      'process["env"]["GH_TOKEN"]',
+      'process["env"]["ANTHROPIC_API_KEY"]',
+      'process["env"]["GITHUB_WEBHOOK_SECRET"]',
+      'process["env"]["WEBHOOK_SECRET"]',
+      'process["env"]["BOT_TOKEN"]',
+      'process["env"]["API_KEY"]',
+      'process["env"]["SECRET_KEY"]',
+      'process["env"]["ACCESS_TOKEN"]',
+      'process["env"]["REFRESH_TOKEN"]',
+      'process["env"]["JWT_SECRET"]',
+      'process["env"]["DATABASE_URL"]',
+      'process["env"]["DB_PASSWORD"]',
+      'process["env"]["REDIS_PASSWORD"]',
+
+      // Process environment variables (as top-level bracket notation keys)
+      '["process.env.AWS_SECRET_ACCESS_KEY"]',
+      '["process.env.AWS_ACCESS_KEY_ID"]',
+      '["process.env.AWS_SESSION_TOKEN"]',
+      '["process.env.AWS_SECURITY_TOKEN"]',
+      '["process.env.GITHUB_TOKEN"]',
+      '["process.env.GH_TOKEN"]',
+      '["process.env.ANTHROPIC_API_KEY"]',
+      '["process.env.GITHUB_WEBHOOK_SECRET"]',
+      '["process.env.WEBHOOK_SECRET"]',
+      '["process.env.BOT_TOKEN"]',
+      '["process.env.API_KEY"]',
+      '["process.env.SECRET_KEY"]',
+      '["process.env.ACCESS_TOKEN"]',
+      '["process.env.REFRESH_TOKEN"]',
+      '["process.env.JWT_SECRET"]',
+      '["process.env.DATABASE_URL"]',
+      '["process.env.DB_PASSWORD"]',
+      '["process.env.REDIS_PASSWORD"]',
+
+      // Output streams that might contain leaked credentials
       'stderr',
       '*.stderr',
       'stdout',
       '*.stdout',
+      'output',
+      '*.output',
+      'logs',
+      '*.logs',
+      'message',
+      '*.message',
+      'data',
+      '*.data',
+
+      // Error objects that might contain sensitive information
       'error.dockerCommand',
       'error.stderr',
       'error.stdout',
-      'process.env.GITHUB_TOKEN',
-      'process.env.GH_TOKEN',
-      'process.env.ANTHROPIC_API_KEY',
-      'process.env.AWS_SECRET_ACCESS_KEY',
-      'process.env.AWS_ACCESS_KEY_ID'
+      'error.output',
+      'error.message',
+      'error.data',
+      'err.dockerCommand',
+      'err.stderr',
+      'err.stdout',
+      'err.output',
+      'err.message',
+      'err.data',
+
+      // HTTP request/response objects
+      'request.headers.authorization',
+      'response.headers.authorization',
+      'req.headers.authorization',
+      'res.headers.authorization',
+      '*.request.headers.authorization',
+      '*.response.headers.authorization',
+      '*.req.headers.authorization',
+      '*.res.headers.authorization',
+
+      // File paths that might contain credentials
+      'credentialsPath',
+      '*.credentialsPath',
+      'keyPath',
+      '*.keyPath',
+      'secretPath',
+      '*.secretPath',
+
+      // Database connection strings and configurations
+      'connectionString',
+      '*.connectionString',
+      'dbUrl',
+      '*.dbUrl',
+      'mongoUrl',
+      '*.mongoUrl',
+      'redisUrl',
+      '*.redisUrl',
+
+      // Authentication objects
+      'auth.token',
+      'auth.secret',
+      'auth.key',
+      'auth.password',
+      '*.auth.token',
+      '*.auth.secret',
+      '*.auth.key',
+      '*.auth.password',
+      'authentication.token',
+      'authentication.secret',
+      'authentication.key',
+      'authentication.password',
+      '*.authentication.token',
+      '*.authentication.secret',
+      '*.authentication.key',
+      '*.authentication.password',
+
+      // Deep nested patterns (up to 4 levels deep)
+      '*.*.password',
+      '*.*.secret',
+      '*.*.token',
+      '*.*.apiKey',
+      '*.*.api_key',
+      '*.*.credential',
+      '*.*.key',
+      '*.*.privateKey',
+      '*.*.private_key',
+      '*.*.AWS_SECRET_ACCESS_KEY',
+      '*.*.AWS_ACCESS_KEY_ID',
+      '*.*.GITHUB_TOKEN',
+      '*.*.ANTHROPIC_API_KEY',
+      '*.*.connectionString',
+      '*.*.DATABASE_URL',
+
+      '*.*.*.password',
+      '*.*.*.secret',
+      '*.*.*.token',
+      '*.*.*.apiKey',
+      '*.*.*.api_key',
+      '*.*.*.credential',
+      '*.*.*.key',
+      '*.*.*.privateKey',
+      '*.*.*.private_key',
+      '*.*.*.AWS_SECRET_ACCESS_KEY',
+      '*.*.*.AWS_ACCESS_KEY_ID',
+      '*.*.*.GITHUB_TOKEN',
+      '*.*.*.ANTHROPIC_API_KEY',
+      '*.*.*.connectionString',
+      '*.*.*.DATABASE_URL',
+
+      '*.*.*.*.password',
+      '*.*.*.*.secret',
+      '*.*.*.*.token',
+      '*.*.*.*.apiKey',
+      '*.*.*.*.api_key',
+      '*.*.*.*.credential',
+      '*.*.*.*.key',
+      '*.*.*.*.privateKey',
+      '*.*.*.*.private_key',
+      '*.*.*.*.AWS_SECRET_ACCESS_KEY',
+      '*.*.*.*.AWS_ACCESS_KEY_ID',
+      '*.*.*.*.GITHUB_TOKEN',
+      '*.*.*.*.ANTHROPIC_API_KEY',
+      '*.*.*.*.connectionString',
+      '*.*.*.*.DATABASE_URL'
     ],
     censor: '[REDACTED]'
   }

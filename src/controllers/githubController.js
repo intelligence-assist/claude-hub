@@ -441,9 +441,12 @@ Please check with an administrator to review the logs for more details.`
         return res.status(200).json({ message: 'No pull requests associated with check suite' });
       }
 
+      // Debug PR check suites for troubleshooting
+      await debugPRCheckSuites(repo, checkSuite.pull_requests);
+
       // Check if we should wait for all check suites or use a specific trigger
       const triggerWorkflowName = process.env.PR_REVIEW_TRIGGER_WORKFLOW;
-      const waitForAllChecks = process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS === 'true';
+      const waitForAllChecks = process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS !== 'false';
 
       let shouldTriggerReview = false;
       let triggerReason = '';
@@ -475,6 +478,21 @@ Please check with an administrator to review the logs for more details.`
           : `Workflow '${workflowName}' does not match trigger '${triggerWorkflowName}'`;
       }
 
+      // Check for force review mode (useful for debugging)
+      const forceReview = process.env.PR_REVIEW_FORCE_ON_SUCCESS === 'true';
+      if (forceReview && !shouldTriggerReview) {
+        shouldTriggerReview = true;
+        triggerReason = 'Force review mode enabled - ignoring other conditions';
+        logger.warn(
+          {
+            repo: repo.full_name,
+            checkSuite: checkSuite.id,
+            originalReason: triggerReason
+          },
+          'Force review mode enabled - triggering review despite conditions'
+        );
+      }
+
       logger.info(
         {
           repo: repo.full_name,
@@ -484,7 +502,8 @@ Please check with an administrator to review the logs for more details.`
           shouldTriggerReview,
           triggerReason,
           waitForAllChecks,
-          triggerWorkflowName
+          triggerWorkflowName,
+          forceReview
         },
         shouldTriggerReview ? 'Triggering automated PR review' : 'Not triggering PR review'
       );
@@ -1115,6 +1134,16 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
         for (const suite of checkSuites) {
           // Skip neutral conclusions (like skipped checks)
           if (suite.conclusion === 'neutral' || suite.conclusion === 'skipped') {
+            logger.debug(
+              {
+                repo: repo.full_name,
+                pr: pr.number,
+                checkSuite: suite.id,
+                app: suite.app?.name,
+                conclusion: suite.conclusion
+              },
+              'Skipping neutral/skipped check suite'
+            );
             continue;
           }
 
@@ -1148,6 +1177,19 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
             return false;
           }
         }
+
+        // Special case: If no check suites exist, we can proceed with the review
+        // This handles repos that might not have any required checks configured
+        if (checkSuites.length === 0) {
+          logger.info(
+            {
+              repo: repo.full_name,
+              pr: pr.number,
+              sha: pr.head.sha
+            },
+            'No check suites found for PR - proceeding with review'
+          );
+        }
       } catch (error) {
         logger.error(
           {
@@ -1172,6 +1214,59 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
       'Failed to check all check suites'
     );
     return false;
+  }
+}
+
+/**
+ * Debug helper to log detailed information about PR check suites
+ * @param {Object} repo - The repository object
+ * @param {Array} pullRequests - Array of pull requests
+ */
+async function debugPRCheckSuites(repo, pullRequests) {
+  try {
+    for (const pr of pullRequests) {
+      const [repoOwner, repoName] = repo.full_name.split('/');
+      const checkSuitesResponse = await githubService.getCheckSuitesForRef({
+        repoOwner,
+        repoName,
+        ref: pr.head.sha
+      });
+
+      const checkSuites = checkSuitesResponse.check_suites || [];
+      
+      logger.info(
+        {
+          repo: repo.full_name,
+          pr: pr.number,
+          sha: pr.head.sha,
+          totalCheckSuites: checkSuites.length,
+          environment: {
+            waitForAllChecks: process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS,
+            triggerWorkflow: process.env.PR_REVIEW_TRIGGER_WORKFLOW,
+            debounceMs: process.env.PR_REVIEW_DEBOUNCE_MS,
+            forceReview: process.env.PR_REVIEW_FORCE_ON_SUCCESS
+          },
+          checkSuites: checkSuites.map(cs => ({
+            id: cs.id,
+            app: cs.app?.name || 'unknown',
+            slug: cs.app?.slug || 'unknown',
+            status: cs.status,
+            conclusion: cs.conclusion,
+            created_at: cs.created_at,
+            updated_at: cs.updated_at
+          }))
+        },
+        'DEBUG: PR check suites analysis'
+      );
+    }
+  } catch (error) {
+    logger.error(
+      {
+        err: error,
+        repo: repo.full_name
+      },
+      'Error debugging PR check suites'
+    );
   }
 }
 
@@ -1208,5 +1303,6 @@ async function getWorkflowNameFromCheckSuite(checkSuite, repo) {
 module.exports = {
   handleWebhook,
   getWorkflowNameFromCheckSuite,
-  checkAllCheckSuitesComplete
+  checkAllCheckSuitesComplete,
+  debugPRCheckSuites
 };

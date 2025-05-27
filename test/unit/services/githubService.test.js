@@ -12,6 +12,9 @@ jest.mock('@octokit/rest', () => ({
     },
     repos: {
       getCombinedStatusForRef: jest.fn()
+    },
+    checks: {
+      listSuitesForRef: jest.fn()
     }
   }))
 }));
@@ -36,7 +39,7 @@ jest.mock('../../../src/utils/logger', () => ({
 jest.mock('../../../src/utils/secureCredentials', () => ({
   get: jest.fn(key => {
     const mockCredentials = {
-      GITHUB_TOKEN: 'test_token',
+      GITHUB_TOKEN: 'ghp_test_token_with_proper_prefix',
       ANTHROPIC_API_KEY: 'test_anthropic_key',
       GITHUB_WEBHOOK_SECRET: 'test_secret'
     };
@@ -56,6 +59,7 @@ describe('githubService', () => {
     jest.clearAllMocks();
     // Ensure we're in test mode
     process.env.NODE_ENV = 'test';
+    process.env.BOT_USERNAME = 'TestBot';
   });
 
   describe('getFallbackLabels', () => {
@@ -174,4 +178,5 @@ describe('githubService', () => {
       expect(axios.post).not.toHaveBeenCalled();
     });
   });
+
 });

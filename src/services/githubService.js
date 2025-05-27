@@ -477,6 +477,41 @@ async function hasReviewedPRAtCommit({ repoOwner, repoName, prNumber, commitSha 
 }
 
 /**
+ * Makes a direct GitHub API request using Octokit
+ * @param {string} url - The GitHub API URL
+ * @returns {Promise<Object>} The API response data
+ */
+async function makeGitHubRequest(url) {
+  try {
+    const client = getOctokit();
+    if (!client) {
+      throw new Error('GitHub client not initialized');
+    }
+
+    // Extract the path from the full URL
+    const apiPath = url.replace('https://api.github.com', '');
+    
+    logger.info({
+      url,
+      apiPath
+    }, 'Making GitHub API request');
+
+    // Use Octokit's request method for arbitrary endpoints
+    const { data } = await client.request(`GET ${apiPath}`);
+    
+    return data;
+  } catch (error) {
+    logger.error({
+      err: error.message,
+      url,
+      status: error.status
+    }, 'GitHub API request failed');
+    
+    throw error;
+  }
+}
+
+/**
  * Add or remove labels on a pull request
  * @param {Object} params
  * @param {string} params.repoOwner - Repository owner
@@ -576,5 +611,6 @@ module.exports = {
   getFallbackLabels,
   getCombinedStatus,
   hasReviewedPRAtCommit,
-  managePRLabels
+  managePRLabels,
+  makeGitHubRequest
 };

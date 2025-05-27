@@ -477,6 +477,66 @@ async function hasReviewedPRAtCommit({ repoOwner, repoName, prNumber, commitSha 
 }
 
 /**
+ * Gets check suites for a specific commit
+ * @param {Object} params
+ * @param {string} params.repoOwner - Repository owner
+ * @param {string} params.repoName - Repository name
+ * @param {string} params.ref - Commit SHA or ref
+ * @returns {Promise<Object>} The check suites response
+ */
+async function getCheckSuitesForRef({ repoOwner, repoName, ref }) {
+  try {
+    // Validate parameters to prevent SSRF
+    const repoPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
+      throw new Error('Invalid repository owner or name - contains unsafe characters');
+    }
+
+    // Validate ref (commit SHA, branch, or tag)
+    const refPattern = /^[a-zA-Z0-9._/-]+$/;
+    if (!refPattern.test(ref)) {
+      throw new Error('Invalid ref - contains unsafe characters');
+    }
+
+    logger.info({
+      repo: `${repoOwner}/${repoName}`,
+      ref
+    }, 'Getting check suites for ref');
+
+    // In test mode, return mock data
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
+      return {
+        total_count: 1,
+        check_suites: [{
+          id: 12345,
+          app: { slug: 'github-actions', name: 'GitHub Actions' },
+          status: 'completed',
+          conclusion: 'success'
+        }]
+      };
+    }
+
+    // Use Octokit's built-in method
+    const { data } = await client.checks.listSuitesForRef({
+      owner: repoOwner,
+      repo: repoName,
+      ref: ref
+    });
+
+    return data;
+  } catch (error) {
+    logger.error({
+      err: error.message,
+      repo: `${repoOwner}/${repoName}`,
+      ref
+    }, 'Failed to get check suites');
+    
+    throw error;
+  }
+}
+
+/**
  * Add or remove labels on a pull request
  * @param {Object} params
  * @param {string} params.repoOwner - Repository owner
@@ -576,5 +636,6 @@ module.exports = {
   getFallbackLabels,
   getCombinedStatus,
   hasReviewedPRAtCommit,
-  managePRLabels
+  managePRLabels,
+  getCheckSuitesForRef
 };

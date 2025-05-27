@@ -4,6 +4,8 @@ process.env.NODE_ENV = 'test';
 process.env.GITHUB_WEBHOOK_SECRET = 'test-secret';
 process.env.GITHUB_TOKEN = 'test-token';
 process.env.PR_REVIEW_TRIGGER_WORKFLOW = 'Pull Request CI';
+process.env.PR_REVIEW_DEBOUNCE_MS = '0'; // Disable debounce for tests
+process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS = 'false'; // Use trigger workflow mode for tests
 
 const githubController = require('../../../src/controllers/githubController');
 const claudeService = require('../../../src/services/claudeService');
@@ -21,7 +23,7 @@ jest.mock('../../../src/services/githubService', () => ({
   getFallbackLabels: jest.fn(),
   hasReviewedPRAtCommit: jest.fn(),
   managePRLabels: jest.fn(),
-  makeGitHubRequest: jest.fn()
+  getCheckSuitesForRef: jest.fn()
 }));
 
 describe('GitHub Controller - Check Suite Events', () => {
@@ -52,10 +54,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     githubService.getFallbackLabels.mockReset();
     githubService.hasReviewedPRAtCommit.mockReset();
     githubService.managePRLabels.mockReset();
-    githubService.makeGitHubRequest.mockReset();
+    githubService.getCheckSuitesForRef.mockReset();
     
     // Mock the check runs API response to return the expected workflow name
-    githubService.makeGitHubRequest.mockResolvedValue({
+    githubService.getCheckSuitesForRef.mockResolvedValue({
       check_runs: [
         { name: 'Pull Request CI' }
       ]
@@ -67,10 +69,16 @@ describe('GitHub Controller - Check Suite Events', () => {
   });
 
   it('should trigger PR review when check suite succeeds with PRs and combined status passes', async () => {
+    // Use specific workflow trigger for this test
+    process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS = 'false';
     // Setup successful check suite with pull requests
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',
@@ -94,6 +102,13 @@ describe('GitHub Controller - Check Suite Events', () => {
         name: 'repo'
       }
     };
+
+    // Mock workflow name extraction to match PR_REVIEW_TRIGGER_WORKFLOW
+    githubService.getCheckSuitesForRef.mockResolvedValue({
+      check_runs: [
+        { name: 'Pull Request CI' }
+      ]
+    });
 
     // Mock that PR has not been reviewed yet
     githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
@@ -152,6 +167,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'failure',
         pull_requests: [
@@ -173,10 +192,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     // Verify Claude was NOT called
     expect(claudeService.processCommand).not.toHaveBeenCalled();
 
-    // Verify generic response
+    // Verify response for failed check suite
     expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
-      message: 'Webhook processed successfully'
+      message: 'Check suite not successful'
     });
   });
 
@@ -185,6 +204,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         pull_requests: []
@@ -199,18 +222,24 @@ describe('GitHub Controller - Check Suite Events', () => {
     // Verify Claude was NOT called
     expect(claudeService.processCommand).not.toHaveBeenCalled();
 
-    // Verify generic response
+    // Verify response for check suite without PRs
     expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
-      message: 'Webhook processed successfully'
+      message: 'No pull requests associated with check suite'
     });
   });
 
   it('should handle multiple PRs in check suite in parallel', async () => {
+    // Use wait for all checks mode for this test
+    process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS = 'true';
     // Setup successful check suite with multiple pull requests
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'check-suite-sha',
@@ -241,6 +270,18 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
+    // Mock that all check suites are complete and successful
+    githubService.getCheckSuitesForRef.mockResolvedValue({
+      check_suites: [
+        {
+          id: 12345,
+          app: { name: 'GitHub Actions' },
+          status: 'completed',
+          conclusion: 'success'
+        }
+      ]
+    });
+
     // Mock that neither PR has been reviewed yet
     githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
     
@@ -266,10 +307,16 @@ describe('GitHub Controller - Check Suite Events', () => {
   });
 
   it('should handle Claude service errors gracefully', async () => {
+    // Use wait for all checks mode for this test
+    process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS = 'true';
     // Setup successful check suite with pull requests
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',
@@ -293,6 +340,18 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
+    // Mock that all check suites are complete and successful
+    githubService.getCheckSuitesForRef.mockResolvedValue({
+      check_suites: [
+        {
+          id: 12345,
+          app: { name: 'GitHub Actions' },
+          status: 'completed',
+          conclusion: 'success'
+        }
+      ]
+    });
+
     // Mock that PR has not been reviewed yet
     githubService.hasReviewedPRAtCommit.mockResolvedValue(false);
     
@@ -312,10 +371,16 @@ describe('GitHub Controller - Check Suite Events', () => {
   });
 
   it('should not trigger when workflow does not match', async () => {
+    // Set environment to use specific workflow trigger
+    process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS = 'false';
     // Setup check suite that looks successful but doesn't match our trigger workflow
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-advanced-security',
+          name: 'GitHub Advanced Security'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'check-suite-sha-123',
@@ -341,7 +406,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     };
 
     // Mock workflow name that doesn't match our trigger
-    githubService.makeGitHubRequest.mockResolvedValue({
+    githubService.getCheckSuitesForRef.mockResolvedValue({
       check_runs: [
         { name: 'CodeQL Analysis' } // Different workflow than 'Pull Request CI'
       ]
@@ -364,6 +429,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',
@@ -431,6 +500,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',
@@ -489,6 +562,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',

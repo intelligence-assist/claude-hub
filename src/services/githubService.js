@@ -645,6 +645,114 @@ async function managePRLabels({
   }
 }
 
+/**
+ * Gets reviews for a pull request
+ * @param {Object} params
+ * @param {string} params.repoOwner - Repository owner
+ * @param {string} params.repoName - Repository name
+ * @param {number} params.prNumber - Pull request number
+ * @returns {Promise<Array>} Array of reviews
+ */
+async function getPRReviews({ repoOwner, repoName, prNumber }) {
+  try {
+    // Validate parameters
+    const repoPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
+      throw new Error('Invalid repository owner or name - contains unsafe characters');
+    }
+
+    logger.info(
+      {
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber
+      },
+      'Getting PR reviews'
+    );
+
+    // In test mode, return mock data
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
+      return [];
+    }
+
+    // Use Octokit to get reviews
+    const { data } = await client.pulls.listReviews({
+      owner: repoOwner,
+      repo: repoName,
+      pull_number: prNumber
+    });
+
+    return data;
+  } catch (error) {
+    logger.error(
+      {
+        err: error.message,
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber
+      },
+      'Failed to get PR reviews'
+    );
+    throw error;
+  }
+}
+
+/**
+ * Gets information about a pull request
+ * @param {Object} params
+ * @param {string} params.repoOwner - Repository owner
+ * @param {string} params.repoName - Repository name
+ * @param {number} params.prNumber - Pull request number
+ * @returns {Promise<Object>} PR information
+ */
+async function getPRInfo({ repoOwner, repoName, prNumber }) {
+  try {
+    // Validate parameters
+    const repoPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
+      throw new Error('Invalid repository owner or name - contains unsafe characters');
+    }
+
+    logger.info(
+      {
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber
+      },
+      'Getting PR info'
+    );
+
+    // In test mode, return mock data
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
+      return {
+        head: {
+          repo: {
+            pushed_at: new Date().toISOString()
+          }
+        }
+      };
+    }
+
+    // Use Octokit to get PR info
+    const { data } = await client.pulls.get({
+      owner: repoOwner,
+      repo: repoName,
+      pull_number: prNumber
+    });
+
+    return data;
+  } catch (error) {
+    logger.error(
+      {
+        err: error.message,
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber
+      },
+      'Failed to get PR info'
+    );
+    throw error;
+  }
+}
+
 module.exports = {
   postComment,
   addLabelsToIssue,
@@ -653,5 +761,7 @@ module.exports = {
   getCombinedStatus,
   hasReviewedPRAtCommit,
   managePRLabels,
-  getCheckSuitesForRef
+  getCheckSuitesForRef,
+  getPRReviews,
+  getPRInfo
 };

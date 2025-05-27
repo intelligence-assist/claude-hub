@@ -443,7 +443,7 @@ Please check with an administrator to review the logs for more details.`
 
       // Check if we should wait for all check suites or use a specific trigger
       const triggerWorkflowName = process.env.PR_REVIEW_TRIGGER_WORKFLOW;
-      const waitForAllChecks = process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS === 'true';
+      const waitForAllChecks = process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS !== 'false'; // Default to true
 
       let shouldTriggerReview = false;
       let triggerReason = '';
@@ -809,6 +809,27 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
                 // Don't fail the review if label update fails
               }
 
+              // Schedule a follow-up check to see if review was completed and if changes were requested
+              setTimeout(async () => {
+                try {
+                  await checkReviewStatusAndHandleChanges({
+                    repoOwner: repo.owner.login,
+                    repoName: repo.name,
+                    prNumber: pr.number,
+                    commitSha: commitSha
+                  });
+                } catch (followUpError) {
+                  logger.error(
+                    {
+                      err: followUpError,
+                      repo: repo.full_name,
+                      pr: pr.number
+                    },
+                    'Error in follow-up review status check'
+                  );
+                }
+              }, 300000); // Check again after 5 minutes
+
               prResult.success = true;
               return prResult;
             } catch (reviewError) {
@@ -1076,7 +1097,7 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
  * @returns {Promise<boolean>} - True if all checks are complete and successful
  */
 async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
-  const debounceDelayMs = parseInt(process.env.PR_REVIEW_DEBOUNCE_MS || '5000', 10);
+  const debounceDelayMs = parseInt(process.env.PR_REVIEW_DEBOUNCE_MS || '120000', 10); // Default 2 minutes
 
   try {
     // Add a small delay to account for GitHub's eventual consistency
@@ -1176,6 +1197,149 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
 }
 
 /**
+ * Checks if a review was completed and handles any change requests
+ * @param {Object} options - Options object
+ * @param {string} options.repoOwner - Repository owner
+ * @param {string} options.repoName - Repository name
+ * @param {number} options.prNumber - Pull request number
+ * @param {string} options.commitSha - Commit SHA that was reviewed
+ */
+async function checkReviewStatusAndHandleChanges({ repoOwner, repoName, prNumber, commitSha }) {
+  try {
+    logger.info(
+      {
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber,
+        commitSha: commitSha
+      },
+      'Checking review status and handling any change requests'
+    );
+
+    // Get latest reviews for this PR
+    const reviews = await githubService.getPRReviews({
+      repoOwner,
+      repoName,
+      prNumber
+    });
+
+    // Find the most recent Claude review (bot reviews)
+    const claudeReviews = reviews.filter(review => 
+      review.user && review.user.type === 'Bot' && 
+      review.commit_id === commitSha
+    );
+
+    if (claudeReviews.length === 0) {
+      logger.warn(
+        {
+          repo: `${repoOwner}/${repoName}`,
+          pr: prNumber,
+          commitSha: commitSha
+        },
+        'No Claude reviews found for this commit'
+      );
+      return;
+    }
+
+    // Get the most recent Claude review
+    const latestReview = claudeReviews.sort((a, b) => 
+      new Date(b.submitted_at) - new Date(a.submitted_at)
+    )[0];
+
+    logger.info(
+      {
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber,
+        reviewId: latestReview.id,
+        reviewState: latestReview.state,
+        submittedAt: latestReview.submitted_at
+      },
+      'Found latest Claude review'
+    );
+
+    // If changes were requested, check if they've been addressed
+    if (latestReview.state === 'CHANGES_REQUESTED') {
+      // Check if there have been new commits since the review
+      const prInfo = await githubService.getPRInfo({
+        repoOwner,
+        repoName,
+        prNumber
+      });
+
+      const reviewDate = new Date(latestReview.submitted_at);
+      const lastCommitDate = new Date(prInfo.head.repo.pushed_at);
+
+      if (lastCommitDate > reviewDate) {
+        logger.info(
+          {
+            repo: `${repoOwner}/${repoName}`,
+            pr: prNumber,
+            reviewDate: reviewDate.toISOString(),
+            lastCommitDate: lastCommitDate.toISOString()
+          },
+          'New commits detected after changes requested - may need re-review'
+        );
+
+        // Update label to indicate re-review may be needed
+        try {
+          await githubService.managePRLabels({
+            repoOwner,
+            repoName,
+            prNumber,
+            labelsToAdd: ['claude-review-needed'],
+            labelsToRemove: ['claude-review-complete']
+          });
+        } catch (labelError) {
+          logger.error(
+            {
+              err: labelError,
+              repo: `${repoOwner}/${repoName}`,
+              pr: prNumber
+            },
+            'Failed to update labels for re-review needed'
+          );
+        }
+
+        // Optionally, post a comment indicating re-review may be needed
+        try {
+          const followUpComment = `🔄 **Follow-up Check**: Changes were requested in my previous review, and I see new commits have been made since then. 
+
+The changes I requested may have been addressed. If you'd like me to re-review this PR, please mention me with a request.
+
+*Review reference: ${latestReview.html_url}*`;
+
+          await githubService.postComment({
+            repoOwner,
+            repoName,
+            issueNumber: prNumber,
+            body: followUpComment
+          });
+        } catch (commentError) {
+          logger.error(
+            {
+              err: commentError,
+              repo: `${repoOwner}/${repoName}`,
+              pr: prNumber
+            },
+            'Failed to post follow-up comment'
+          );
+        }
+      }
+    }
+  } catch (error) {
+    logger.error(
+      {
+        err: error,
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber,
+        commitSha
+      },
+      'Error checking review status and handling changes'
+    );
+    throw error;
+  }
+}
+
+/**
  * Extract workflow name from check suite by fetching check runs
  * @param {Object} checkSuite - The check suite object
  * @param {Object} repo - The repository object
@@ -1208,5 +1372,6 @@ async function getWorkflowNameFromCheckSuite(checkSuite, repo) {
 module.exports = {
   handleWebhook,
   getWorkflowNameFromCheckSuite,
-  checkAllCheckSuitesComplete
+  checkAllCheckSuitesComplete,
+  checkReviewStatusAndHandleChanges
 };

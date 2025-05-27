@@ -96,16 +96,16 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
     // Select appropriate entrypoint script based on operation type
     let entrypointScript;
     switch (operationType) {
-    case 'auto-tagging':
-      entrypointScript = '/scripts/runtime/claudecode-tagging-entrypoint.sh';
-      logger.info({ operationType }, 'Using minimal tools for auto-tagging operation');
-      break;
-    case 'pr-review':
-    case 'default':
-    default:
-      entrypointScript = '/scripts/runtime/claudecode-entrypoint.sh';
-      logger.info({ operationType }, 'Using full tool set for standard operation');
-      break;
+      case 'auto-tagging':
+        entrypointScript = '/scripts/runtime/claudecode-tagging-entrypoint.sh';
+        logger.info({ operationType }, 'Using minimal tools for auto-tagging operation');
+        break;
+      case 'pr-review':
+      case 'default':
+      default:
+        entrypointScript = '/scripts/runtime/claudecode-entrypoint.sh';
+        logger.info({ operationType }, 'Using full tool set for standard operation');
+        break;
     }
 
     // Create unique container name (sanitized to prevent command injection)
@@ -114,7 +114,7 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
 
     // Create the full prompt with context and instructions based on operation type
     let fullPrompt;
-    
+
     if (operationType === 'auto-tagging') {
       fullPrompt = `You are Claude, an AI assistant analyzing a GitHub issue for automatic label assignment.
 
@@ -210,49 +210,49 @@ Please complete this task fully and autonomously.`;
     );
 
     // Build docker run command as an array to prevent command injection
-    const dockerArgs = [
-      'run',
-      '--rm'
-    ];
-    
+    const dockerArgs = ['run', '--rm'];
+
     // Apply container security constraints based on environment variables
     if (process.env.CLAUDE_CONTAINER_PRIVILEGED === 'true') {
       dockerArgs.push('--privileged');
     } else {
       // Apply only necessary capabilities instead of privileged mode
       const requiredCapabilities = [
-        'NET_ADMIN',   // Required for firewall setup
-        'SYS_ADMIN'    // Required for certain filesystem operations
+        'NET_ADMIN', // Required for firewall setup
+        'SYS_ADMIN' // Required for certain filesystem operations
       ];
-      
+
       // Add optional capabilities
       const optionalCapabilities = {
-        'NET_RAW': process.env.CLAUDE_CONTAINER_CAP_NET_RAW === 'true',
-        'SYS_TIME': process.env.CLAUDE_CONTAINER_CAP_SYS_TIME === 'true',
-        'DAC_OVERRIDE': process.env.CLAUDE_CONTAINER_CAP_DAC_OVERRIDE === 'true',
-        'AUDIT_WRITE': process.env.CLAUDE_CONTAINER_CAP_AUDIT_WRITE === 'true'
+        NET_RAW: process.env.CLAUDE_CONTAINER_CAP_NET_RAW === 'true',
+        SYS_TIME: process.env.CLAUDE_CONTAINER_CAP_SYS_TIME === 'true',
+        DAC_OVERRIDE: process.env.CLAUDE_CONTAINER_CAP_DAC_OVERRIDE === 'true',
+        AUDIT_WRITE: process.env.CLAUDE_CONTAINER_CAP_AUDIT_WRITE === 'true'
       };
-      
+
       // Add required capabilities
       requiredCapabilities.forEach(cap => {
         dockerArgs.push(`--cap-add=${cap}`);
       });
-      
+
       // Add optional capabilities if enabled
       Object.entries(optionalCapabilities).forEach(([cap, enabled]) => {
         if (enabled) {
           dockerArgs.push(`--cap-add=${cap}`);
         }
       });
-      
+
       // Add resource limits
       dockerArgs.push(
-        '--memory', process.env.CLAUDE_CONTAINER_MEMORY_LIMIT || '2g',
-        '--cpu-shares', process.env.CLAUDE_CONTAINER_CPU_SHARES || '1024',
-        '--pids-limit', process.env.CLAUDE_CONTAINER_PIDS_LIMIT || '256'
+        '--memory',
+        process.env.CLAUDE_CONTAINER_MEMORY_LIMIT || '2g',
+        '--cpu-shares',
+        process.env.CLAUDE_CONTAINER_CPU_SHARES || '1024',
+        '--pids-limit',
+        process.env.CLAUDE_CONTAINER_PIDS_LIMIT || '256'
       );
     }
-    
+
     // Add container name
     dockerArgs.push('--name', containerName);
 
@@ -277,7 +277,7 @@ Please complete this task fully and autonomously.`;
     // Create sanitized version for logging (remove sensitive values)
     const sanitizedArgs = dockerArgs.map(arg => {
       if (typeof arg !== 'string') return arg;
-      
+
       // Check if this is an environment variable assignment
       const envMatch = arg.match(/^([A-Z_]+)=(.*)$/);
       if (envMatch) {
@@ -312,7 +312,7 @@ Please complete this task fully and autonomously.`;
       // Use promisified version of child_process.execFile (safer than exec)
       const { promisify } = require('util');
       const execFileAsync = promisify(require('child_process').execFile);
-      
+
       const result = await execFileAsync('docker', dockerArgs, {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
         timeout: containerLifetimeMs // Container lifetime in milliseconds
@@ -395,7 +395,7 @@ Please complete this task fully and autonomously.`;
             sanitized = sanitized.replace(new RegExp(escapedValue, 'g'), '[REDACTED]');
           }
         });
-        
+
         // Then apply pattern-based redaction for any missed credentials
         const sensitivePatterns = [
           /AKIA[0-9A-Z]{16}/g, // AWS Access Key pattern
@@ -408,7 +408,7 @@ Please complete this task fully and autonomously.`;
         sensitivePatterns.forEach(pattern => {
           sanitized = sanitized.replace(pattern, '[REDACTED]');
         });
-        
+
         return sanitized;
       };
 
@@ -423,10 +423,14 @@ Please complete this task fully and autonomously.`;
       ) {
         logger.error('Docker image not found. Attempting to rebuild...');
         try {
-          execFileSync('docker', ['build', '-f', 'Dockerfile.claudecode', '-t', dockerImageName, '.'], {
-            cwd: path.join(__dirname, '../..'),
-            stdio: 'pipe'
-          });
+          execFileSync(
+            'docker',
+            ['build', '-f', 'Dockerfile.claudecode', '-t', dockerImageName, '.'],
+            {
+              cwd: path.join(__dirname, '../..'),
+              stdio: 'pipe'
+            }
+          );
           logger.info('Successfully rebuilt Docker image');
         } catch (rebuildError) {
           logger.error(

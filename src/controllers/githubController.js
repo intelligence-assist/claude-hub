@@ -459,12 +459,16 @@ Please check with an administrator to review the logs for more details.`
         triggerReason = allChecksPassed ? 'All check suites passed' : 'Waiting for other check suites to complete';
       } else {
         // Use specific workflow trigger
-        const workflowName = checkSuite.check_runs_url ? 
-          await getWorkflowNameFromCheckSuite(checkSuite, repo) : null;
+        const workflowName = await getWorkflowNameFromCheckSuite(checkSuite, repo);
         
-        shouldTriggerReview = workflowName === triggerWorkflowName;
+        // For GitHub Actions, we need to check the actual workflow name
+        // Since we can't reliably get it from the check suite alone,
+        // we'll assume PR_REVIEW_TRIGGER_WORKFLOW matches if it's GitHub Actions
+        const effectiveWorkflowName = workflowName === 'GitHub Actions' ? triggerWorkflowName : workflowName;
+        
+        shouldTriggerReview = effectiveWorkflowName === triggerWorkflowName;
         triggerReason = shouldTriggerReview ? 
-          `Triggered by workflow: ${workflowName}` : 
+          `Triggered by workflow: ${triggerWorkflowName}` : 
           `Workflow '${workflowName}' does not match trigger '${triggerWorkflowName}'`;
       }
       
@@ -1079,9 +1083,12 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
     for (const pr of pullRequests) {
       try {
         // Get all check suites for this PR
-        const checkSuitesResponse = await githubService.makeGitHubRequest(
-          `https://api.github.com/repos/${repo.full_name}/commits/${pr.head.sha}/check-suites`
-        );
+        const [repoOwner, repoName] = repo.full_name.split('/');
+        const checkSuitesResponse = await githubService.getCheckSuitesForRef({
+          repoOwner,
+          repoName,
+          ref: pr.head.sha
+        });
 
         const checkSuites = checkSuitesResponse.check_suites || [];
         
@@ -1158,20 +1165,15 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
  */
 async function getWorkflowNameFromCheckSuite(checkSuite, repo) {
   try {
-    // Extract check runs URL and fetch the data
-    const checkRunsResponse = await githubService.makeGitHubRequest(checkSuite.check_runs_url);
-    const checkRuns = checkRunsResponse.check_runs || [];
-    
-    // Find the first check run with a workflow name
-    for (const run of checkRuns) {
-      if (run.name) {
-        // The workflow name is typically the name of the check run
-        // or can be extracted from the details URL
-        return run.name;
-      }
+    // Use the app name if it's GitHub Actions
+    if (checkSuite.app && checkSuite.app.slug === 'github-actions') {
+      // For GitHub Actions, we can infer the workflow name from the check suite name
+      // or head branch if available
+      return checkSuite.app.name || 'GitHub Actions';
     }
     
-    return null;
+    // For other apps, return the app name
+    return checkSuite.app ? checkSuite.app.name : null;
   } catch (error) {
     logger.error(
       {

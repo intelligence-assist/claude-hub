@@ -5,6 +5,7 @@ process.env.GITHUB_WEBHOOK_SECRET = 'test-secret';
 process.env.GITHUB_TOKEN = 'test-token';
 process.env.PR_REVIEW_TRIGGER_WORKFLOW = 'Pull Request CI';
 process.env.PR_REVIEW_DEBOUNCE_MS = '0'; // Disable debounce for tests
+process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS = 'false'; // Use trigger workflow mode for tests
 
 const githubController = require('../../../src/controllers/githubController');
 const claudeService = require('../../../src/services/claudeService');
@@ -22,7 +23,7 @@ jest.mock('../../../src/services/githubService', () => ({
   getFallbackLabels: jest.fn(),
   hasReviewedPRAtCommit: jest.fn(),
   managePRLabels: jest.fn(),
-  makeGitHubRequest: jest.fn()
+  getCheckSuitesForRef: jest.fn()
 }));
 
 describe('GitHub Controller - Check Suite Events', () => {
@@ -53,10 +54,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     githubService.getFallbackLabels.mockReset();
     githubService.hasReviewedPRAtCommit.mockReset();
     githubService.managePRLabels.mockReset();
-    githubService.makeGitHubRequest.mockReset();
+    githubService.getCheckSuitesForRef.mockReset();
     
     // Mock the check runs API response to return the expected workflow name
-    githubService.makeGitHubRequest.mockResolvedValue({
+    githubService.getCheckSuitesForRef.mockResolvedValue({
       check_runs: [
         { name: 'Pull Request CI' }
       ]
@@ -74,6 +75,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',
@@ -99,7 +104,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     };
 
     // Mock workflow name extraction to match PR_REVIEW_TRIGGER_WORKFLOW
-    githubService.makeGitHubRequest.mockResolvedValue({
+    githubService.getCheckSuitesForRef.mockResolvedValue({
       check_runs: [
         { name: 'Pull Request CI' }
       ]
@@ -162,6 +167,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'failure',
         pull_requests: [
@@ -195,6 +204,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         pull_requests: []
@@ -223,6 +236,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'check-suite-sha',
@@ -254,7 +271,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     };
 
     // Mock that all check suites are complete and successful
-    githubService.makeGitHubRequest.mockResolvedValue({
+    githubService.getCheckSuitesForRef.mockResolvedValue({
       check_suites: [
         {
           id: 12345,
@@ -296,6 +313,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',
@@ -320,7 +341,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     };
 
     // Mock that all check suites are complete and successful
-    githubService.makeGitHubRequest.mockResolvedValue({
+    githubService.getCheckSuitesForRef.mockResolvedValue({
       check_suites: [
         {
           id: 12345,
@@ -356,6 +377,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-advanced-security',
+          name: 'GitHub Advanced Security'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'check-suite-sha-123',
@@ -381,7 +406,7 @@ describe('GitHub Controller - Check Suite Events', () => {
     };
 
     // Mock workflow name that doesn't match our trigger
-    githubService.makeGitHubRequest.mockResolvedValue({
+    githubService.getCheckSuitesForRef.mockResolvedValue({
       check_runs: [
         { name: 'CodeQL Analysis' } // Different workflow than 'Pull Request CI'
       ]
@@ -404,6 +429,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',
@@ -471,6 +500,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',
@@ -529,6 +562,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     mockReq.body = {
       action: 'completed',
       check_suite: {
+        app: {
+          slug: 'github-actions',
+          name: 'GitHub Actions'
+        },
         id: 12345,
         conclusion: 'success',
         head_sha: 'abc123def456',

@@ -122,9 +122,17 @@ class ContainerExecutor {
   async execFirewallTest(options = {}) {
     return this.exec({
       entrypoint: '/bin/bash',
-      command: 'whoami && /usr/local/bin/init-firewall.sh && echo "Firewall initialized successfully"',
+      command:
+        'whoami && /usr/local/bin/init-firewall.sh && echo "Firewall initialized successfully"',
       privileged: true,
-      capabilities: ['NET_ADMIN', 'NET_RAW', 'SYS_TIME', 'DAC_OVERRIDE', 'AUDIT_WRITE', 'SYS_ADMIN'],
+      capabilities: [
+        'NET_ADMIN',
+        'NET_RAW',
+        'SYS_TIME',
+        'DAC_OVERRIDE',
+        'AUDIT_WRITE',
+        'SYS_ADMIN'
+      ],
       ...options
     });
   }
@@ -133,10 +141,7 @@ class ContainerExecutor {
    * Execute Claude command test
    */
   async execClaudeTest(options = {}) {
-    const {
-      testType = 'direct',
-      ...restOptions
-    } = options;
+    const { testType = 'direct', ...restOptions } = options;
 
     const configs = {
       direct: {
@@ -161,7 +166,7 @@ class ContainerExecutor {
     };
 
     const config = configs[testType] || configs.direct;
-    
+
     return this.exec({
       interactive: true,
       ...config,
@@ -196,7 +201,8 @@ class ContainerExecutor {
     const homeDir = process.env.HOME || '/home/node';
     return this.exec({
       entrypoint: '/bin/bash',
-      command: 'echo \'=== AWS files ===\'; ls -la /home/node/.aws/; echo \'=== Config content ===\'; cat /home/node/.aws/config; echo \'=== Test AWS profile ===\'; export AWS_PROFILE=claude-webhook; export AWS_CONFIG_FILE=/home/node/.aws/config; export AWS_SHARED_CREDENTIALS_FILE=/home/node/.aws/credentials; aws sts get-caller-identity --profile claude-webhook',
+      command:
+        'echo \'=== AWS files ===\'; ls -la /home/node/.aws/; echo \'=== Config content ===\'; cat /home/node/.aws/config; echo \'=== Test AWS profile ===\'; export AWS_PROFILE=claude-webhook; export AWS_CONFIG_FILE=/home/node/.aws/config; export AWS_SHARED_CREDENTIALS_FILE=/home/node/.aws/credentials; aws sts get-caller-identity --profile claude-webhook',
       volumes: [`${homeDir}/.aws:/home/node/.aws:ro`],
       ...options
     });
@@ -215,11 +221,11 @@ class ContainerExecutor {
       let stdout = '';
       let stderr = '';
 
-      child.stdout.on('data', (data) => {
+      child.stdout.on('data', data => {
         stdout += data.toString();
       });
 
-      child.stderr.on('data', (data) => {
+      child.stderr.on('data', data => {
         stderr += data.toString();
       });
 
@@ -228,7 +234,7 @@ class ContainerExecutor {
         reject(new Error(`Docker command timed out after ${timeout}ms`));
       }, timeout);
 
-      child.on('close', (code) => {
+      child.on('close', code => {
         clearTimeout(timeoutHandle);
         resolve({
           exitCode: code,
@@ -237,7 +243,7 @@ class ContainerExecutor {
         });
       });
 
-      child.on('error', (error) => {
+      child.on('error', error => {
         clearTimeout(timeoutHandle);
         reject(error);
       });

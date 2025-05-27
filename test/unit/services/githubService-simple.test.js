@@ -56,96 +56,116 @@ describe('githubService - Simple Coverage Tests', () => {
 
   describe('Parameter validation edge cases', () => {
     it('should validate invalid repository owner characters', async () => {
-      await expect(githubService.postComment({
-        repoOwner: 'invalid@owner',
-        repoName: 'testrepo',
-        issueNumber: 123,
-        body: 'Test comment'
-      })).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
+      await expect(
+        githubService.postComment({
+          repoOwner: 'invalid@owner',
+          repoName: 'testrepo',
+          issueNumber: 123,
+          body: 'Test comment'
+        })
+      ).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
     });
 
     it('should validate invalid repository name characters', async () => {
-      await expect(githubService.postComment({
-        repoOwner: 'testowner',
-        repoName: 'invalid@repo',
-        issueNumber: 123,
-        body: 'Test comment'
-      })).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
+      await expect(
+        githubService.postComment({
+          repoOwner: 'testowner',
+          repoName: 'invalid@repo',
+          issueNumber: 123,
+          body: 'Test comment'
+        })
+      ).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
     });
 
     it('should validate negative issue numbers', async () => {
-      await expect(githubService.postComment({
-        repoOwner: 'testowner',
-        repoName: 'testrepo',
-        issueNumber: -5,
-        body: 'Test comment'
-      })).rejects.toThrow('Invalid issue number - must be a positive integer');
+      await expect(
+        githubService.postComment({
+          repoOwner: 'testowner',
+          repoName: 'testrepo',
+          issueNumber: -5,
+          body: 'Test comment'
+        })
+      ).rejects.toThrow('Invalid issue number - must be a positive integer');
     });
 
     it('should validate zero issue numbers', async () => {
-      await expect(githubService.postComment({
-        repoOwner: 'testowner',
-        repoName: 'testrepo',
-        issueNumber: 0,
-        body: 'Test comment'
-      })).rejects.toThrow('Invalid issue number - must be a positive integer');
+      await expect(
+        githubService.postComment({
+          repoOwner: 'testowner',
+          repoName: 'testrepo',
+          issueNumber: 0,
+          body: 'Test comment'
+        })
+      ).rejects.toThrow('Invalid issue number - must be a positive integer');
     });
 
     it('should validate string issue numbers', async () => {
-      await expect(githubService.postComment({
-        repoOwner: 'testowner',
-        repoName: 'testrepo',
-        issueNumber: 'abc',
-        body: 'Test comment'
-      })).rejects.toThrow('Invalid issue number - must be a positive integer');
+      await expect(
+        githubService.postComment({
+          repoOwner: 'testowner',
+          repoName: 'testrepo',
+          issueNumber: 'abc',
+          body: 'Test comment'
+        })
+      ).rejects.toThrow('Invalid issue number - must be a positive integer');
     });
   });
 
   describe('addLabelsToIssue parameter validation', () => {
     it('should validate repository parameters for addLabelsToIssue', async () => {
-      await expect(githubService.addLabelsToIssue({
-        repoOwner: 'invalid@owner',
-        repoName: 'testrepo',
-        issueNumber: 123,
-        labels: ['type:bug']
-      })).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
+      await expect(
+        githubService.addLabelsToIssue({
+          repoOwner: 'invalid@owner',
+          repoName: 'testrepo',
+          issueNumber: 123,
+          labels: ['type:bug']
+        })
+      ).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
     });
 
     it('should validate issue number for addLabelsToIssue', async () => {
-      await expect(githubService.addLabelsToIssue({
-        repoOwner: 'testowner',
-        repoName: 'testrepo',
-        issueNumber: -1,
-        labels: ['type:bug']
-      })).rejects.toThrow('Invalid issue number - must be a positive integer');
+      await expect(
+        githubService.addLabelsToIssue({
+          repoOwner: 'testowner',
+          repoName: 'testrepo',
+          issueNumber: -1,
+          labels: ['type:bug']
+        })
+      ).rejects.toThrow('Invalid issue number - must be a positive integer');
     });
   });
 
   describe('createRepositoryLabels parameter validation', () => {
     it('should validate repository parameters for createRepositoryLabels', async () => {
-      await expect(githubService.createRepositoryLabels({
-        repoOwner: 'invalid@owner',
-        repoName: 'testrepo',
-        labels: [{ name: 'test', color: 'ff0000', description: 'Test label' }]
-      })).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
+      await expect(
+        githubService.createRepositoryLabels({
+          repoOwner: 'invalid@owner',
+          repoName: 'testrepo',
+          labels: [{ name: 'test', color: 'ff0000', description: 'Test label' }]
+        })
+      ).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
     });
   });
 
   describe('getCombinedStatus parameter validation', () => {
     it('should validate repository parameters for getCombinedStatus', async () => {
-      await expect(githubService.getCombinedStatus({
-        repoOwner: 'invalid@owner',
-        repoName: 'testrepo',
-        ref: 'main'
-      })).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
+      await expect(
+        githubService.getCombinedStatus({
+          repoOwner: 'invalid@owner',
+          repoName: 'testrepo',
+          ref: 'main'
+        })
+      ).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
     });
 
     it('should validate ref parameter for getCombinedStatus', async () => {
-      await expect(githubService.getCombinedStatus({
-        repoOwner: 'testowner',
-        repoName: 'testrepo',
-        ref: 'invalid@ref'
-      })).rejects.toThrow('Invalid ref - contains unsafe characters');
+      await expect(
+        githubService.getCombinedStatus({
+          repoOwner: 'testowner',
+          repoName: 'testrepo',
+          ref: 'invalid@ref'
+        })
+      ).rejects.toThrow('Invalid ref - contains unsafe characters');
     });
   });
 
@@ -165,31 +185,37 @@ describe('githubService - Simple Coverage Tests', () => {
 
   describe('getCheckSuitesForRef parameter validation', () => {
     it('should validate repository parameters for getCheckSuitesForRef', async () => {
-      await expect(githubService.getCheckSuitesForRef({
-        repoOwner: 'invalid@owner',
-        repoName: 'testrepo',
-        ref: 'main'
-      })).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
+      await expect(
+        githubService.getCheckSuitesForRef({
+          repoOwner: 'invalid@owner',
+          repoName: 'testrepo',
+          ref: 'main'
+        })
+      ).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
     });
 
     it('should validate ref parameter for getCheckSuitesForRef', async () => {
-      await expect(githubService.getCheckSuitesForRef({
-        repoOwner: 'testowner',
-        repoName: 'testrepo',
-        ref: 'invalid@ref'
-      })).rejects.toThrow('Invalid ref - contains unsafe characters');
+      await expect(
+        githubService.getCheckSuitesForRef({
+          repoOwner: 'testowner',
+          repoName: 'testrepo',
+          ref: 'invalid@ref'
+        })
+      ).rejects.toThrow('Invalid ref - contains unsafe characters');
     });
   });
 
   describe('managePRLabels parameter validation', () => {
     it('should validate repository parameters for managePRLabels', async () => {
-      await expect(githubService.managePRLabels({
-        repoOwner: 'invalid@owner',
-        repoName: 'testrepo',
-        prNumber: 42,
-        labelsToAdd: [],
-        labelsToRemove: []
-      })).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
+      await expect(
+        githubService.managePRLabels({
+          repoOwner: 'invalid@owner',
+          repoName: 'testrepo',
+          prNumber: 42,
+          labelsToAdd: [],
+          labelsToRemove: []
+        })
+      ).rejects.toThrow('Invalid repository owner or name - contains unsafe characters');
     });
   });
 
@@ -207,9 +233,7 @@ describe('githubService - Simple Coverage Tests', () => {
     });
 
     it('should return mock data for createRepositoryLabels in test mode', async () => {
-      const testLabels = [
-        { name: 'type:bug', color: 'd73a4a', description: 'Bug label' }
-      ];
+      const testLabels = [{ name: 'type:bug', color: 'd73a4a', description: 'Bug label' }];
 
       const result = await githubService.createRepositoryLabels({
         repoOwner: 'testowner',
@@ -260,23 +284,27 @@ describe('githubService - Simple Coverage Tests', () => {
     });
 
     it('should handle managePRLabels in test mode without errors', async () => {
-      await expect(githubService.managePRLabels({
-        repoOwner: 'testowner',
-        repoName: 'testrepo',
-        prNumber: 42,
-        labelsToAdd: ['needs-review'],
-        labelsToRemove: ['in-progress']
-      })).resolves.toBeUndefined();
+      await expect(
+        githubService.managePRLabels({
+          repoOwner: 'testowner',
+          repoName: 'testrepo',
+          prNumber: 42,
+          labelsToAdd: ['needs-review'],
+          labelsToRemove: ['in-progress']
+        })
+      ).resolves.toBeUndefined();
     });
 
     it('should handle managePRLabels with empty label arrays', async () => {
-      await expect(githubService.managePRLabels({
-        repoOwner: 'testowner',
-        repoName: 'testrepo',
-        prNumber: 42,
-        labelsToAdd: [],
-        labelsToRemove: []
-      })).resolves.toBeUndefined();
+      await expect(
+        githubService.managePRLabels({
+          repoOwner: 'testowner',
+          repoName: 'testrepo',
+          prNumber: 42,
+          labelsToAdd: [],
+          labelsToRemove: []
+        })
+      ).resolves.toBeUndefined();
     });
   });
 

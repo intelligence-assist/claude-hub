@@ -443,12 +443,33 @@ Please check with an administrator to review the logs for more details.`
 
       // Check if we should wait for all check suites or use a specific trigger
       const triggerWorkflowName = process.env.PR_REVIEW_TRIGGER_WORKFLOW;
-      const waitForAllChecks = process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS === 'true';
+      const waitForAllChecks = process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS !== 'false';
+      const forceReviewOnSuccess = process.env.PR_REVIEW_FORCE_ON_SUCCESS === 'true';
+
+      logger.info(
+        {
+          repo: repo.full_name,
+          checkSuite: checkSuite.id,
+          triggerWorkflowName,
+          waitForAllChecks,
+          forceReviewOnSuccess,
+          envVars: {
+            PR_REVIEW_WAIT_FOR_ALL_CHECKS: process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS,
+            PR_REVIEW_TRIGGER_WORKFLOW: process.env.PR_REVIEW_TRIGGER_WORKFLOW,
+            PR_REVIEW_FORCE_ON_SUCCESS: process.env.PR_REVIEW_FORCE_ON_SUCCESS
+          }
+        },
+        'PR Review Configuration Analysis'
+      );
 
       let shouldTriggerReview = false;
       let triggerReason = '';
 
-      if (waitForAllChecks || !triggerWorkflowName) {
+      if (forceReviewOnSuccess) {
+        // Force review mode for debugging/testing
+        shouldTriggerReview = true;
+        triggerReason = 'Forced review mode enabled (PR_REVIEW_FORCE_ON_SUCCESS=true)';
+      } else if (waitForAllChecks || !triggerWorkflowName) {
         // Check if all check suites for the PR are complete and successful
         const allChecksPassed = await checkAllCheckSuitesComplete({
           repo,
@@ -1110,6 +1131,21 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
           },
           'Retrieved check suites for PR'
         );
+
+        // Handle edge case: Repository with no check suites configured
+        if (checkSuites.length === 0) {
+          logger.info(
+            {
+              repo: repo.full_name,
+              pr: pr.number,
+              sha: pr.head.sha
+            },
+            'No check suites found for PR - repository may not have checks configured'
+          );
+          // If no check suites are configured, we should still allow review
+          // since there are no checks to wait for
+          continue;
+        }
 
         // Check if any check suite is still in progress or has failed
         for (const suite of checkSuites) {

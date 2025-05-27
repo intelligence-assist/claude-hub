@@ -199,9 +199,11 @@ The `awsCredentialProvider.js` utility handles credential retrieval and rotation
 - `ANTHROPIC_API_KEY`: Anthropic API key for Claude access
 
 ### Optional Environment Variables
-- `PR_REVIEW_WAIT_FOR_ALL_CHECKS`: Set to `"true"` to wait for all check suites to complete successfully before triggering PR review (default: `"true"`). This prevents duplicate reviews from different check suites.
+- `PR_REVIEW_WAIT_FOR_ALL_CHECKS`: Set to `"true"` to wait for all meaningful check suites to complete successfully before triggering PR review (default: `"true"`). Uses smart logic to handle conditional jobs and skipped checks, preventing duplicate reviews from different check suites.
 - `PR_REVIEW_TRIGGER_WORKFLOW`: Name of a specific GitHub Actions workflow that should trigger PR reviews (e.g., `"Pull Request CI"`). Only used if `PR_REVIEW_WAIT_FOR_ALL_CHECKS` is `"false"`.
 - `PR_REVIEW_DEBOUNCE_MS`: Delay in milliseconds before checking all check suites status (default: `"5000"`). This accounts for GitHub's eventual consistency.
+- `PR_REVIEW_MAX_WAIT_MS`: Maximum time to wait for stale in-progress check suites before considering them failed (default: `"1800000"` = 30 minutes).
+- `PR_REVIEW_CONDITIONAL_TIMEOUT_MS`: Time to wait for conditional jobs that never start before skipping them (default: `"300000"` = 5 minutes).
 
 ## Code Style Guidelines
 - JavaScript with Node.js

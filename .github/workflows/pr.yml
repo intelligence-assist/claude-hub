@@ -63,14 +63,7 @@ jobs:
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
 
-    - name: Upload coverage
-      if: matrix.node-version == '20.x'
-      uses: codecov/codecov-action@v5
-      with:
-        file: ./coverage/lcov.info
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+    # Coverage is only uploaded on main branch via ci.yml workflow
 
   # Integration tests - moderate complexity
   test-integration:

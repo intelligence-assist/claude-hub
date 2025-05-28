@@ -124,6 +124,33 @@ jobs:
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
 
+  # E2E tests - full system testing
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+
+    - name: Run e2e tests
+      run: npm run test:e2e
+      env:
+        NODE_ENV: test
+        BOT_USERNAME: '@TestBot'
+        GITHUB_WEBHOOK_SECRET: 'test-secret'
+        GITHUB_TOKEN: 'test-token'
+
   # Security scans for PRs
   security:
     name: Security Scan
@@ -247,7 +274,7 @@ jobs:
     name: Docker Build Test
     runs-on: ubuntu-latest
     if: needs.changes.outputs.docker == 'true' || needs.changes.outputs.src == 'true'
-    needs: [test-unit, lint, changes, security, codeql]
+    needs: [test-unit, test-e2e, lint, changes, security, codeql]
     
     steps:
     - name: Checkout code
@@ -316,7 +343,7 @@ jobs:
   pr-summary:
     name: PR Summary
     runs-on: ubuntu-latest
-    needs: [lint, test-unit, coverage, test-integration, security, codeql, docker-build]
+    needs: [lint, test-unit, coverage, test-integration, test-e2e, security, codeql, docker-build]
     if: always()
     
     steps:
@@ -327,6 +354,7 @@ jobs:
         echo "- Unit Tests: ${{ needs.test-unit.result }}"
         echo "- Test Coverage: ${{ needs.coverage.result }}"
         echo "- Integration Tests: ${{ needs.test-integration.result }}"
+        echo "- E2E Tests: ${{ needs.test-e2e.result }}"
         echo "- Security Scan: ${{ needs.security.result }}"
         echo "- CodeQL Analysis: ${{ needs.codeql.result }}"
         echo "- Docker Build: ${{ needs.docker-build.result }}"
@@ -336,6 +364,7 @@ jobs:
            [[ "${{ needs.test-unit.result }}" == "failure" ]] || \
            [[ "${{ needs.coverage.result }}" == "failure" ]] || \
            [[ "${{ needs.test-integration.result }}" == "failure" ]] || \
+           [[ "${{ needs.test-e2e.result }}" == "failure" ]] || \
            [[ "${{ needs.security.result }}" == "failure" ]] || \
            [[ "${{ needs.codeql.result }}" == "failure" ]] || \
            [[ "${{ needs.docker-build.result }}" == "failure" ]]; then

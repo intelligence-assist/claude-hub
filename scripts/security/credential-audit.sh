@@ -51,7 +51,15 @@ CREDENTIAL_PATTERNS=(
 )
 
 for pattern in "${CREDENTIAL_PATTERNS[@]}"; do
-    if grep -rE "$pattern" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=coverage --exclude="credential-audit.sh" --exclude="test-logger-redaction.js" --exclude="test-logger-redaction-comprehensive.js" . 2>/dev/null; then
+    # Skip AWS key ID checks in test/integration directory - these are fake test keys
+    if [[ "$pattern" == "AKIA[0-9A-Z]{16}" && -d "./test/integration" ]]; then
+        GREP_RESULT=$(grep -rE "$pattern" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=coverage --exclude-dir=test/integration --exclude="credential-audit.sh" --exclude="test-logger-redaction.js" --exclude="test-logger-redaction-comprehensive.js" . 2>/dev/null)
+    else
+        GREP_RESULT=$(grep -rE "$pattern" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=coverage --exclude="credential-audit.sh" --exclude="test-logger-redaction.js" --exclude="test-logger-redaction-comprehensive.js" . 2>/dev/null)
+    fi
+    
+    if [[ -n "$GREP_RESULT" ]]; then
+        echo "$GREP_RESULT"
         report_issue "Found potential hardcoded credentials matching pattern: $pattern"
     fi
 done

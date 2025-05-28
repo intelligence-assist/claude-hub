@@ -89,7 +89,7 @@ To add a new chatbot provider in the future:
 
 1. **Create Provider Class**
    ```javascript
-   // src/providers/NewProvider.ts
+   // src/providers/NewProvider.js
    const ChatbotProvider = require('./ChatbotProvider');
    
    class NewProvider extends ChatbotProvider {
@@ -113,7 +113,7 @@ To add a new chatbot provider in the future:
 
 2. **Register Provider**
    ```javascript
-   // src/providers/ProviderFactory.ts
+   // src/providers/ProviderFactory.js
    const NewProvider = require('./NewProvider');
    
    // In constructor:
@@ -122,7 +122,7 @@ To add a new chatbot provider in the future:
 
 3. **Add Route Handler**
    ```javascript
-   // src/controllers/chatbotController.ts
+   // src/controllers/chatbotController.js
    async function handleNewProviderWebhook(req, res) {
      return await handleChatbotWebhook(req, res, 'newprovider');
    }

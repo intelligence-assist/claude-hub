@@ -40,9 +40,22 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package*.json ./
-RUN npm install --omit=dev
+COPY tsconfig.json ./
+COPY babel.config.js ./
 
-# Copy application code
+# Install all dependencies (including dev for build)
+RUN npm ci
+
+# Copy source code
+COPY src/ ./src/
+
+# Build TypeScript
+RUN npm run build
+
+# Remove dev dependencies to reduce image size
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Copy remaining application files
 COPY . .
 
 # Consolidate permission changes into a single RUN instruction

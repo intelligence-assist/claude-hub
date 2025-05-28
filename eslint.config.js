@@ -1,4 +1,6 @@
 const js = require('@eslint/js');
+const tseslint = require('@typescript-eslint/eslint-plugin');
+const tsparser = require('@typescript-eslint/parser');
 
 module.exports = [
   js.configs.recommended,
@@ -65,8 +67,47 @@ module.exports = [
       'no-buffer-constructor': 'error'
     }
   },
+  // TypeScript files configuration
   {
-    files: ['test/**/*.js', '**/*.test.js'],
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'commonjs',
+        project: './tsconfig.json'
+      }
+    },
+    plugins: {
+      '@typescript-eslint': tseslint
+    },
+    rules: {
+      // Disable base rules that are covered by TypeScript equivalents
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { 'argsIgnorePattern': '^_', 'varsIgnorePattern': '^_', 'caughtErrorsIgnorePattern': '^_' }],
+      
+      // TypeScript specific rules
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+      '@typescript-eslint/prefer-nullish-coalescing': 'error',
+      '@typescript-eslint/prefer-optional-chain': 'error',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/require-await': 'error',
+      '@typescript-eslint/prefer-as-const': 'error',
+      '@typescript-eslint/no-inferrable-types': 'error',
+      '@typescript-eslint/no-unnecessary-condition': 'warn',
+      
+      // Style rules
+      '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }]
+    }
+  },
+  // Test files (JavaScript and TypeScript)
+  {
+    files: ['test/**/*.js', '**/*.test.js', 'test/**/*.ts', '**/*.test.ts'],
     languageOptions: {
       globals: {
         jest: 'readonly',
@@ -81,7 +122,8 @@ module.exports = [
       }
     },
     rules: {
-      'no-console': 'off'
+      'no-console': 'off',
+      '@typescript-eslint/no-explicit-any': 'off' // Allow any in tests for mocking
     }
   }
 ];

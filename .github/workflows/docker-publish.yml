@@ -47,18 +47,11 @@ jobs:
         with:
           images: ${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.IMAGE_NAME }}
           tags: |
-            # For branches (master/main), use 'staging' tag
-            type=ref,event=branch,suffix=-staging
-            # For semantic version tags, use the version
+            # For semantic version tags (v0.1.0 -> 0.1.0, 0.1, 0, latest)
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            # Latest tag for semantic version tags
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            # SHA for branch builds (push only)
-            type=sha,prefix={{branch}}-,enable=${{ github.event_name != 'pull_request' }}
-            # For PR builds, use pr-NUMBER
-            type=ref,event=pr
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6

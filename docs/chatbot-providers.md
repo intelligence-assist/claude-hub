@@ -69,8 +69,18 @@ DISCORD_BOT_MENTION=claude
    DISCORD_AUTHORIZED_USERS=user1,user2
    ```
 
-4. **Test the Bot**
-   - Use slash commands: `/claude help me with this code`
+4. **Configure Discord Slash Command**
+   Create a slash command in Discord Developer Portal with these parameters:
+   - **Command Name**: `claude`
+   - **Description**: `Ask Claude to help with repository tasks`
+   - **Parameters**:
+     - `repo` (required): Repository in format "owner/name"
+     - `branch` (optional): Git branch name (defaults to "main")
+     - `command` (required): Command for Claude to execute
+
+5. **Test the Bot**
+   - Use slash commands: `/claude repo:owner/myrepo command:help me fix this bug`
+   - Optional branch: `/claude repo:owner/myrepo branch:feature command:review this code`
    - Bot responds directly in Discord channel
 
 ### Adding a New Provider

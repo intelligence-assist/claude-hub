@@ -98,6 +98,7 @@ class DiscordProvider extends ChatbotProvider {
           };
 
         case 2: // APPLICATION_COMMAND
+          const repoInfo = this.extractRepoAndBranch(payload.data);
           return {
             type: 'command',
             command: payload.data?.name,
@@ -108,7 +109,9 @@ class DiscordProvider extends ChatbotProvider {
             username: payload.member?.user?.username || payload.user?.username,
             content: this.buildCommandContent(payload.data),
             interactionToken: payload.token,
-            interactionId: payload.id
+            interactionId: payload.id,
+            repo: repoInfo.repo,
+            branch: repoInfo.branch
           };
 
         case 3: // MESSAGE_COMPONENT
@@ -150,6 +153,24 @@ class DiscordProvider extends ChatbotProvider {
       content += ` ${args}`;
     }
     return content;
+  }
+
+  /**
+   * Extract repository and branch information from Discord slash command options
+   */
+  extractRepoAndBranch(commandData) {
+    if (!commandData || !commandData.options) {
+      return { repo: null, branch: null };
+    }
+
+    const repoOption = commandData.options.find(opt => opt.name === 'repo');
+    const branchOption = commandData.options.find(opt => opt.name === 'branch');
+
+    // Only default to 'main' if we have a repo but no branch
+    const repo = repoOption ? repoOption.value : null;
+    const branch = branchOption ? branchOption.value : (repo ? 'main' : null);
+
+    return { repo, branch };
   }
 
   /**

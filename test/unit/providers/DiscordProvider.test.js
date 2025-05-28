@@ -178,6 +178,71 @@ describe('DiscordProvider', () => {
       expect(result.content).toBe('help topic:discord');
       expect(result.interactionToken).toBe('interaction_token');
       expect(result.interactionId).toBe('interaction_id');
+      expect(result.repo).toBe(null);
+      expect(result.branch).toBe(null);
+    });
+
+    it('should parse APPLICATION_COMMAND with repo and branch parameters', () => {
+      const payload = {
+        type: 2,
+        data: {
+          name: 'claude',
+          options: [
+            { name: 'repo', value: 'owner/myrepo' },
+            { name: 'branch', value: 'feature-branch' },
+            { name: 'command', value: 'fix this bug' }
+          ]
+        },
+        channel_id: '123456789',
+        guild_id: '987654321',
+        member: {
+          user: {
+            id: 'user123',
+            username: 'testuser'
+          }
+        },
+        token: 'interaction_token',
+        id: 'interaction_id'
+      };
+
+      const result = provider.parseWebhookPayload(payload);
+
+      expect(result.type).toBe('command');
+      expect(result.command).toBe('claude');
+      expect(result.options).toHaveLength(3);
+      expect(result.repo).toBe('owner/myrepo');
+      expect(result.branch).toBe('feature-branch');
+      expect(result.content).toBe('claude repo:owner/myrepo branch:feature-branch command:fix this bug');
+    });
+
+    it('should parse APPLICATION_COMMAND with repo but no branch (defaults to main)', () => {
+      const payload = {
+        type: 2,
+        data: {
+          name: 'claude',
+          options: [
+            { name: 'repo', value: 'owner/myrepo' },
+            { name: 'command', value: 'review this code' }
+          ]
+        },
+        channel_id: '123456789',
+        guild_id: '987654321',
+        member: {
+          user: {
+            id: 'user123',
+            username: 'testuser'
+          }
+        },
+        token: 'interaction_token',
+        id: 'interaction_id'
+      };
+
+      const result = provider.parseWebhookPayload(payload);
+
+      expect(result.type).toBe('command');
+      expect(result.repo).toBe('owner/myrepo');
+      expect(result.branch).toBe('main'); // Default value
+      expect(result.content).toBe('claude repo:owner/myrepo command:review this code');
     });
 
     it('should parse MESSAGE_COMPONENT interaction', () => {
@@ -253,6 +318,49 @@ describe('DiscordProvider', () => {
       expect(provider.extractBotCommand('')).toBeNull();
       expect(provider.extractBotCommand(null)).toBeNull();
       expect(provider.extractBotCommand(undefined)).toBeNull();
+    });
+  });
+
+  describe('extractRepoAndBranch', () => {
+    it('should extract repo and branch from command options', () => {
+      const commandData = {
+        name: 'claude',
+        options: [
+          { name: 'repo', value: 'owner/myrepo' },
+          { name: 'branch', value: 'feature-branch' },
+          { name: 'command', value: 'fix this' }
+        ]
+      };
+
+      const result = provider.extractRepoAndBranch(commandData);
+      expect(result.repo).toBe('owner/myrepo');
+      expect(result.branch).toBe('feature-branch');
+    });
+
+    it('should default branch to main when not provided', () => {
+      const commandData = {
+        name: 'claude',
+        options: [
+          { name: 'repo', value: 'owner/myrepo' },
+          { name: 'command', value: 'fix this' }
+        ]
+      };
+
+      const result = provider.extractRepoAndBranch(commandData);
+      expect(result.repo).toBe('owner/myrepo');
+      expect(result.branch).toBe('main');
+    });
+
+    it('should return null values when no repo option provided', () => {
+      const commandData = { name: 'claude' };
+      const result = provider.extractRepoAndBranch(commandData);
+      expect(result.repo).toBe(null);
+      expect(result.branch).toBe(null);
+    });
+
+    it('should handle empty or null command data', () => {
+      expect(provider.extractRepoAndBranch(null)).toEqual({ repo: null, branch: null });
+      expect(provider.extractRepoAndBranch({})).toEqual({ repo: null, branch: null });
     });
   });
 

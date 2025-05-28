@@ -67,6 +67,7 @@ app.use((req, res, next) => {
         statusCode: res.statusCode,
         responseTime: `${responseTime}ms`
       },
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       `${req.method?.replace(/[\r\n\t]/g, '_') || 'UNKNOWN'} ${req.url?.replace(/[\r\n\t]/g, '_') || '/unknown'}`
     );
   });

@@ -508,6 +508,7 @@ export async function hasReviewedPRAtCommit({
     // Check if any review mentions this specific commit SHA
     const botUsername = process.env.BOT_USERNAME ?? 'ClaudeBot';
     const existingReview = reviews.find(review => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       return review.user?.login === botUsername && review.body?.includes(`commit: ${commitSha}`);
     });
 

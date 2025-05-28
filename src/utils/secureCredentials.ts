@@ -46,7 +46,9 @@ class SecureCredentials {
 
       // Try to read from file first (most secure)
       try {
+        // eslint-disable-next-line no-sync
         if (fs.existsSync(config.file)) {
+          // eslint-disable-next-line no-sync
           value = fs.readFileSync(config.file, 'utf8').trim();
           logger.info(`Loaded ${key} from secure file: ${config.file}`);
         }

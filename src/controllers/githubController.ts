@@ -119,9 +119,12 @@ export const handleWebhook: WebhookHandler = async (req, res) => {
       {
         event,
         delivery,
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         sender: req.body.sender?.login?.replace(/[\r\n\t]/g, '_') || 'unknown',
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         repo: req.body.repository?.full_name?.replace(/[\r\n\t]/g, '_') || 'unknown'
       },
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       `Received GitHub ${event?.replace(/[\r\n\t]/g, '_') || 'unknown'} webhook`
     );
 
@@ -662,6 +665,7 @@ async function handleCheckSuiteCompleted(
     // Check if all check suites for the PR are complete and successful
     const allChecksPassed = await checkAllCheckSuitesComplete({
       repo,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       pullRequests: checkSuite.pull_requests ?? []
     });
 
@@ -688,6 +692,7 @@ async function handleCheckSuiteCompleted(
       repo: repo.full_name,
       checkSuite: checkSuite.id,
       conclusion: checkSuite.conclusion,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       pullRequestCount: (checkSuite.pull_requests ?? []).length,
       shouldTriggerReview,
       triggerReason,

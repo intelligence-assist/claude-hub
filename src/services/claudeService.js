@@ -31,6 +31,7 @@ if (!BOT_USERNAME) {
  * @param {boolean} [options.isPullRequest=false] - Whether this is a pull request
  * @param {string} [options.branchName] - The branch name for pull requests
  * @param {string} [options.operationType='default'] - Operation type: 'auto-tagging', 'pr-review', or 'default'
+ * @param {Object} [options.chatbotContext] - Chatbot context for non-repository commands
  * @returns {Promise<string>} - Claude's response
  */
 async function processCommand({
@@ -39,7 +40,8 @@ async function processCommand({
   command,
   isPullRequest = false,
   branchName = null,
-  operationType = 'default'
+  operationType = 'default',
+  chatbotContext = null
 }) {
   try {
     logger.info(
@@ -48,7 +50,9 @@ async function processCommand({
         issue: issueNumber,
         isPullRequest,
         branchName,
-        commandLength: command.length
+        commandLength: command.length,
+        chatbotProvider: chatbotContext?.provider,
+        chatbotUser: chatbotContext?.userId
       },
       'Processing command with Claude'
     );
@@ -109,13 +113,37 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
     }
 
     // Create unique container name (sanitized to prevent command injection)
-    const sanitizedRepoName = repoFullName.replace(/[^a-zA-Z0-9\-_]/g, '-');
-    const containerName = `claude-${sanitizedRepoName}-${Date.now()}`;
+    const sanitizedIdentifier = chatbotContext 
+      ? `chatbot-${chatbotContext.provider}-${chatbotContext.userId}`.replace(/[^a-zA-Z0-9\-_]/g, '-')
+      : repoFullName.replace(/[^a-zA-Z0-9\-_]/g, '-');
+    const containerName = `claude-${sanitizedIdentifier}-${Date.now()}`;
 
     // Create the full prompt with context and instructions based on operation type
     let fullPrompt;
 
-    if (operationType === 'auto-tagging') {
+    if (chatbotContext) {
+      // Handle chatbot-specific commands (Discord, Slack, etc.)
+      fullPrompt = `You are Claude, an AI assistant responding to a user via ${chatbotContext.provider} chatbot.
+
+**Context:**
+- Platform: ${chatbotContext.provider}
+- User: ${chatbotContext.username} (ID: ${chatbotContext.userId})
+- Channel: ${chatbotContext.channelId || 'Direct message'}
+- Running in: Standalone chatbot mode
+
+**Important Instructions:**
+1. This is a general chatbot interaction, not repository-specific
+2. You can help with coding questions, explanations, debugging, and general assistance
+3. If the user asks about repository operations, let them know they need to mention you in a GitHub issue/PR
+4. Be helpful, concise, and friendly
+5. Format your response appropriately for ${chatbotContext.provider}
+6. You have access to general tools but not repository-specific operations
+
+**User Request:**
+${command}
+
+Please respond helpfully to this ${chatbotContext.provider} user.`;
+    } else if (operationType === 'auto-tagging') {
       fullPrompt = `You are Claude, an AI assistant analyzing a GitHub issue for automatic label assignment.
 
 **Context:**
@@ -185,14 +213,17 @@ Please complete this task fully and autonomously.`;
 
     // Prepare environment variables for the container
     const envVars = {
-      REPO_FULL_NAME: repoFullName,
+      REPO_FULL_NAME: repoFullName || '',
       ISSUE_NUMBER: issueNumber || '',
       IS_PULL_REQUEST: isPullRequest ? 'true' : 'false',
       BRANCH_NAME: branchName || '',
       OPERATION_TYPE: operationType,
       COMMAND: fullPrompt,
       GITHUB_TOKEN: githubToken,
-      ANTHROPIC_API_KEY: secureCredentials.get('ANTHROPIC_API_KEY')
+      ANTHROPIC_API_KEY: secureCredentials.get('ANTHROPIC_API_KEY'),
+      CHATBOT_PROVIDER: chatbotContext?.provider || '',
+      CHATBOT_USER_ID: chatbotContext?.userId || '',
+      CHATBOT_USERNAME: chatbotContext?.username || ''
     };
 
     // Note: Environment variables will be added as separate arguments to docker command

@@ -9,6 +9,8 @@ This directory contains the test framework for the Claude Webhook service. The t
   /unit             # Unit tests for individual components
     /controllers    # Tests for controllers
     /services       # Tests for services
+    /providers      # Tests for chatbot providers
+    /security       # Security-focused tests
     /utils          # Tests for utility functions
   /integration      # Integration tests between components
     /github         # GitHub integration tests
@@ -33,6 +35,9 @@ npm test
 # Run only unit tests
 npm run test:unit
 
+# Run only chatbot provider tests
+npm run test:chatbot
+
 # Run only integration tests
 npm run test:integration
 
@@ -52,14 +57,25 @@ npm run test:watch
 
 Unit tests focus on testing individual components in isolation. They use Jest's mocking capabilities to replace dependencies with test doubles. These tests are fast and reliable, making them ideal for development and CI/CD pipelines.
 
+#### Chatbot Provider Tests
+
+The chatbot provider system includes comprehensive unit tests for:
+
+- **Base Provider Interface** (`ChatbotProvider.test.js`): Tests the abstract base class and inheritance patterns
+- **Discord Provider** (`DiscordProvider.test.js`): Tests Discord-specific webhook handling, signature verification, and message parsing
+- **Provider Factory** (`ProviderFactory.test.js`): Tests dependency injection and provider management
+- **Security Tests** (`signature-verification.test.js`): Tests webhook signature verification and security edge cases
+- **Payload Tests** (`discord-payloads.test.js`): Tests real Discord webhook payloads and edge cases
+
 Example:
 
 ```javascript
-// Test for awsCredentialProvider.js
-describe('AWS Credential Provider', () => {
-  test('should get credentials from AWS profile', async () => {
-    const credentials = await awsCredentialProvider.getCredentials();
-    expect(credentials).toBeDefined();
+// Test for DiscordProvider.js
+describe('Discord Provider', () => {
+  test('should parse Discord slash command correctly', () => {
+    const payload = { type: 2, data: { name: 'claude' } };
+    const result = provider.parseWebhookPayload(payload);
+    expect(result.type).toBe('command');
   });
 });
 ```

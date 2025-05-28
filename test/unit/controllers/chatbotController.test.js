@@ -52,7 +52,7 @@ describe('chatbotController', () => {
       sendResponse: jest.fn().mockResolvedValue(),
       getUserId: jest.fn(),
       isUserAuthorized: jest.fn().mockReturnValue(true),
-      formatErrorMessage: jest.fn().mockReturnValue('Error message'),
+      formatErrorMessage: jest.fn().mockReturnValue('🚫 **Error Processing Command**\n\n**Reference ID:** `test-error-id`\n**Time:** 2023-01-01T00:00:00.000Z\n\nPlease contact an administrator with the reference ID above.'),
       getProviderName: jest.fn().mockReturnValue('DiscordProvider'),
       getBotMention: jest.fn().mockReturnValue('@claude')
     };
@@ -79,7 +79,9 @@ describe('chatbotController', () => {
         content: 'help me',
         userId: 'user123',
         username: 'testuser',
-        channelId: 'channel123'
+        channelId: 'channel123',
+        repo: 'owner/test-repo',
+        branch: 'main'
       });
       mockProvider.extractBotCommand.mockReturnValue({
         command: 'help me',
@@ -92,17 +94,19 @@ describe('chatbotController', () => {
       expect(mockProvider.verifyWebhookSignature).toHaveBeenCalledWith(req);
       expect(mockProvider.parseWebhookPayload).toHaveBeenCalledWith(req.body);
       expect(claudeService.processCommand).toHaveBeenCalledWith({
-        repoFullName: null,
+        repoFullName: 'owner/test-repo',
         issueNumber: null,
         command: 'help me',
         isPullRequest: false,
-        branchName: null,
+        branchName: 'main',
         chatbotContext: {
           provider: 'discord',
           userId: 'user123',
           username: 'testuser',
           channelId: 'channel123',
-          guildId: undefined
+          guildId: undefined,
+          repo: 'owner/test-repo',
+          branch: 'main'
         }
       });
       expect(mockProvider.sendResponse).toHaveBeenCalled();
@@ -214,12 +218,42 @@ describe('chatbotController', () => {
       expect(claudeService.processCommand).not.toHaveBeenCalled();
     });
 
+    it('should handle missing repository parameter', async () => {
+      mockProvider.parseWebhookPayload.mockReturnValue({
+        type: 'command',
+        content: 'help me',
+        userId: 'user123',
+        username: 'testuser',
+        repo: null,  // No repo provided
+        branch: null
+      });
+      mockProvider.extractBotCommand.mockReturnValue({
+        command: 'help me'
+      });
+      mockProvider.getUserId.mockReturnValue('user123');
+
+      await chatbotController.handleChatbotWebhook(req, res, 'discord');
+
+      expect(mockProvider.sendResponse).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.stringContaining('Repository Required')
+      );
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        error: 'Repository parameter is required'
+      }));
+      expect(claudeService.processCommand).not.toHaveBeenCalled();
+    });
+
     it('should handle Claude service errors gracefully', async () => {
       mockProvider.parseWebhookPayload.mockReturnValue({
         type: 'command',
         content: 'help me',
         userId: 'user123',
-        username: 'testuser'
+        username: 'testuser',
+        repo: 'owner/test-repo',
+        branch: 'main'
       });
       mockProvider.extractBotCommand.mockReturnValue({
         command: 'help me'
@@ -232,7 +266,7 @@ describe('chatbotController', () => {
 
       expect(mockProvider.sendResponse).toHaveBeenCalledWith(
         expect.anything(),
-        'Error message'
+        expect.stringContaining('🚫 **Error Processing Command**')
       );
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
@@ -285,13 +319,17 @@ describe('chatbotController', () => {
 
   describe('handleDiscordWebhook', () => {
     it('should call handleChatbotWebhook with discord provider', async () => {
-      const spy = jest.spyOn(chatbotController, 'handleChatbotWebhook');
-      spy.mockResolvedValue();
+      // Mock a simple provider response to avoid validation
+      mockProvider.parseWebhookPayload.mockReturnValue({
+        type: 'ping',
+        shouldRespond: true,
+        responseData: { type: 1 }
+      });
 
       await chatbotController.handleDiscordWebhook(req, res);
 
-      expect(spy).toHaveBeenCalledWith(req, res, 'discord');
-      spy.mockRestore();
+      expect(res.json).toHaveBeenCalledWith({ type: 1 });
+      expect(res.status).not.toHaveBeenCalledWith(400); // Should not trigger repo validation
     });
   });
 

@@ -199,19 +199,43 @@ async function handleChatbotWebhook(req, res, providerName) {
     );
 
     try {
+      // Extract repository and branch from message context (for Discord slash commands)
+      const repoFullName = messageContext.repo || null;
+      const branchName = messageContext.branch || 'main';
+      
+      // Validate required repository parameter
+      if (!repoFullName) {
+        const errorMessage = sanitizeBotMentions(
+          `❌ **Repository Required**: Please specify a repository using the \`repo\` parameter.\n\n` +
+          `**Example:** \`/claude repo:owner/repository command:fix this issue\``
+        );
+        await provider.sendResponse(messageContext, errorMessage);
+        
+        return res.status(400).json({
+          success: false,
+          error: 'Repository parameter is required',
+          context: {
+            provider: providerName,
+            userId: userId
+          }
+        });
+      }
+
       // Process command with Claude
       const claudeResponse = await claudeService.processCommand({
-        repoFullName: null, // Not repository-specific for chatbot commands
+        repoFullName: repoFullName,
         issueNumber: null,
         command: commandInfo.command,
         isPullRequest: false,
-        branchName: null,
+        branchName: branchName,
         chatbotContext: {
           provider: providerName,
           userId: userId,
           username: messageContext.username,
           channelId: messageContext.channelId,
-          guildId: messageContext.guildId
+          guildId: messageContext.guildId,
+          repo: repoFullName,
+          branch: branchName
         }
       });
 

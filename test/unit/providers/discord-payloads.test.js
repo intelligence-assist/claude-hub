@@ -78,7 +78,9 @@ describe('Discord Payload Processing Tests', () => {
         username: 'testuser',
         content: 'claude',
         interactionToken: 'unique_interaction_token',
-        interactionId: '123456789012345678'
+        interactionId: '123456789012345678',
+        repo: null,
+        branch: null
       });
     });
 
@@ -130,7 +132,9 @@ describe('Discord Payload Processing Tests', () => {
         username: 'developer',
         content: 'claude prompt:Help me debug this Python function',
         interactionToken: 'another_interaction_token',
-        interactionId: '123456789012345678'
+        interactionId: '123456789012345678',
+        repo: null,
+        branch: null
       });
     });
 
@@ -300,7 +304,9 @@ describe('Discord Payload Processing Tests', () => {
         username: 'minimaluser',
         content: 'claude',
         interactionToken: 'minimal_token',
-        interactionId: '123456789012345678'
+        interactionId: '123456789012345678',
+        repo: null,
+        branch: null
       });
     });
   });

@@ -52,7 +52,9 @@ jest.mock('../../../src/utils/secureCredentials', () => ({
 jest.mock('axios');
 const axios = require('axios');
 
-const githubService = require('../../../src/services/githubService');
+const githubService =
+  require('../../../src/services/githubService').default ||
+  require('../../../src/services/githubService');
 
 describe('githubService', () => {
   beforeEach(() => {
@@ -139,8 +141,10 @@ describe('githubService', () => {
         labels: ['type:bug', 'priority:high']
       });
 
-      expect(result.added_labels).toEqual(['type:bug', 'priority:high']);
-      expect(result.timestamp).toBeDefined();
+      expect(result).toEqual([
+        { id: 0, name: 'type:bug', color: '000000', description: null },
+        { id: 1, name: 'priority:high', color: '000000', description: null }
+      ]);
       expect(axios.post).not.toHaveBeenCalled();
     });
   });
@@ -158,7 +162,10 @@ describe('githubService', () => {
         labels: testLabels
       });
 
-      expect(result).toEqual(testLabels);
+      expect(result).toEqual([
+        { id: 0, name: 'type:bug', color: 'd73a4a', description: 'Bug label' },
+        { id: 1, name: 'priority:high', color: 'd93f0b', description: 'High priority label' }
+      ]);
       expect(axios.post).not.toHaveBeenCalled();
     });
   });

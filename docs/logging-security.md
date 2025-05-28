@@ -258,7 +258,7 @@ The logger automatically redacts these environment variables when they appear in
 
 ### If credentials appear in logs:
 1. Identify the specific pattern that wasn't caught
-2. Add the new pattern to the redaction paths in `src/utils/logger.js`
+2. Add the new pattern to the redaction paths in `src/utils/logger.ts`
 3. Add a test case in the test files
 4. Run tests to verify the fix
 5. Deploy the updated configuration

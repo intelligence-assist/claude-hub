@@ -12,7 +12,7 @@ The webhook service handles sensitive credentials including:
 ## Security Measures Implemented
 
 ### 1. Docker Command Sanitization
-In `src/services/claudeService.js`:
+In `src/services/claudeService.ts`:
 - Docker commands are sanitized before logging
 - Sensitive environment variables are replaced with `[REDACTED]`
 - Sanitized commands are used in all error messages
@@ -34,13 +34,13 @@ const sanitizedCommand = dockerCommand.replace(/-e [A-Z_]+=\"[^\"]*\"/g, (match)
 - Sanitized output is used in error messages and logs
 
 ### 3. Logger Redaction
-In `src/utils/logger.js`:
+In `src/utils/logger.ts`:
 - Pino logger configured with comprehensive redaction paths
 - Automatically redacts sensitive fields in log output
 - Covers nested objects and various field patterns
 
 ### 4. Error Response Sanitization
-In `src/controllers/githubController.js`:
+In `src/controllers/githubController.ts`:
 - Only error messages (not full stack traces) are sent to GitHub
 - No raw stderr/stdout is exposed in webhook responses
 - Generic error messages for internal server errors

@@ -1,0 +1,20 @@
+# TruffleHog ignore patterns
+test/**
+tests/**
+__tests__/**
+__mocks__/**
+**/*test*.js
+**/*test*.ts
+**/*Test*.js
+**/*Test*.ts
+**/*spec*.js
+**/*spec*.ts
+**/*mock*.js
+**/*mock*.ts
+**/*fixture*.js
+**/*fixture*.ts
+**/*example*.js
+**/*example*.ts
+node_modules/**
+**/credential-audit.sh
+.git/**

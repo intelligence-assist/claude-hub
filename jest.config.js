@@ -1,6 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  setupFiles: ['<rootDir>/test/setup.js'],
   testMatch: [
     '**/test/unit/**/*.test.{js,ts}',
     '**/test/integration/**/*.test.{js,ts}',

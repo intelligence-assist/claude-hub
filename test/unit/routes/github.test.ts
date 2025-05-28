@@ -3,9 +3,6 @@ import request from 'supertest';
 import express from 'express';
 import type { Request, Response } from 'express';
 
-// Set required environment variables before any imports
-process.env.BOT_USERNAME = '@TestBot';
-
 // Mock the controller before importing the router
 jest.mock('../../../src/controllers/githubController');
 

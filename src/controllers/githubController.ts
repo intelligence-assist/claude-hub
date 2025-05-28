@@ -119,8 +119,8 @@ export const handleWebhook: WebhookHandler = async (req, res) => {
       {
         event,
         delivery,
-        sender: req.body.sender.login.replace(/[\r\n\t]/g, '_'),
-        repo: req.body.repository.full_name.replace(/[\r\n\t]/g, '_')
+        sender: req.body.sender?.login?.replace(/[\r\n\t]/g, '_') || 'unknown',
+        repo: req.body.repository?.full_name?.replace(/[\r\n\t]/g, '_') || 'unknown'
       },
       `Received GitHub ${event} webhook`
     );

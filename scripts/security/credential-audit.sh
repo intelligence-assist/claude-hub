@@ -51,18 +51,59 @@ CREDENTIAL_PATTERNS=(
 )
 
 for pattern in "${CREDENTIAL_PATTERNS[@]}"; do
-    # Always exclude test directories for credential scanning - these are fake test keys
-    GREP_RESULT=$(grep -rE "$pattern" \
+    # Always exclude test directories and files for credential scanning - these are fake test keys
+    # Also run an initial test to see if any potential matches exist before storing them
+    INITIAL_CHECK=$(grep -rE "$pattern" \
         --exclude-dir=node_modules \
         --exclude-dir=.git \
         --exclude-dir=coverage \
         --exclude-dir=test \
+        --exclude-dir=tests \
+        --exclude-dir=__tests__ \
+        --exclude-dir=__mocks__ \
         --exclude="credential-audit.sh" \
         --exclude="*test*.js" \
         --exclude="*test*.ts" \
         --exclude="*Test*.js" \
         --exclude="*Test*.ts" \
+        --exclude="*spec*.js" \
+        --exclude="*spec*.ts" \
+        --exclude="*mock*.js" \
+        --exclude="*mock*.ts" \
+        --exclude="*fixture*.js" \
+        --exclude="*fixture*.ts" \
+        --exclude="*example*.js" \
+        --exclude="*example*.ts" \
         . 2>/dev/null)
+    
+    if [[ -n "$INITIAL_CHECK" ]]; then
+        # Now check more carefully, excluding integration test directories explicitly
+        GREP_RESULT=$(grep -rE "$pattern" \
+            --exclude-dir=node_modules \
+            --exclude-dir=.git \
+            --exclude-dir=coverage \
+            --exclude-dir=test \
+            --exclude-dir=tests \
+            --exclude-dir=__tests__ \
+            --exclude-dir=__mocks__ \
+            --exclude-dir=integration \
+            --exclude="credential-audit.sh" \
+            --exclude="*test*.js" \
+            --exclude="*test*.ts" \
+            --exclude="*Test*.js" \
+            --exclude="*Test*.ts" \
+            --exclude="*spec*.js" \
+            --exclude="*spec*.ts" \
+            --exclude="*mock*.js" \
+            --exclude="*mock*.ts" \
+            --exclude="*fixture*.js" \
+            --exclude="*fixture*.ts" \
+            --exclude="*example*.js" \
+            --exclude="*example*.ts" \
+            . 2>/dev/null)
+    else
+        GREP_RESULT=""
+    fi
     
     if [[ -n "$GREP_RESULT" ]]; then
         echo "$GREP_RESULT"

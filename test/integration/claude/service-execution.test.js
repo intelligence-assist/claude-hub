@@ -6,12 +6,14 @@
  */
 
 const { jest: jestGlobal } = require('@jest/globals');
+jest.mock('../../../src/utils/awsCredentialProvider');
+jest.mock('../../../src/utils/startup-metrics');
 const path = require('path');
 const childProcess = require('child_process');
 
 const claudeService = require('../../../src/services/claudeService');
 const secureCredentials = require('../../../src/utils/secureCredentials');
-const logger = require('../../../src/utils/logger');
+const { logger } = require('../../../src/utils/logger');
 
 // Mock child_process execFile
 jest.mock('child_process', () => ({
@@ -54,11 +56,15 @@ describe('Claude Service Container Execution Integration', () => {
       });
     });
     
-    // Set production environment
+    // Set production environment with required variables
     process.env = {
+      ...process.env,
       NODE_ENV: 'production',
       BOT_USERNAME: '@TestBot',
       BOT_EMAIL: 'testbot@example.com',
+      GITHUB_TOKEN: 'test-token',
+      GITHUB_WEBHOOK_SECRET: 'test-secret',
+      ANTHROPIC_API_KEY: 'test-key',
       ENABLE_CONTAINER_FIREWALL: 'false',
       CLAUDE_CONTAINER_IMAGE: 'claude-code-runner:latest',
       ALLOWED_TOOLS: 'Read,GitHub,Bash,Edit,Write'

@@ -6,6 +6,9 @@
  */
 
 const { jest: jestGlobal } = require('@jest/globals');
+jest.mock('../../../src/utils/awsCredentialProvider');
+jest.mock('../../../src/utils/startup-metrics');
+jest.mock('../../../src/utils/logger');
 const crypto = require('crypto');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -47,11 +50,16 @@ describe('GitHub Webhook Processing Integration', () => {
     // Reset mocks
     jest.clearAllMocks();
     
-    // Set test environment
-    process.env.NODE_ENV = 'test';
-    process.env.BOT_USERNAME = '@TestBot';
-    process.env.AUTHORIZED_USERS = 'testuser,admin';
-    process.env.GITHUB_WEBHOOK_SECRET = 'test-webhook-secret';
+    // Set test environment with all required variables
+    process.env = {
+      ...process.env,
+      NODE_ENV: 'test',
+      BOT_USERNAME: '@TestBot',
+      AUTHORIZED_USERS: 'testuser,admin',
+      GITHUB_WEBHOOK_SECRET: 'test-webhook-secret',
+      GITHUB_TOKEN: 'test-token',
+      ANTHROPIC_API_KEY: 'test-key'
+    };
     
     // Mock secureCredentials
     jest.spyOn(secureCredentials, 'get').mockImplementation(key => {

@@ -10,9 +10,9 @@ const path = require('path');
 const os = require('os');
 const { jest: jestGlobal } = require('@jest/globals');
 
-const awsCredentialProvider = require('../../../src/utils/awsCredentialProvider');
+const awsCredentialProvider = require('../../../src/utils/awsCredentialProvider').default;
 const secureCredentials = require('../../../src/utils/secureCredentials');
-const logger = require('../../../src/utils/logger');
+const { logger } = require('../../../src/utils/logger');
 
 describe('AWS Credential Provider Integration', () => {
   let originalHomedir;
@@ -75,8 +75,8 @@ describe('AWS Credential Provider Integration', () => {
     // Create credentials file
     const credentialsContent = `
 [test-profile]
-aws_access_key_id = AKIATESTKEY123456789
-aws_secret_access_key = testsecretkey123456789012345678901234567890
+aws_access_key_id = AKIATEST0000000FAKE
+aws_secret_access_key = testsecreteKy000000000000000000000000FAKE
     `;
     
     // Create config file
@@ -96,8 +96,8 @@ region = us-west-2
     const result = await awsCredentialProvider.getCredentials();
     
     // Verify results
-    expect(result.credentials.accessKeyId).toBe('AKIATESTKEY123456789');
-    expect(result.credentials.secretAccessKey).toBe('testsecretkey123456789012345678901234567890');
+    expect(result.credentials.accessKeyId).toBe('AKIATEST0000000FAKE');
+    expect(result.credentials.secretAccessKey).toBe('testsecreteKy000000000000000000000000FAKE');
     expect(result.region).toBe('us-west-2');
     expect(result.source.type).toBe('profile');
     expect(result.source.profileName).toBe('test-profile');
@@ -112,8 +112,8 @@ region = us-west-2
   
   test('should fall back to environment variables when profile not found', async () => {
     // Set environment variables
-    process.env.AWS_ACCESS_KEY_ID = 'AKIAENVKEY123456789';
-    process.env.AWS_SECRET_ACCESS_KEY = 'envsecretkey123456789012345678901234567890';
+    process.env.AWS_ACCESS_KEY_ID = 'AKIATEST0000000FAKE';
+    process.env.AWS_SECRET_ACCESS_KEY = 'testsecreteKy000000000000000000000000FAKE';
     process.env.AWS_REGION = 'us-east-1';
     
     // Set non-existent profile
@@ -121,8 +121,8 @@ region = us-west-2
     
     // Mock secureCredentials to mimic environment-based retrieval
     jest.spyOn(secureCredentials, 'get').mockImplementation(key => {
-      if (key === 'AWS_ACCESS_KEY_ID') return 'AKIAENVKEY123456789';
-      if (key === 'AWS_SECRET_ACCESS_KEY') return 'envsecretkey123456789012345678901234567890';
+      if (key === 'AWS_ACCESS_KEY_ID') return 'AKIATEST0000000FAKE';
+      if (key === 'AWS_SECRET_ACCESS_KEY') return 'testsecreteKy000000000000000000000000FAKE';
       if (key === 'AWS_REGION') return 'us-east-1';
       return null;
     });
@@ -131,8 +131,8 @@ region = us-west-2
     const result = await awsCredentialProvider.getCredentials();
     
     // Verify results
-    expect(result.credentials.accessKeyId).toBe('AKIAENVKEY123456789');
-    expect(result.credentials.secretAccessKey).toBe('envsecretkey123456789012345678901234567890');
+    expect(result.credentials.accessKeyId).toBe('AKIATEST0000000FAKE');
+    expect(result.credentials.secretAccessKey).toBe('testsecreteKy000000000000000000000000FAKE');
     expect(result.region).toBe('us-east-1');
     expect(result.source.type).toBe('environment');
   });
@@ -140,8 +140,8 @@ region = us-west-2
   test('should retrieve credentials from secure credentials store', async () => {
     // Mock secureCredentials
     jest.spyOn(secureCredentials, 'get').mockImplementation(key => {
-      if (key === 'AWS_ACCESS_KEY_ID') return 'AKIASECUREKEY123456789';
-      if (key === 'AWS_SECRET_ACCESS_KEY') return 'securesecretkey123456789012345678901234567890';
+      if (key === 'AWS_ACCESS_KEY_ID') return 'AKIATEST0000000FAKE';
+      if (key === 'AWS_SECRET_ACCESS_KEY') return 'testsecreteKy000000000000000000000000FAKE';
       if (key === 'AWS_REGION') return 'eu-west-1';
       return null;
     });
@@ -150,8 +150,8 @@ region = us-west-2
     const result = await awsCredentialProvider.getCredentials();
     
     // Verify results
-    expect(result.credentials.accessKeyId).toBe('AKIASECUREKEY123456789');
-    expect(result.credentials.secretAccessKey).toBe('securesecretkey123456789012345678901234567890');
+    expect(result.credentials.accessKeyId).toBe('AKIATEST0000000FAKE');
+    expect(result.credentials.secretAccessKey).toBe('testsecreteKy000000000000000000000000FAKE');
     expect(result.region).toBe('eu-west-1');
     expect(result.source.type).toBe('environment');
   });
@@ -160,8 +160,8 @@ region = us-west-2
     // Create credentials file
     const credentialsContent = `
 [test-profile]
-aws_access_key_id = AKIATESTKEY123456789
-aws_secret_access_key = testsecretkey123456789012345678901234567890
+aws_access_key_id = AKIATEST0000000FAKE
+aws_secret_access_key = testsecreteKy000000000000000000000000FAKE
     `;
     
     // Write credentials file
@@ -172,13 +172,13 @@ aws_secret_access_key = testsecretkey123456789012345678901234567890
     
     // Get initial credentials
     const initialResult = await awsCredentialProvider.getCredentials();
-    expect(initialResult.credentials.accessKeyId).toBe('AKIATESTKEY123456789');
+    expect(initialResult.credentials.accessKeyId).toBe('AKIATEST0000000FAKE');
     
     // Modify credentials file
     const updatedCredentialsContent = `
 [test-profile]
-aws_access_key_id = AKIANEWKEY987654321
-aws_secret_access_key = newsecretkey123456789012345678901234567890
+aws_access_key_id = AKIATEST0000000NEW
+aws_secret_access_key = testsecreteKy000000000000000000000000NEW
     `;
     
     // Write updated credentials
@@ -186,14 +186,14 @@ aws_secret_access_key = newsecretkey123456789012345678901234567890
     
     // Get cached credentials (should be unchanged)
     const cachedResult = await awsCredentialProvider.getCredentials();
-    expect(cachedResult.credentials.accessKeyId).toBe('AKIATESTKEY123456789');
+    expect(cachedResult.credentials.accessKeyId).toBe('AKIATEST0000000FAKE');
     
     // Clear cache
     awsCredentialProvider.clearCache();
     
     // Get fresh credentials
     const refreshedResult = await awsCredentialProvider.getCredentials();
-    expect(refreshedResult.credentials.accessKeyId).toBe('AKIANEWKEY987654321');
+    expect(refreshedResult.credentials.accessKeyId).toBe('AKIATEST0000000NEW');
   });
   
   test('should handle Docker environment credentials', async () => {
@@ -204,8 +204,8 @@ aws_secret_access_key = newsecretkey123456789012345678901234567890
     // Skip actual HTTP request to metadata service
     jest.spyOn(awsCredentialProvider, '_getContainerCredentials')
       .mockResolvedValue({
-        AccessKeyId: 'AKIADOCKERKEY123456789',
-        SecretAccessKey: 'dockersecretkey123456789012345678901234567890',
+        AccessKeyId: 'AKIATEST0000000FAKE',
+        SecretAccessKey: 'testsecreteKy000000000000000000000000FAKE',
         Token: 'docker-token-123',
         Expiration: new Date(Date.now() + 3600000).toISOString()
       });
@@ -214,8 +214,8 @@ aws_secret_access_key = newsecretkey123456789012345678901234567890
     const result = await awsCredentialProvider.getCredentials();
     
     // Verify results
-    expect(result.credentials.accessKeyId).toBe('AKIADOCKERKEY123456789');
-    expect(result.credentials.secretAccessKey).toBe('dockersecretkey123456789012345678901234567890');
+    expect(result.credentials.accessKeyId).toBe('AKIATEST0000000FAKE');
+    expect(result.credentials.secretAccessKey).toBe('testsecreteKy000000000000000000000000FAKE');
     expect(result.credentials.sessionToken).toBe('docker-token-123');
     expect(result.source.type).toBe('container');
   });
@@ -224,8 +224,8 @@ aws_secret_access_key = newsecretkey123456789012345678901234567890
     // Create credentials file
     const credentialsContent = `
 [secure-profile]
-aws_access_key_id = AKIASECPROFILE123456789
-aws_secret_access_key = secprofilesecret123456789012345678901234567890
+aws_access_key_id = AKIATEST0000000FAKE
+aws_secret_access_key = testsecreteKy000000000000000000000000FAKE
     `;
     
     // Write credentials file
@@ -243,8 +243,8 @@ aws_secret_access_key = secprofilesecret123456789012345678901234567890
     const result = await awsCredentialProvider.getCredentials();
     
     // Verify results
-    expect(result.credentials.accessKeyId).toBe('AKIASECPROFILE123456789');
-    expect(result.credentials.secretAccessKey).toBe('secprofilesecret123456789012345678901234567890');
+    expect(result.credentials.accessKeyId).toBe('AKIATEST0000000FAKE');
+    expect(result.credentials.secretAccessKey).toBe('testsecreteKy000000000000000000000000FAKE');
     expect(result.source.type).toBe('profile');
     expect(result.source.profileName).toBe('secure-profile');
   });

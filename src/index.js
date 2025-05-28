@@ -5,6 +5,7 @@ const { createLogger } = require('./utils/logger');
 const { StartupMetrics } = require('./utils/startup-metrics');
 const githubRoutes = require('./routes/github');
 const claudeRoutes = require('./routes/claude');
+const chatbotRoutes = require('./routes/chatbot');
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -52,6 +53,7 @@ startupMetrics.recordMilestone('middleware_configured', 'Express middleware conf
 // Routes
 app.use('/api/webhooks/github', githubRoutes);
 app.use('/api/claude', claudeRoutes);
+app.use('/api/webhooks/chatbot', chatbotRoutes);
 
 startupMetrics.recordMilestone('routes_configured', 'API routes configured');
 

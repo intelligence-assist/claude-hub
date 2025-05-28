@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:unit": "jest --testMatch='**/test/unit/**/*.test.{js,ts}'",
+    "test:chatbot": "jest --testMatch='**/test/unit/providers/**/*.test.{js,ts}' --testMatch='**/test/unit/controllers/chatbotController.test.{js,ts}'",
     "test:e2e": "jest --testMatch='**/test/e2e/**/*.test.{js,ts}'",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
@@ -34,6 +35,7 @@
     "commander": "^14.0.0",
     "dotenv": "^16.3.1",
     "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0"
   },

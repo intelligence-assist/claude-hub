@@ -40,14 +40,9 @@ jest.mock('../../../src/utils/sanitize', () => ({
   sanitizeBotMentions: jest.fn(input => input)
 }));
 
-jest.mock('../../../src/utils/secureCredentials', () => ({
-  get: jest.fn(key => {
-    if (key === 'GITHUB_TOKEN') return 'ghp_test_github_token_mock123456789012345678901234';
-    if (key === 'ANTHROPIC_API_KEY')
-      return 'sk-ant-test-anthropic-key12345678901234567890123456789';
-    return null;
-  })
-}));
+jest.mock('../../../src/utils/secureCredentials');
+jest.mock('../../../src/utils/awsCredentialProvider');
+jest.mock('../../../src/utils/startup-metrics');
 
 // Now require the module under test
 const { execFileSync } = require('child_process');

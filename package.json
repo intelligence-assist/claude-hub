@@ -15,6 +15,7 @@
     "test": "jest",
     "test:unit": "jest --testMatch='**/test/unit/**/*.test.{js,ts}'",
     "test:chatbot": "jest --testMatch='**/test/unit/providers/**/*.test.{js,ts}' --testMatch='**/test/unit/controllers/chatbotController.test.{js,ts}'",
+    "test:integration": "jest --testMatch='**/test/integration/**/*.test.{js,ts}'",
     "test:e2e": "jest --testMatch='**/test/e2e/**/*.test.{js,ts}'",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",

@@ -227,12 +227,12 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
  */
 function getEntrypointScript(operationType: OperationType): string {
   switch (operationType) {
-  case 'auto-tagging':
-    return '/scripts/runtime/claudecode-tagging-entrypoint.sh';
-  case 'pr-review':
-  case 'default':
-  default:
-    return '/scripts/runtime/claudecode-entrypoint.sh';
+    case 'auto-tagging':
+      return '/scripts/runtime/claudecode-tagging-entrypoint.sh';
+    case 'pr-review':
+    case 'default':
+    default:
+      return '/scripts/runtime/claudecode-entrypoint.sh';
   }
 }
 

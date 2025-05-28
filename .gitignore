@@ -28,6 +28,14 @@ test-results/
 dist/
 *.tsbuildinfo
 
+# TypeScript compiled test files
+test/**/*.d.ts
+test/**/*.d.ts.map
+test/**/*.js.map
+# Don't ignore the actual test files
+!test/**/*.test.js
+!test/**/*.spec.js
+
 # Temporary files
 tmp/
 temp/

@@ -19,7 +19,7 @@ const ChatbotProvider = require('../../../src/providers/ChatbotProvider');
 
 // Mock DiscordProvider to avoid initialization issues in tests
 jest.mock('../../../src/providers/DiscordProvider', () => {
-  const mockImplementation = jest.fn().mockImplementation((config) => {
+  const mockImplementation = jest.fn().mockImplementation(config => {
     const instance = {
       initialize: jest.fn().mockResolvedValue(),
       config,
@@ -37,12 +37,12 @@ describe('ProviderFactory', () => {
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    
+
     // Clear the factory singleton and create fresh instance for each test
     jest.resetModules();
     const ProviderFactoryClass = require('../../../src/providers/ProviderFactory').constructor;
     factory = new ProviderFactoryClass();
-    
+
     // Mock DiscordProvider
     DiscordProvider.mockImplementation(() => ({
       initialize: jest.fn().mockResolvedValue(),
@@ -69,11 +69,19 @@ describe('ProviderFactory', () => {
   describe('registerProvider', () => {
     class TestProvider extends ChatbotProvider {
       async initialize() {}
-      verifyWebhookSignature() { return true; }
-      parseWebhookPayload() { return {}; }
-      extractBotCommand() { return null; }
+      verifyWebhookSignature() {
+        return true;
+      }
+      parseWebhookPayload() {
+        return {};
+      }
+      extractBotCommand() {
+        return null;
+      }
       async sendResponse() {}
-      getUserId() { return 'test'; }
+      getUserId() {
+        return 'test';
+      }
     }
 
     it('should register new provider', () => {
@@ -92,7 +100,7 @@ describe('ProviderFactory', () => {
       const provider = await factory.createProvider('discord');
       expect(provider).toBeInstanceOf(DiscordProvider);
       expect(DiscordProvider).toHaveBeenCalledWith({});
-      
+
       // Should return cached instance on second call
       const provider2 = await factory.createProvider('discord');
       expect(provider2).toBe(provider);
@@ -102,16 +110,16 @@ describe('ProviderFactory', () => {
     it('should create provider with custom config', async () => {
       const config = { botMention: '@custombot', authorizedUsers: ['user1'] };
       await factory.createProvider('discord', config);
-      
+
       expect(DiscordProvider).toHaveBeenCalledWith(config);
     });
 
     it('should merge with default config', async () => {
       factory.setDefaultConfig({ globalSetting: true });
       const config = { botMention: '@custombot' };
-      
+
       await factory.createProvider('discord', config);
-      
+
       expect(DiscordProvider).toHaveBeenCalledWith({
         globalSetting: true,
         botMention: '@custombot'
@@ -191,7 +199,6 @@ describe('ProviderFactory', () => {
       });
     });
 
-
     it('should remove undefined values from config', () => {
       // Only set some env vars
       process.env.DISCORD_BOT_TOKEN = 'test_token';
@@ -223,11 +230,19 @@ describe('ProviderFactory', () => {
   describe('createMultipleProviders', () => {
     class MockTestProvider extends ChatbotProvider {
       async initialize() {}
-      verifyWebhookSignature() { return true; }
-      parseWebhookPayload() { return {}; }
-      extractBotCommand() { return null; }
+      verifyWebhookSignature() {
+        return true;
+      }
+      parseWebhookPayload() {
+        return {};
+      }
+      extractBotCommand() {
+        return null;
+      }
       async sendResponse() {}
-      getUserId() { return 'test'; }
+      getUserId() {
+        return 'test';
+      }
     }
 
     beforeEach(() => {
@@ -274,7 +289,7 @@ describe('ProviderFactory', () => {
   describe('getStats', () => {
     it('should return provider statistics', async () => {
       await factory.createProvider('discord');
-      
+
       const stats = factory.getStats();
 
       expect(stats).toEqual({
@@ -302,7 +317,7 @@ describe('ProviderFactory', () => {
       // This tests the actual exported singleton
       const factory1 = require('../../../src/providers/ProviderFactory');
       const factory2 = require('../../../src/providers/ProviderFactory');
-      
+
       expect(factory1).toBe(factory2);
     });
   });

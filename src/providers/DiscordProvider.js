@@ -24,8 +24,10 @@ class DiscordProvider extends ChatbotProvider {
   async initialize() {
     try {
       this.botToken = secureCredentials.get('DISCORD_BOT_TOKEN') || process.env.DISCORD_BOT_TOKEN;
-      this.publicKey = secureCredentials.get('DISCORD_PUBLIC_KEY') || process.env.DISCORD_PUBLIC_KEY;
-      this.applicationId = secureCredentials.get('DISCORD_APPLICATION_ID') || process.env.DISCORD_APPLICATION_ID;
+      this.publicKey =
+        secureCredentials.get('DISCORD_PUBLIC_KEY') || process.env.DISCORD_PUBLIC_KEY;
+      this.applicationId =
+        secureCredentials.get('DISCORD_APPLICATION_ID') || process.env.DISCORD_APPLICATION_ID;
 
       if (!this.botToken || !this.publicKey) {
         throw new Error('Discord bot token and public key are required');
@@ -90,49 +92,50 @@ class DiscordProvider extends ChatbotProvider {
     try {
       // Handle Discord interaction types
       switch (payload.type) {
-      case 1: // PING
-        return {
-          type: 'ping',
-          shouldRespond: true,
-          responseData: { type: 1 } // PONG
-        };
+        case 1: // PING
+          return {
+            type: 'ping',
+            shouldRespond: true,
+            responseData: { type: 1 } // PONG
+          };
 
-      case 2: { // APPLICATION_COMMAND
-        const repoInfo = this.extractRepoAndBranch(payload.data);
-        return {
-          type: 'command',
-          command: payload.data?.name,
-          options: payload.data?.options || [],
-          channelId: payload.channel_id,
-          guildId: payload.guild_id,
-          userId: payload.member?.user?.id || payload.user?.id,
-          username: payload.member?.user?.username || payload.user?.username,
-          content: this.buildCommandContent(payload.data),
-          interactionToken: payload.token,
-          interactionId: payload.id,
-          repo: repoInfo.repo,
-          branch: repoInfo.branch
-        };
-      }
+        case 2: {
+          // APPLICATION_COMMAND
+          const repoInfo = this.extractRepoAndBranch(payload.data);
+          return {
+            type: 'command',
+            command: payload.data?.name,
+            options: payload.data?.options || [],
+            channelId: payload.channel_id,
+            guildId: payload.guild_id,
+            userId: payload.member?.user?.id || payload.user?.id,
+            username: payload.member?.user?.username || payload.user?.username,
+            content: this.buildCommandContent(payload.data),
+            interactionToken: payload.token,
+            interactionId: payload.id,
+            repo: repoInfo.repo,
+            branch: repoInfo.branch
+          };
+        }
 
-      case 3: // MESSAGE_COMPONENT
-        return {
-          type: 'component',
-          customId: payload.data?.custom_id,
-          channelId: payload.channel_id,
-          guildId: payload.guild_id,
-          userId: payload.member?.user?.id || payload.user?.id,
-          username: payload.member?.user?.username || payload.user?.username,
-          interactionToken: payload.token,
-          interactionId: payload.id
-        };
+        case 3: // MESSAGE_COMPONENT
+          return {
+            type: 'component',
+            customId: payload.data?.custom_id,
+            channelId: payload.channel_id,
+            guildId: payload.guild_id,
+            userId: payload.member?.user?.id || payload.user?.id,
+            username: payload.member?.user?.username || payload.user?.username,
+            interactionToken: payload.token,
+            interactionId: payload.id
+          };
 
-      default:
-        logger.warn({ type: payload.type }, 'Unknown Discord interaction type');
-        return {
-          type: 'unknown',
-          shouldRespond: false
-        };
+        default:
+          logger.warn({ type: payload.type }, 'Unknown Discord interaction type');
+          return {
+            type: 'unknown',
+            shouldRespond: false
+          };
       }
     } catch (error) {
       logger.error({ err: error }, 'Error parsing Discord webhook payload');
@@ -148,9 +151,7 @@ class DiscordProvider extends ChatbotProvider {
 
     let content = commandData.name;
     if (commandData.options && commandData.options.length > 0) {
-      const args = commandData.options
-        .map(option => `${option.name}:${option.value}`)
-        .join(' ');
+      const args = commandData.options.map(option => `${option.name}:${option.value}`).join(' ');
       content += ` ${args}`;
     }
     return content;
@@ -169,7 +170,7 @@ class DiscordProvider extends ChatbotProvider {
 
     // Only default to 'main' if we have a repo but no branch
     const repo = repoOption ? repoOption.value : null;
-    const branch = branchOption ? branchOption.value : (repo ? 'main' : null);
+    const branch = branchOption ? branchOption.value : repo ? 'main' : null;
 
     return { repo, branch };
   }
@@ -233,20 +234,24 @@ class DiscordProvider extends ChatbotProvider {
    */
   async sendFollowUpMessage(interactionToken, content) {
     const url = `https://discord.com/api/v10/webhooks/${this.applicationId}/${interactionToken}`;
-    
+
     // Split long messages to respect Discord's 2000 character limit
     const messages = this.splitLongMessage(content, 2000);
-    
+
     for (const message of messages) {
-      await axios.post(url, {
-        content: message,
-        flags: 0 // Make message visible to everyone
-      }, {
-        headers: {
-          'Authorization': `Bot ${this.botToken}`,
-          'Content-Type': 'application/json'
+      await axios.post(
+        url,
+        {
+          content: message,
+          flags: 0 // Make message visible to everyone
+        },
+        {
+          headers: {
+            Authorization: `Bot ${this.botToken}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
     }
   }
 
@@ -255,19 +260,23 @@ class DiscordProvider extends ChatbotProvider {
    */
   async sendChannelMessage(channelId, content) {
     const url = `https://discord.com/api/v10/channels/${channelId}/messages`;
-    
+
     // Split long messages to respect Discord's 2000 character limit
     const messages = this.splitLongMessage(content, 2000);
-    
+
     for (const message of messages) {
-      await axios.post(url, {
-        content: message
-      }, {
-        headers: {
-          'Authorization': `Bot ${this.botToken}`,
-          'Content-Type': 'application/json'
+      await axios.post(
+        url,
+        {
+          content: message
+        },
+        {
+          headers: {
+            Authorization: `Bot ${this.botToken}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
     }
   }
 
@@ -328,10 +337,12 @@ class DiscordProvider extends ChatbotProvider {
    */
   formatErrorMessage(error, errorId) {
     const timestamp = new Date().toISOString();
-    return '🚫 **Error Processing Command**\n\n' +
-           `**Reference ID:** \`${errorId}\`\n` +
-           `**Time:** ${timestamp}\n\n` +
-           'Please contact an administrator with the reference ID above.';
+    return (
+      '🚫 **Error Processing Command**\n\n' +
+      `**Reference ID:** \`${errorId}\`\n` +
+      `**Time:** ${timestamp}\n\n` +
+      'Please contact an administrator with the reference ID above.'
+    );
   }
 
   /**

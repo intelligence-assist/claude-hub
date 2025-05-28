@@ -154,7 +154,7 @@ region = us-west-2
     process.env.AWS_PROFILE = 'non-existent-profile';
 
     await expect(awsCredentialProvider.getCredentials()).rejects.toThrow(
-      'Profile \'non-existent-profile\' not found'
+      "Profile 'non-existent-profile' not found"
     );
 
     // Restore AWS_PROFILE
@@ -172,7 +172,7 @@ aws_access_key_id = test-access-key
     fsPromises.readFile.mockImplementationOnce(() => Promise.resolve(mockConfigFile));
 
     await expect(awsCredentialProvider.getCredentials()).rejects.toThrow(
-      'Incomplete credentials for profile \'test-profile\''
+      "Incomplete credentials for profile 'test-profile'"
     );
   });
 });

@@ -324,19 +324,6 @@ async function handleDiscordWebhook(req, res) {
   return await handleChatbotWebhook(req, res, 'discord');
 }
 
-/**
- * Slack-specific webhook handler (placeholder for future implementation)
- */
-async function handleSlackWebhook(req, res) {
-  return await handleChatbotWebhook(req, res, 'slack');
-}
-
-/**
- * Nextcloud-specific webhook handler (placeholder for future implementation)
- */
-async function handleNextcloudWebhook(req, res) {
-  return await handleChatbotWebhook(req, res, 'nextcloud');
-}
 
 /**
  * Get provider status and statistics
@@ -373,7 +360,5 @@ async function getProviderStats(req, res) {
 module.exports = {
   handleChatbotWebhook,
   handleDiscordWebhook,
-  handleSlackWebhook,
-  handleNextcloudWebhook,
   getProviderStats
 };

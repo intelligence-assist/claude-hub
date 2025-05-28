@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+const { verify } = require('crypto');
 const axios = require('axios');
 const ChatbotProvider = require('./ChatbotProvider');
 const { createLogger } = require('../utils/logger');
@@ -61,7 +61,6 @@ class DiscordProvider extends ChatbotProvider {
       const message = timestamp + body;
 
       try {
-        const { verify } = require('crypto');
         const isValid = verify(
           'ed25519',
           Buffer.from(message),
@@ -141,10 +140,10 @@ class DiscordProvider extends ChatbotProvider {
    * Build command content from Discord slash command data
    */
   buildCommandContent(commandData) {
-    if (!commandData) return '';
+    if (!commandData || !commandData.name) return '';
 
     let content = commandData.name;
-    if (commandData.options) {
+    if (commandData.options && commandData.options.length > 0) {
       const args = commandData.options
         .map(option => `${option.name}:${option.value}`)
         .join(' ');

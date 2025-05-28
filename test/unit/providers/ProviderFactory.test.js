@@ -1,7 +1,3 @@
-const ProviderFactory = require('../../../src/providers/ProviderFactory');
-const DiscordProvider = require('../../../src/providers/DiscordProvider');
-const ChatbotProvider = require('../../../src/providers/ChatbotProvider');
-
 // Mock dependencies
 jest.mock('../../../src/utils/logger', () => ({
   createLogger: () => ({
@@ -12,8 +8,28 @@ jest.mock('../../../src/utils/logger', () => ({
   })
 }));
 
+jest.mock('../../../src/utils/secureCredentials', () => ({
+  get: jest.fn(),
+  loadCredentials: jest.fn()
+}));
+
+const ProviderFactory = require('../../../src/providers/ProviderFactory');
+const DiscordProvider = require('../../../src/providers/DiscordProvider');
+const ChatbotProvider = require('../../../src/providers/ChatbotProvider');
+
 // Mock DiscordProvider to avoid initialization issues in tests
-jest.mock('../../../src/providers/DiscordProvider');
+const mockDiscordProvider = jest.fn();
+mockDiscordProvider.mockImplementation((config) => {
+  const instance = {
+    initialize: jest.fn().mockResolvedValue(),
+    config,
+    getProviderName: jest.fn().mockReturnValue('DiscordProvider')
+  };
+  Object.setPrototypeOf(instance, mockDiscordProvider.prototype);
+  return instance;
+});
+
+jest.mock('../../../src/providers/DiscordProvider', () => mockDiscordProvider);
 
 describe('ProviderFactory', () => {
   let factory;
@@ -175,39 +191,6 @@ describe('ProviderFactory', () => {
       });
     });
 
-    it('should extract Slack config from environment', () => {
-      process.env.SLACK_BOT_TOKEN = 'xoxb-token';
-      process.env.SLACK_SIGNING_SECRET = 'signing_secret';
-      process.env.SLACK_AUTHORIZED_USERS = 'slackuser1,slackuser2';
-      process.env.SLACK_BOT_MENTION = '@slackbot';
-
-      const config = factory.getEnvironmentConfig('slack');
-
-      expect(config).toEqual({
-        botToken: 'xoxb-token',
-        signingSecret: 'signing_secret',
-        authorizedUsers: ['slackuser1', 'slackuser2'],
-        botMention: '@slackbot'
-      });
-    });
-
-    it('should extract Nextcloud config from environment', () => {
-      process.env.NEXTCLOUD_SERVER_URL = 'https://nextcloud.example.com';
-      process.env.NEXTCLOUD_USERNAME = 'claude_bot';
-      process.env.NEXTCLOUD_PASSWORD = 'secret_password';
-      process.env.NEXTCLOUD_AUTHORIZED_USERS = 'ncuser1,ncuser2';
-      process.env.NEXTCLOUD_BOT_MENTION = '@claudebot';
-
-      const config = factory.getEnvironmentConfig('nextcloud');
-
-      expect(config).toEqual({
-        serverUrl: 'https://nextcloud.example.com',
-        username: 'claude_bot',
-        password: 'secret_password',
-        authorizedUsers: ['ncuser1', 'ncuser2'],
-        botMention: '@claudebot'
-      });
-    });
 
     it('should remove undefined values from config', () => {
       // Only set some env vars
@@ -238,30 +221,30 @@ describe('ProviderFactory', () => {
   });
 
   describe('createMultipleProviders', () => {
-    class MockSlackProvider extends ChatbotProvider {
+    class MockTestProvider extends ChatbotProvider {
       async initialize() {}
       verifyWebhookSignature() { return true; }
       parseWebhookPayload() { return {}; }
       extractBotCommand() { return null; }
       async sendResponse() {}
-      getUserId() { return 'slack'; }
+      getUserId() { return 'test'; }
     }
 
     beforeEach(() => {
-      factory.registerProvider('slack', MockSlackProvider);
+      factory.registerProvider('test', MockTestProvider);
     });
 
     it('should create multiple providers successfully', async () => {
       const config = {
         discord: { botMention: '@discord' },
-        slack: { botMention: '@slack' }
+        test: { botMention: '@test' }
       };
 
       const results = await factory.createMultipleProviders(config);
 
       expect(results.size).toBe(2);
       expect(results.has('discord')).toBe(true);
-      expect(results.has('slack')).toBe(true);
+      expect(results.has('test')).toBe(true);
     });
 
     it('should handle partial failures gracefully', async () => {

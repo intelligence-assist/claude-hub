@@ -167,21 +167,8 @@ class ProviderFactory {
         config.authorizedUsers = process.env.DISCORD_AUTHORIZED_USERS?.split(',').map(u => u.trim());
         config.botMention = process.env.DISCORD_BOT_MENTION;
         break;
-        
-      case 'slack':
-        config.botToken = process.env.SLACK_BOT_TOKEN;
-        config.signingSecret = process.env.SLACK_SIGNING_SECRET;
-        config.authorizedUsers = process.env.SLACK_AUTHORIZED_USERS?.split(',').map(u => u.trim());
-        config.botMention = process.env.SLACK_BOT_MENTION;
-        break;
-        
-      case 'nextcloud':
-        config.serverUrl = process.env.NEXTCLOUD_SERVER_URL;
-        config.username = process.env.NEXTCLOUD_USERNAME;
-        config.password = process.env.NEXTCLOUD_PASSWORD;
-        config.authorizedUsers = process.env.NEXTCLOUD_AUTHORIZED_USERS?.split(',').map(u => u.trim());
-        config.botMention = process.env.NEXTCLOUD_BOT_MENTION;
-        break;
+      default:
+        throw new Error(`Unsupported provider: ${providerName}. Only 'discord' is currently supported.`);
     }
 
     // Remove undefined values

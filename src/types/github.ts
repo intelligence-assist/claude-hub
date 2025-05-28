@@ -60,21 +60,33 @@ export interface GitHubComment {
 
 export interface GitHubCheckSuite {
   id: number;
-  head_branch: string;
+  head_branch: string | null;
   head_sha: string;
-  status: 'queued' | 'in_progress' | 'completed';
-  conclusion: 'success' | 'failure' | 'neutral' | 'cancelled' | 'skipped' | 'timed_out' | 'action_required' | null;
+  status: 'queued' | 'in_progress' | 'completed' | 'pending' | 'waiting' | 'requested' | null;
+  conclusion:
+    | 'success'
+    | 'failure'
+    | 'neutral'
+    | 'cancelled'
+    | 'skipped'
+    | 'timed_out'
+    | 'action_required'
+    | 'startup_failure'
+    | 'stale'
+    | null;
   app: GitHubApp | null;
-  pull_requests: GitHubPullRequest[];
-  created_at: string;
-  updated_at: string;
+  pull_requests: GitHubPullRequest[] | null;
+  created_at: string | null;
+  updated_at: string | null;
   latest_check_runs_count: number;
+  [key: string]: unknown;
 }
 
 export interface GitHubApp {
   id: number;
-  slug: string;
+  slug?: string;
   name: string;
+  [key: string]: unknown;
 }
 
 export interface GitHubRepository {
@@ -102,16 +114,18 @@ export interface GitHubLabel {
 }
 
 export interface GitHubCombinedStatus {
-  state: 'success' | 'failure' | 'pending' | 'error';
+  state: string;
   total_count: number;
   statuses: GitHubStatus[];
+  [key: string]: unknown;
 }
 
 export interface GitHubStatus {
-  state: 'success' | 'failure' | 'pending' | 'error';
+  state: string;
   context: string;
   description: string | null;
   target_url: string | null;
+  [key: string]: unknown;
 }
 
 export interface GitHubCheckSuitesResponse {

@@ -55,7 +55,7 @@ export async function processCommand({
     const githubToken = secureCredentials.get('GITHUB_TOKEN');
 
     // In test mode, skip execution and return a mock response
-    if (process.env['NODE_ENV'] === 'test' || !githubToken || !githubToken.includes('ghp_')) {
+    if (process.env['NODE_ENV'] === 'test' || !githubToken?.includes('ghp_')) {
       logger.info(
         {
           repo: repoFullName,
@@ -80,7 +80,7 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
     }
 
     // Build Docker image if it doesn't exist
-    const dockerImageName = process.env['CLAUDE_CONTAINER_IMAGE'] || 'claude-code-runner:latest';
+    const dockerImageName = process.env['CLAUDE_CONTAINER_IMAGE'] ?? 'claude-code-runner:latest';
     try {
       execFileSync('docker', ['inspect', dockerImageName], { stdio: 'ignore' });
       logger.info({ dockerImageName }, 'Docker image already exists');
@@ -94,7 +94,10 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
 
     // Select appropriate entrypoint script based on operation type
     const entrypointScript = getEntrypointScript(operationType);
-    logger.info({ operationType }, `Using ${operationType === 'auto-tagging' ? 'minimal tools for auto-tagging operation' : 'full tool set for standard operation'}`);
+    logger.info(
+      { operationType },
+      `Using ${operationType === 'auto-tagging' ? 'minimal tools for auto-tagging operation' : 'full tool set for standard operation'}`
+    );
 
     // Create unique container name (sanitized to prevent command injection)
     const sanitizedRepoName = repoFullName.replace(/[^a-zA-Z0-9\-_]/g, '-');
@@ -147,7 +150,7 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
       logger.info({ dockerArgs: sanitizedArgs }, 'Executing Docker command');
 
       // Get container lifetime from environment variable or use default (2 hours)
-      const containerLifetimeMs = parseInt(process.env['CONTAINER_LIFETIME_MS'] || '7200000', 10);
+      const containerLifetimeMs = parseInt(process.env['CONTAINER_LIFETIME_MS'] ?? '7200000', 10);
       logger.info({ containerLifetimeMs }, 'Setting container lifetime');
 
       const executionOptions: DockerExecutionOptions = {
@@ -224,12 +227,12 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
  */
 function getEntrypointScript(operationType: OperationType): string {
   switch (operationType) {
-    case 'auto-tagging':
-      return '/scripts/runtime/claudecode-tagging-entrypoint.sh';
-    case 'pr-review':
-    case 'default':
-    default:
-      return '/scripts/runtime/claudecode-entrypoint.sh';
+  case 'auto-tagging':
+    return '/scripts/runtime/claudecode-tagging-entrypoint.sh';
+  case 'pr-review':
+  case 'default':
+  default:
+    return '/scripts/runtime/claudecode-entrypoint.sh';
   }
 }
 
@@ -286,7 +289,7 @@ Complete the auto-tagging task using only the minimal required tools.`;
 **Context:**
 - Repository: ${repoFullName}
 - ${isPullRequest ? 'Pull Request' : 'Issue'} Number: #${issueNumber}
-- Current Branch: ${branchName || 'main'}
+- Current Branch: ${branchName ?? 'main'}
 - Running in: Unattended mode
 
 **Important Instructions:**
@@ -342,13 +345,13 @@ function createEnvironmentVars({
 }): ClaudeEnvironmentVars {
   return {
     REPO_FULL_NAME: repoFullName,
-    ISSUE_NUMBER: issueNumber?.toString() || '',
+    ISSUE_NUMBER: issueNumber?.toString() ?? '',
     IS_PULL_REQUEST: isPullRequest ? 'true' : 'false',
-    BRANCH_NAME: branchName || '',
+    BRANCH_NAME: branchName ?? '',
     OPERATION_TYPE: operationType,
     COMMAND: fullPrompt,
     GITHUB_TOKEN: githubToken,
-    ANTHROPIC_API_KEY: secureCredentials.get('ANTHROPIC_API_KEY') || ''
+    ANTHROPIC_API_KEY: secureCredentials.get('ANTHROPIC_API_KEY') ?? ''
   };
 }
 
@@ -393,9 +396,9 @@ function buildDockerArgs({
  */
 function getContainerSecurityConfig(): ContainerSecurityConfig {
   const resourceLimits: ClaudeResourceLimits = {
-    memory: process.env.CLAUDE_CONTAINER_MEMORY_LIMIT || '2g',
-    cpuShares: process.env.CLAUDE_CONTAINER_CPU_SHARES || '1024',
-    pidsLimit: process.env.CLAUDE_CONTAINER_PIDS_LIMIT || '256'
+    memory: process.env.CLAUDE_CONTAINER_MEMORY_LIMIT ?? '2g',
+    cpuShares: process.env.CLAUDE_CONTAINER_CPU_SHARES ?? '1024',
+    pidsLimit: process.env.CLAUDE_CONTAINER_PIDS_LIMIT ?? '256'
   };
 
   if (process.env.CLAUDE_CONTAINER_PRIVILEGED === 'true') {
@@ -441,9 +444,12 @@ function applySecurityConstraints(dockerArgs: string[], config: ContainerSecurit
 
     // Add resource limits
     dockerArgs.push(
-      '--memory', config.resourceLimits.memory,
-      '--cpu-shares', config.resourceLimits.cpuShares,
-      '--pids-limit', config.resourceLimits.pidsLimit
+      '--memory',
+      config.resourceLimits.memory,
+      '--cpu-shares',
+      config.resourceLimits.cpuShares,
+      '--pids-limit',
+      config.resourceLimits.pidsLimit
     );
   }
 }
@@ -492,7 +498,7 @@ function handleDockerExecutionError(
     issueNumber: number | null;
   }
 ): never {
-  const err = error as any;
+  const err = error as Error & { stderr?: string; stdout?: string; message: string };
 
   // Sanitize stderr and stdout to remove any potential credentials
   const sanitizeOutput = (output: string | undefined): string | undefined => {
@@ -531,14 +537,11 @@ function handleDockerExecutionError(
   };
 
   // Check for specific error types
-  const errorMsg = err.message || '';
+  const errorMsg = err.message;
   const errorOutput = err.stderr ? err.stderr.toString() : '';
 
   // Check if this is a docker image not found error
-  if (
-    errorOutput.includes('Unable to find image') ||
-    errorMsg.includes('Unable to find image')
-  ) {
+  if (errorOutput.includes('Unable to find image') || errorMsg.includes('Unable to find image')) {
     logger.error('Docker image not found. Attempting to rebuild...');
     try {
       execFileSync(
@@ -657,7 +660,7 @@ function handleGeneralError(
     {
       err: {
         message: sanitizeMessage(err.message),
-        stack: sanitizeMessage(err.stack || '')
+        stack: sanitizeMessage(err.stack ?? '')
       },
       repo: context.repoFullName,
       issue: context.issueNumber

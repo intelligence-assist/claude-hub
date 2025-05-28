@@ -4,7 +4,7 @@ import path from 'path';
 
 // Create logs directory if it doesn't exist
 // Use home directory for logs to avoid permission issues
-const homeDir = process.env['HOME'] || '/tmp';
+const homeDir = process.env['HOME'] ?? '/tmp';
 const logsDir = path.join(homeDir, '.claude-webhook', 'logs');
 
 if (!fs.existsSync(logsDir)) {
@@ -18,33 +18,33 @@ const logFileName = path.join(logsDir, 'app.log');
 // Configure different transports based on environment
 const transport = isProduction
   ? {
-      targets: [
-        // File transport for production
-        {
-          target: 'pino/file',
-          options: { destination: logFileName, mkdir: true }
+    targets: [
+      // File transport for production
+      {
+        target: 'pino/file',
+        options: { destination: logFileName, mkdir: true }
+      },
+      // Console pretty transport
+      {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          levelFirst: true,
+          translateTime: 'SYS:standard'
         },
-        // Console pretty transport
-        {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            levelFirst: true,
-            translateTime: 'SYS:standard'
-          },
-          level: 'info'
-        }
-      ]
-    }
-  : {
-      // Just use pretty logs in development
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        levelFirst: true,
-        translateTime: 'SYS:standard'
+        level: 'info'
       }
-    };
+    ]
+  }
+  : {
+    // Just use pretty logs in development
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      levelFirst: true,
+      translateTime: 'SYS:standard'
+    }
+  };
 
 // Configure the logger
 const logger = pino({
@@ -53,10 +53,10 @@ const logger = pino({
   // Include the hostname and pid in the log data
   base: {
     pid: process.pid,
-    hostname: process.env['HOSTNAME'] || 'unknown',
-    env: process.env['NODE_ENV'] || 'development'
+    hostname: process.env['HOSTNAME'] ?? 'unknown',
+    env: process.env['NODE_ENV'] ?? 'development'
   },
-  level: process.env['LOG_LEVEL'] || 'info',
+  level: process.env['LOG_LEVEL'] ?? 'info',
   // Define custom log levels if needed
   customLevels: {
     http: 35 // Between info (30) and debug (20)
@@ -372,7 +372,7 @@ if (isProduction) {
   // Check log file size and rotate if necessary
   try {
     const maxSize = 10 * 1024 * 1024; // 10MB
-    
+
     if (fs.existsSync(logFileName)) {
       const stats = fs.statSync(logFileName);
       if (stats.size > maxSize) {
@@ -380,7 +380,7 @@ if (isProduction) {
         for (let i = 4; i >= 0; i--) {
           const oldFile = `${logFileName}.${i}`;
           const newFile = `${logFileName}.${i + 1}`;
-          
+
           if (fs.existsSync(oldFile)) {
             fs.renameSync(oldFile, newFile);
           }
@@ -401,7 +401,7 @@ logger.info(
     app: 'claude-github-webhook',
     startTime: new Date().toISOString(),
     nodeVersion: process.version,
-    env: process.env['NODE_ENV'] || 'development',
+    env: process.env['NODE_ENV'] ?? 'development',
     logLevel: logger.level
   },
   'Application starting'
@@ -409,7 +409,7 @@ logger.info(
 
 // Create a child logger for specific components
 const createLogger = (component: string): pino.Logger => {
-  return logger.child({ component });
+  return logger.child({ component }) as unknown as pino.Logger;
 };
 
 // Export the logger factory with proper typing

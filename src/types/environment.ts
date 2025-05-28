@@ -12,10 +12,10 @@ export function getRequiredEnvVar(key: string): string {
 }
 
 export function getEnvVarWithDefault(key: string, defaultValue: string): string {
-  return process.env[key] || defaultValue;
+  return process.env[key] ?? defaultValue;
 }
 
-export function getBooleanEnvVar(key: string, defaultValue: boolean = false): boolean {
+export function getBooleanEnvVar(key: string, defaultValue = false): boolean {
   const value = process.env[key];
   if (!value) return defaultValue;
   return value.toLowerCase() === 'true' || value === '1';

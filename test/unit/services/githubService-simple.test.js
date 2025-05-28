@@ -45,7 +45,9 @@ jest.mock('../../../src/utils/secureCredentials', () => ({
   has: jest.fn(() => true)
 }));
 
-const githubService = require('../../../src/services/githubService');
+const githubService =
+  require('../../../src/services/githubService').default ||
+  require('../../../src/services/githubService');
 
 describe('githubService - Simple Coverage Tests', () => {
   beforeEach(() => {
@@ -228,8 +230,10 @@ describe('githubService - Simple Coverage Tests', () => {
         labels: ['type:bug', 'priority:high']
       });
 
-      expect(result.added_labels).toEqual(['type:bug', 'priority:high']);
-      expect(result.timestamp).toBeDefined();
+      expect(result).toEqual([
+        { id: 0, name: 'type:bug', color: '000000', description: null },
+        { id: 1, name: 'priority:high', color: '000000', description: null }
+      ]);
     });
 
     it('should return mock data for createRepositoryLabels in test mode', async () => {
@@ -241,7 +245,9 @@ describe('githubService - Simple Coverage Tests', () => {
         labels: testLabels
       });
 
-      expect(result).toEqual(testLabels);
+      expect(result).toEqual([
+        { id: 0, name: 'type:bug', color: 'd73a4a', description: 'Bug label' }
+      ]);
     });
 
     it('should return mock data for getCombinedStatus in test mode', async () => {

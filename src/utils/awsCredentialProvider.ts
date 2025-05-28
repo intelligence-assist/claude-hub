@@ -1,13 +1,9 @@
+/* global AbortSignal */
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import { createLogger } from './logger';
-import type { 
-  AWSCredentials, 
-  AWSCredentialProviderResult, 
-  AWSCredentialSource, 
-  AWSCredentialError 
-} from '../types/aws';
+import type { AWSCredentials, AWSCredentialProviderResult, AWSCredentialError } from '../types/aws';
 
 const logger = createLogger('awsCredentialProvider');
 
@@ -38,7 +34,9 @@ class AWSCredentialProvider {
    */
   async getCredentials(): Promise<AWSCredentialProviderResult> {
     if (!process.env['AWS_PROFILE']) {
-      const error = new Error('AWS_PROFILE must be set. Direct credential passing is not supported.') as AWSCredentialError;
+      const error = new Error(
+        'AWS_PROFILE must be set. Direct credential passing is not supported.'
+      ) as AWSCredentialError;
       error.code = 'MISSING_PROFILE';
       throw error;
     }
@@ -59,9 +57,9 @@ class AWSCredentialProvider {
     logger.info('Using AWS profile authentication only');
 
     try {
-      this.credentials = await this.getProfileCredentials(process.env['AWS_PROFILE']!);
+      this.credentials = await this.getProfileCredentials(process.env['AWS_PROFILE']);
       this.credentialSource = `AWS Profile (${process.env['AWS_PROFILE']})`;
-      
+
       return {
         credentials: this.credentials,
         source: {
@@ -139,7 +137,7 @@ class AWSCredentialProvider {
         }
       );
 
-      const credentials = await credentialsResponse.json() as {
+      const credentials = (await credentialsResponse.json()) as {
         AccessKeyId: string;
         SecretAccessKey: string;
         Token: string;
@@ -155,7 +153,9 @@ class AWSCredentialProvider {
         region: process.env.AWS_REGION
       };
     } catch (error) {
-      const awsError = new Error(`Failed to get EC2 instance credentials: ${error}`) as AWSCredentialError;
+      const awsError = new Error(
+        `Failed to get EC2 instance credentials: ${error}`
+      ) as AWSCredentialError;
       awsError.code = 'EC2_METADATA_ERROR';
       throw awsError;
     }
@@ -167,7 +167,9 @@ class AWSCredentialProvider {
   async getECSCredentials(): Promise<AWSCredentials> {
     const uri = process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI;
     if (!uri) {
-      const error = new Error('AWS_CONTAINER_CREDENTIALS_RELATIVE_URI not set') as AWSCredentialError;
+      const error = new Error(
+        'AWS_CONTAINER_CREDENTIALS_RELATIVE_URI not set'
+      ) as AWSCredentialError;
       error.code = 'MISSING_ECS_URI';
       throw error;
     }
@@ -177,7 +179,7 @@ class AWSCredentialProvider {
         signal: AbortSignal.timeout(1000)
       });
 
-      const credentials = await response.json() as {
+      const credentials = (await response.json()) as {
         AccessKeyId: string;
         SecretAccessKey: string;
         Token: string;
@@ -231,7 +233,9 @@ class AWSCredentialProvider {
       const regionMatch = configSection.match(/region\s*=\s*(.+)/);
 
       if (!accessKeyMatch || !secretKeyMatch) {
-        const error = new Error(`Incomplete credentials for profile '${profileName}'`) as AWSCredentialError;
+        const error = new Error(
+          `Incomplete credentials for profile '${profileName}'`
+        ) as AWSCredentialError;
         error.code = 'INCOMPLETE_CREDENTIALS';
         throw error;
       }
@@ -255,9 +259,11 @@ class AWSCredentialProvider {
    * Get environment variables for Docker container
    * PROFILES ONLY - No credential passing through environment variables
    */
-  async getDockerEnvVars(): Promise<Record<string, string | undefined>> {
+  getDockerEnvVars(): Record<string, string | undefined> {
     if (!process.env.AWS_PROFILE) {
-      const error = new Error('AWS_PROFILE must be set. Direct credential passing is not supported.') as AWSCredentialError;
+      const error = new Error(
+        'AWS_PROFILE must be set. Direct credential passing is not supported.'
+      ) as AWSCredentialError;
       error.code = 'MISSING_PROFILE';
       throw error;
     }

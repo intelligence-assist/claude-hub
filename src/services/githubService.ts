@@ -12,8 +12,8 @@ import type {
   GetCheckSuitesRequest,
   ValidatedGitHubParams,
   GitHubCombinedStatus,
-  GitHubCheckSuitesResponse,
-  GitHubLabel
+  GitHubLabel,
+  GitHubCheckSuitesResponse
 } from '../types/github';
 
 const logger = createLogger('githubService');
@@ -24,7 +24,7 @@ let octokit: Octokit | null = null;
 function getOctokit(): Octokit | null {
   if (!octokit) {
     const githubToken = secureCredentials.get('GITHUB_TOKEN');
-    if (githubToken && githubToken.includes('ghp_')) {
+    if (githubToken?.includes('ghp_')) {
       octokit = new Octokit({
         auth: githubToken,
         userAgent: 'Claude-GitHub-Webhook'
@@ -37,11 +37,11 @@ function getOctokit(): Octokit | null {
 /**
  * Posts a comment to a GitHub issue or pull request
  */
-export async function postComment({ 
-  repoOwner, 
-  repoName, 
-  issueNumber, 
-  body 
+export async function postComment({
+  repoOwner,
+  repoName,
+  issueNumber,
+  body
 }: CreateCommentRequest): Promise<CreateCommentResponse> {
   try {
     // Validate parameters to prevent SSRF
@@ -93,11 +93,11 @@ export async function postComment({
 
     return {
       id: data.id,
-      body: data.body,
+      body: data.body ?? '',
       created_at: data.created_at
     };
   } catch (error) {
-    const err = error as any;
+    const err = error as Error & { response?: { data?: unknown } };
     logger.error(
       {
         err: {
@@ -118,8 +118,8 @@ export async function postComment({
  * Validates GitHub repository and issue parameters to prevent SSRF
  */
 function validateGitHubParams(
-  repoOwner: string, 
-  repoName: string, 
+  repoOwner: string,
+  repoName: string,
   issueNumber: number
 ): ValidatedGitHubParams {
   // Validate repoOwner and repoName contain only safe characters
@@ -140,11 +140,11 @@ function validateGitHubParams(
 /**
  * Adds labels to a GitHub issue
  */
-export async function addLabelsToIssue({ 
-  repoOwner, 
-  repoName, 
-  issueNumber, 
-  labels 
+export async function addLabelsToIssue({
+  repoOwner,
+  repoName,
+  issueNumber,
+  labels
 }: AddLabelsRequest): Promise<GitHubLabel[]> {
   try {
     // Validate parameters to prevent SSRF
@@ -197,7 +197,7 @@ export async function addLabelsToIssue({
 
     return data;
   } catch (error) {
-    const err = error as any;
+    const err = error as Error & { response?: { data?: unknown } };
     logger.error(
       {
         err: {
@@ -218,10 +218,10 @@ export async function addLabelsToIssue({
 /**
  * Creates repository labels if they don't exist
  */
-export async function createRepositoryLabels({ 
-  repoOwner, 
-  repoName, 
-  labels 
+export async function createRepositoryLabels({
+  repoOwner,
+  repoName,
+  labels
 }: CreateRepositoryLabelsRequest): Promise<GitHubLabel[]> {
   try {
     // Validate repository parameters to prevent SSRF
@@ -229,7 +229,7 @@ export async function createRepositoryLabels({
     if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
       throw new Error('Invalid repository owner or name - contains unsafe characters');
     }
-    
+
     logger.info(
       {
         repo: `${repoOwner}/${repoName}`,
@@ -252,7 +252,7 @@ export async function createRepositoryLabels({
         id: index,
         name: label.name,
         color: label.color,
-        description: label.description || null
+        description: label.description ?? null
       }));
     }
 
@@ -272,7 +272,7 @@ export async function createRepositoryLabels({
         createdLabels.push(data);
         logger.debug({ labelName: label.name }, 'Label created successfully');
       } catch (error) {
-        const err = error as any;
+        const err = error as Error & { status?: number };
         // Label might already exist - check if it's a 422 (Unprocessable Entity)
         if (err.status === 422) {
           logger.debug({ labelName: label.name }, 'Label already exists, skipping');
@@ -306,8 +306,8 @@ export async function createRepositoryLabels({
 /**
  * Provides fallback labels based on simple keyword matching
  */
-export async function getFallbackLabels(title: string, body: string | null): Promise<string[]> {
-  const content = `${title} ${body || ''}`.toLowerCase();
+export function getFallbackLabels(title: string, body: string | null): string[] {
+  const content = `${title} ${body ?? ''}`.toLowerCase();
   const labels: string[] = [];
 
   // Type detection - check documentation first for specificity
@@ -383,10 +383,10 @@ export async function getFallbackLabels(title: string, body: string | null): Pro
  * Gets the combined status for a specific commit/ref
  * Used to verify all required status checks have passed
  */
-export async function getCombinedStatus({ 
-  repoOwner, 
-  repoName, 
-  ref 
+export async function getCombinedStatus({
+  repoOwner,
+  repoName,
+  ref
 }: GetCombinedStatusRequest): Promise<GitHubCombinedStatus> {
   try {
     // Validate parameters to prevent SSRF
@@ -449,7 +449,7 @@ export async function getCombinedStatus({
 
     return data;
   } catch (error) {
-    const err = error as any;
+    const err = error as Error & { response?: { status?: number; data?: unknown } };
     logger.error(
       {
         err: {
@@ -470,11 +470,11 @@ export async function getCombinedStatus({
 /**
  * Check if we've already reviewed this PR at the given commit SHA
  */
-export async function hasReviewedPRAtCommit({ 
-  repoOwner, 
-  repoName, 
-  prNumber, 
-  commitSha 
+export async function hasReviewedPRAtCommit({
+  repoOwner,
+  repoName,
+  prNumber,
+  commitSha
 }: HasReviewedPRRequest): Promise<boolean> {
   try {
     // Validate parameters
@@ -506,13 +506,9 @@ export async function hasReviewedPRAtCommit({
     });
 
     // Check if any review mentions this specific commit SHA
-    const botUsername = process.env.BOT_USERNAME || 'ClaudeBot';
+    const botUsername = process.env.BOT_USERNAME ?? 'ClaudeBot';
     const existingReview = reviews.find(review => {
-      return (
-        review.user?.login === botUsername &&
-        review.body &&
-        review.body.includes(`commit: ${commitSha}`)
-      );
+      return review.user?.login === botUsername && review.body?.includes(`commit: ${commitSha}`);
     });
 
     return !!existingReview;
@@ -534,10 +530,10 @@ export async function hasReviewedPRAtCommit({
 /**
  * Gets check suites for a specific commit
  */
-export async function getCheckSuitesForRef({ 
-  repoOwner, 
-  repoName, 
-  ref 
+export async function getCheckSuitesForRef({
+  repoOwner,
+  repoName,
+  ref
 }: GetCheckSuitesRequest): Promise<GitHubCheckSuitesResponse> {
   try {
     // Validate parameters to prevent SSRF
@@ -589,7 +585,28 @@ export async function getCheckSuitesForRef({
       ref: ref
     });
 
-    return data;
+    // Transform the response to match our interface
+    const transformedResponse: GitHubCheckSuitesResponse = {
+      total_count: data.total_count,
+      check_suites: data.check_suites.map(suite => ({
+        id: suite.id,
+        head_branch: suite.head_branch,
+        head_sha: suite.head_sha,
+        status: suite.status,
+        conclusion: suite.conclusion,
+        app: suite.app ? {
+          id: suite.app.id,
+          slug: suite.app.slug,
+          name: suite.app.name
+        } : null,
+        pull_requests: null, // Simplified for our use case
+        created_at: suite.created_at,
+        updated_at: suite.updated_at,
+        latest_check_runs_count: suite.latest_check_runs_count
+      }))
+    };
+
+    return transformedResponse;
   } catch (error) {
     const err = error as Error;
     logger.error(
@@ -655,7 +672,7 @@ export async function managePRLabels({
           'Removed label from PR'
         );
       } catch (error) {
-        const err = error as any;
+        const err = error as Error & { status?: number };
         // Ignore 404 errors (label not present)
         if (err.status !== 404) {
           logger.error(

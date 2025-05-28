@@ -1079,7 +1079,10 @@ Please perform a comprehensive review of PR #${pr.number} in repository ${repo.f
 async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
   const debounceDelayMs = parseInt(process.env.PR_REVIEW_DEBOUNCE_MS || '5000', 10);
   const maxWaitTimeMs = parseInt(process.env.PR_REVIEW_MAX_WAIT_MS || '1800000', 10); // 30 min default
-  const conditionalJobTimeoutMs = parseInt(process.env.PR_REVIEW_CONDITIONAL_TIMEOUT_MS || '300000', 10); // 5 min default
+  const conditionalJobTimeoutMs = parseInt(
+    process.env.PR_REVIEW_CONDITIONAL_TIMEOUT_MS || '300000',
+    10
+  ); // 5 min default
 
   try {
     // Add a small delay to account for GitHub's eventual consistency
@@ -1163,7 +1166,8 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
           }
 
           // Skip empty check suites that have no check runs (common with misconfigured external apps)
-          if (suite.status === 'queued' && suite.latest_check_runs_count === 0 && ageMs > 60000) { // 1 minute grace period
+          if (suite.status === 'queued' && suite.latest_check_runs_count === 0 && ageMs > 60000) {
+            // 1 minute grace period
             timeoutSuites.push({
               id: suite.id,
               app: suite.app?.name,
@@ -1236,7 +1240,10 @@ async function checkAllCheckSuitesComplete({ repo, pullRequests }) {
             'No meaningful check suites found - all were skipped or timed out'
           );
           // If we only have skipped/neutral suites, consider that as "passed"
-          if (checkSuites.length > 0 && skippedSuites.length + timeoutSuites.length === checkSuites.length) {
+          if (
+            checkSuites.length > 0 &&
+            skippedSuites.length + timeoutSuites.length === checkSuites.length
+          ) {
             logger.info(
               {
                 repo: repo.full_name,

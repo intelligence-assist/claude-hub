@@ -5,16 +5,16 @@ import { createLogger } from './utils/logger';
 import { StartupMetrics } from './utils/startup-metrics';
 import githubRoutes from './routes/github';
 import claudeRoutes from './routes/claude';
-import type { 
-  WebhookRequest, 
-  HealthCheckResponse, 
+import type {
+  WebhookRequest,
+  HealthCheckResponse,
   TestTunnelResponse,
   ErrorResponse
 } from './types/express';
 import { execSync } from 'child_process';
 
 const app = express();
-const PORT = parseInt(process.env['PORT'] || '3003', 10);
+const PORT = parseInt(process.env['PORT'] ?? '3003', 10);
 const appLogger = createLogger('app');
 const startupMetrics = new StartupMetrics();
 
@@ -63,7 +63,7 @@ app.use('/api/claude', claudeRoutes);
 startupMetrics.recordMilestone('routes_configured', 'API routes configured');
 
 // Health check endpoint
-app.get('/health', async (req: WebhookRequest, res: express.Response<HealthCheckResponse>) => {
+app.get('/health', (req: WebhookRequest, res: express.Response<HealthCheckResponse>) => {
   const healthCheckStart = Date.now();
 
   const checks: HealthCheckResponse = {
@@ -119,26 +119,33 @@ app.get('/api/test-tunnel', (req, res: express.Response<TestTunnelResponse>) => 
     message: 'CF tunnel is working!',
     timestamp: new Date().toISOString(),
     headers: req.headers,
-    ip: req.ip || (req.connection as any)?.remoteAddress
+    ip: req.ip ?? (req.connection as { remoteAddress?: string })?.remoteAddress
   });
 });
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response<ErrorResponse>, _next: express.NextFunction) => {
-  appLogger.error(
-    {
-      err: {
-        message: err.message,
-        stack: err.stack
+app.use(
+  (
+    err: Error,
+    req: express.Request,
+    res: express.Response<ErrorResponse>,
+    _next: express.NextFunction
+  ) => {
+    appLogger.error(
+      {
+        err: {
+          message: err.message,
+          stack: err.stack
+        },
+        method: req.method,
+        url: req.url
       },
-      method: req.method,
-      url: req.url
-    },
-    'Request error'
-  );
+      'Request error'
+    );
 
-  res.status(500).json({ error: 'Internal server error' });
-});
+    res.status(500).json({ error: 'Internal server error' });
+  }
+);
 
 app.listen(PORT, () => {
   startupMetrics.recordMilestone('server_listening', `Server listening on port ${PORT}`);

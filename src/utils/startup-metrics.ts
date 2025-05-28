@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { createLogger } from './logger';
 import type { StartupMilestone, StartupMetrics as IStartupMetrics } from '../types/metrics';
 
@@ -17,14 +17,14 @@ export class StartupMetrics implements IStartupMetrics {
   public readonly startTime: number;
   public milestones: StartupMilestone[] = [];
   private milestonesMap: MilestonesMap = {};
-  public ready: boolean = false;
+  public ready = false;
   public totalStartupTime?: number;
 
   constructor() {
     this.startTime = Date.now();
   }
 
-  recordMilestone(name: string, description: string = ''): void {
+  recordMilestone(name: string, description = ''): void {
     const timestamp = Date.now();
     const elapsed = timestamp - this.startTime;
 
@@ -55,7 +55,7 @@ export class StartupMetrics implements IStartupMetrics {
   markReady(): number {
     const timestamp = Date.now();
     const totalTime = timestamp - this.startTime;
-    
+
     this.recordMilestone('service_ready', 'Service is ready to accept requests');
     this.ready = true;
     this.totalStartupTime = totalTime;
@@ -77,13 +77,17 @@ export class StartupMetrics implements IStartupMetrics {
       totalElapsed: Date.now() - this.startTime,
       milestones: this.milestonesMap,
       startTime: this.startTime,
-      totalStartupTime: this.totalStartupTime || undefined
+      totalStartupTime: this.totalStartupTime ?? undefined
     };
   }
 
   // Middleware to add startup metrics to responses
   metricsMiddleware() {
-    return (req: Request & { startupMetrics?: StartupMetricsResponse }, _res: Response, next: NextFunction): void => {
+    return (
+      req: Request & { startupMetrics?: StartupMetricsResponse },
+      _res: Response,
+      next: NextFunction
+    ): void => {
       req.startupMetrics = this.getMetrics();
       next();
     };

@@ -4,6 +4,6 @@ import { handleWebhook } from '../controllers/githubController';
 const router = express.Router();
 
 // GitHub webhook endpoint
-router.post('/', handleWebhook as any);
+router.post('/', handleWebhook as express.RequestHandler);
 
 export default router;

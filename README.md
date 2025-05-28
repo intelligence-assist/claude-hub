@@ -9,16 +9,16 @@
 
 ![Claude GitHub Webhook brain factory - AI brain connected to GitHub octocat via assembly line of Docker containers](./assets/brain_factory.png)
 
-Deploy Claude Code as a fully autonomous GitHub bot. Mention @Claude in any issue or PR, and watch AI-powered development happen end-to-end. Claude can implement complete features, review code, merge PRs, wait for CI builds, and run for hours autonomously until tasks are completed. Production-ready microservice with container isolation, automated workflows, and intelligent project management. 
+Deploy Claude Code as a fully autonomous GitHub bot. Create your own bot account, mention it in any issue or PR, and watch AI-powered development happen end-to-end. Claude can implement complete features, review code, merge PRs, wait for CI builds, and run for hours autonomously until tasks are completed. Production-ready microservice with container isolation, automated workflows, and intelligent project management. 
 
 ## What This Does
 
 ```bash
-# In any GitHub issue or PR:
-@ClaudeBot implement user authentication with OAuth
-@ClaudeBot review this PR for security vulnerabilities  
-@ClaudeBot fix the failing CI tests and merge when ready
-@ClaudeBot refactor the database layer for better performance
+# In any GitHub issue or PR (using your configured bot account):
+@YourBotName implement user authentication with OAuth
+@YourBotName review this PR for security vulnerabilities  
+@YourBotName fix the failing CI tests and merge when ready
+@YourBotName refactor the database layer for better performance
 ```
 
 Claude autonomously handles complete development workflows. It analyzes your entire repository, implements features from scratch, conducts thorough code reviews, manages pull requests, monitors CI/CD pipelines, and responds to automated feedback - all without human intervention. No context switching. No manual oversight required. Just seamless autonomous development where you work.
@@ -76,15 +76,26 @@ docker compose up -d
 
 Service runs on `http://localhost:8082` by default.
 
+## Bot Account Setup
+
+**Current Setup**: You need to create your own GitHub bot account:
+
+1. **Create a dedicated GitHub account** for your bot (e.g., `MyProjectBot`)
+2. **Generate a Personal Access Token** with repository permissions
+3. **Configure the bot username** in your environment variables
+4. **Add the bot account** as a collaborator to your repositories
+
+**Future Release**: We plan to release this as a GitHub App that provides a universal bot account, eliminating the need for individual bot setup while maintaining the same functionality for self-hosted instances.
+
 ## Production Deployment
 
 ### 1. Environment Configuration
 
 ```bash
-# Core settings
-BOT_USERNAME=@ClaudeBot              # GitHub mention trigger
+# Core settings  
+BOT_USERNAME=YourBotName              # GitHub bot account username (create your own bot account)
 GITHUB_WEBHOOK_SECRET=<generated>     # Webhook validation
-GITHUB_TOKEN=<fine-grained-pat>       # Repository access
+GITHUB_TOKEN=<fine-grained-pat>       # Repository access (from your bot account)
 
 # AWS Bedrock (recommended)
 AWS_REGION=us-east-1

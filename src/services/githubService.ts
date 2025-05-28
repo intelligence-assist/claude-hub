@@ -594,11 +594,13 @@ export async function getCheckSuitesForRef({
         head_sha: suite.head_sha,
         status: suite.status,
         conclusion: suite.conclusion,
-        app: suite.app ? {
-          id: suite.app.id,
-          slug: suite.app.slug,
-          name: suite.app.name
-        } : null,
+        app: suite.app
+          ? {
+            id: suite.app.id,
+            slug: suite.app.slug,
+            name: suite.app.name
+          }
+          : null,
         pull_requests: null, // Simplified for our use case
         created_at: suite.created_at,
         updated_at: suite.updated_at,

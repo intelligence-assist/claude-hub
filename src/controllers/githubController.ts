@@ -114,13 +114,13 @@ export const handleWebhook: WebhookHandler = async (req, res) => {
     const event = req.headers['x-github-event'] as string;
     const delivery = req.headers['x-github-delivery'] as string;
 
-    // Log webhook receipt with key details
+    // Log webhook receipt with key details (sanitize user input to prevent log injection)
     logger.info(
       {
         event,
         delivery,
-        sender: req.body.sender?.login,
-        repo: req.body.repository?.full_name
+        sender: req.body.sender.login.replace(/[\r\n\t]/g, '_'),
+        repo: req.body.repository.full_name.replace(/[\r\n\t]/g, '_')
       },
       `Received GitHub ${event} webhook`
     );
@@ -619,8 +619,8 @@ async function handleCheckSuiteCompleted(
       pullRequestCount: checkSuite.pull_requests ? checkSuite.pull_requests.length : 0,
       pullRequests: checkSuite.pull_requests?.map(pr => ({
         number: pr.number,
-        headRef: pr.head?.ref,
-        headSha: pr.head?.sha
+        headRef: pr.head.ref,
+        headSha: pr.head.sha
       }))
     },
     'Processing check_suite completed event'
@@ -689,7 +689,7 @@ async function handleCheckSuiteCompleted(
       repo: repo.full_name,
       checkSuite: checkSuite.id,
       conclusion: checkSuite.conclusion,
-      pullRequestCount: checkSuite.pull_requests?.length ?? 0,
+      pullRequestCount: (checkSuite.pull_requests ?? []).length,
       shouldTriggerReview,
       triggerReason,
       waitForAllChecks,
@@ -726,7 +726,7 @@ async function processAutomatedPRReviews(
 
       try {
         // Extract SHA from PR data first
-        const commitSha = pr.head?.sha;
+        const commitSha = pr.head.sha;
 
         if (!commitSha) {
           logger.error(
@@ -1432,7 +1432,10 @@ function getWorkflowNameFromCheckSuite(
 /**
  * Handle general webhook errors
  */
-function handleWebhookError(error: unknown, res: Response<WebhookResponse | ErrorResponse>): Response<WebhookResponse | ErrorResponse> {
+function handleWebhookError(
+  error: unknown,
+  res: Response<WebhookResponse | ErrorResponse>
+): Response<WebhookResponse | ErrorResponse> {
   const err = error as Error;
 
   // Generate a unique error reference

@@ -217,7 +217,9 @@ class AWSCredentialProvider {
       const escapedProfileName = profileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const profileRegex = new RegExp(`\\[${escapedProfileName}\\]([^\\[]*)`);
       const credentialsMatch = credentialsContent.match(profileRegex);
-      const configMatch = configContent.match(new RegExp(`\\[profile ${escapedProfileName}\\]([^\\[]*)`));
+      const configMatch = configContent.match(
+        new RegExp(`\\[profile ${escapedProfileName}\\]([^\\[]*)`)
+      );
 
       if (!credentialsMatch && !configMatch) {
         const error = new Error(`Profile '${profileName}' not found`) as AWSCredentialError;

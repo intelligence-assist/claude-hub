@@ -202,7 +202,7 @@ class ContainerExecutor {
     return this.exec({
       entrypoint: '/bin/bash',
       command:
-        'echo \'=== AWS files ===\'; ls -la /home/node/.aws/; echo \'=== Config content ===\'; cat /home/node/.aws/config; echo \'=== Test AWS profile ===\'; export AWS_PROFILE=claude-webhook; export AWS_CONFIG_FILE=/home/node/.aws/config; export AWS_SHARED_CREDENTIALS_FILE=/home/node/.aws/credentials; aws sts get-caller-identity --profile claude-webhook',
+        "echo '=== AWS files ==='; ls -la /home/node/.aws/; echo '=== Config content ==='; cat /home/node/.aws/config; echo '=== Test AWS profile ==='; export AWS_PROFILE=claude-webhook; export AWS_CONFIG_FILE=/home/node/.aws/config; export AWS_SHARED_CREDENTIALS_FILE=/home/node/.aws/credentials; aws sts get-caller-identity --profile claude-webhook",
       volumes: [`${homeDir}/.aws:/home/node/.aws:ro`],
       ...options
     });

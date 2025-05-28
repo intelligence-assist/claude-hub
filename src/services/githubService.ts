@@ -596,10 +596,10 @@ export async function getCheckSuitesForRef({
         conclusion: suite.conclusion,
         app: suite.app
           ? {
-            id: suite.app.id,
-            slug: suite.app.slug,
-            name: suite.app.name
-          }
+              id: suite.app.id,
+              slug: suite.app.slug,
+              name: suite.app.name
+            }
           : null,
         pull_requests: null, // Simplified for our use case
         created_at: suite.created_at,

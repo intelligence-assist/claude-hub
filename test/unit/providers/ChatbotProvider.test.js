@@ -25,23 +25,33 @@ describe('ChatbotProvider', () => {
 
   describe('abstract methods', () => {
     it('should throw error for initialize()', async () => {
-      await expect(provider.initialize()).rejects.toThrow('initialize() must be implemented by subclass');
+      await expect(provider.initialize()).rejects.toThrow(
+        'initialize() must be implemented by subclass'
+      );
     });
 
     it('should throw error for verifyWebhookSignature()', () => {
-      expect(() => provider.verifyWebhookSignature({})).toThrow('verifyWebhookSignature() must be implemented by subclass');
+      expect(() => provider.verifyWebhookSignature({})).toThrow(
+        'verifyWebhookSignature() must be implemented by subclass'
+      );
     });
 
     it('should throw error for parseWebhookPayload()', () => {
-      expect(() => provider.parseWebhookPayload({})).toThrow('parseWebhookPayload() must be implemented by subclass');
+      expect(() => provider.parseWebhookPayload({})).toThrow(
+        'parseWebhookPayload() must be implemented by subclass'
+      );
     });
 
     it('should throw error for extractBotCommand()', () => {
-      expect(() => provider.extractBotCommand('')).toThrow('extractBotCommand() must be implemented by subclass');
+      expect(() => provider.extractBotCommand('')).toThrow(
+        'extractBotCommand() must be implemented by subclass'
+      );
     });
 
     it('should throw error for sendResponse()', async () => {
-      await expect(provider.sendResponse({}, '')).rejects.toThrow('sendResponse() must be implemented by subclass');
+      await expect(provider.sendResponse({}, '')).rejects.toThrow(
+        'sendResponse() must be implemented by subclass'
+      );
     });
 
     it('should throw error for getUserId()', () => {
@@ -53,9 +63,9 @@ describe('ChatbotProvider', () => {
     it('should format error message with reference ID and timestamp', () => {
       const error = new Error('Test error');
       const errorId = 'test-123';
-      
+
       const message = provider.formatErrorMessage(error, errorId);
-      
+
       expect(message).toContain('❌ An error occurred');
       expect(message).toContain('Reference: test-123');
       expect(message).toContain('Please check with an administrator');
@@ -81,28 +91,28 @@ describe('ChatbotProvider', () => {
     it('should use environment variables when no config provided', () => {
       const originalEnv = process.env.AUTHORIZED_USERS;
       process.env.AUTHORIZED_USERS = 'envuser1,envuser2';
-      
+
       const envProvider = new ChatbotProvider();
-      
+
       expect(envProvider.isUserAuthorized('envuser1')).toBe(true);
       expect(envProvider.isUserAuthorized('envuser2')).toBe(true);
       expect(envProvider.isUserAuthorized('unauthorized')).toBe(false);
-      
+
       process.env.AUTHORIZED_USERS = originalEnv;
     });
 
     it('should use default authorized user when no config or env provided', () => {
       const originalUsers = process.env.AUTHORIZED_USERS;
       const originalDefault = process.env.DEFAULT_AUTHORIZED_USER;
-      
+
       delete process.env.AUTHORIZED_USERS;
       process.env.DEFAULT_AUTHORIZED_USER = 'defaultuser';
-      
+
       const defaultProvider = new ChatbotProvider();
-      
+
       expect(defaultProvider.isUserAuthorized('defaultuser')).toBe(true);
       expect(defaultProvider.isUserAuthorized('other')).toBe(false);
-      
+
       process.env.AUTHORIZED_USERS = originalUsers;
       process.env.DEFAULT_AUTHORIZED_USER = originalDefault;
     });
@@ -110,15 +120,15 @@ describe('ChatbotProvider', () => {
     it('should fallback to admin when no config provided', () => {
       const originalUsers = process.env.AUTHORIZED_USERS;
       const originalDefault = process.env.DEFAULT_AUTHORIZED_USER;
-      
+
       delete process.env.AUTHORIZED_USERS;
       delete process.env.DEFAULT_AUTHORIZED_USER;
-      
+
       const fallbackProvider = new ChatbotProvider();
-      
+
       expect(fallbackProvider.isUserAuthorized('admin')).toBe(true);
       expect(fallbackProvider.isUserAuthorized('other')).toBe(false);
-      
+
       process.env.AUTHORIZED_USERS = originalUsers;
       process.env.DEFAULT_AUTHORIZED_USER = originalDefault;
     });
@@ -138,22 +148,22 @@ describe('ChatbotProvider', () => {
     it('should return bot mention from environment variable', () => {
       const originalEnv = process.env.BOT_USERNAME;
       process.env.BOT_USERNAME = '@envbot';
-      
+
       const envProvider = new ChatbotProvider();
-      
+
       expect(envProvider.getBotMention()).toBe('@envbot');
-      
+
       process.env.BOT_USERNAME = originalEnv;
     });
 
     it('should return default bot mention when no config provided', () => {
       const originalEnv = process.env.BOT_USERNAME;
       delete process.env.BOT_USERNAME;
-      
+
       const defaultProvider = new ChatbotProvider();
-      
+
       expect(defaultProvider.getBotMention()).toBe('@ClaudeBot');
-      
+
       process.env.BOT_USERNAME = originalEnv;
     });
   });

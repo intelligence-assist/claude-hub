@@ -52,7 +52,11 @@ describe('chatbotController', () => {
       sendResponse: jest.fn().mockResolvedValue(),
       getUserId: jest.fn(),
       isUserAuthorized: jest.fn().mockReturnValue(true),
-      formatErrorMessage: jest.fn().mockReturnValue('🚫 **Error Processing Command**\n\n**Reference ID:** `test-error-id`\n**Time:** 2023-01-01T00:00:00.000Z\n\nPlease contact an administrator with the reference ID above.'),
+      formatErrorMessage: jest
+        .fn()
+        .mockReturnValue(
+          '🚫 **Error Processing Command**\n\n**Reference ID:** `test-error-id`\n**Time:** 2023-01-01T00:00:00.000Z\n\nPlease contact an administrator with the reference ID above.'
+        ),
       getProviderName: jest.fn().mockReturnValue('DiscordProvider'),
       getBotMention: jest.fn().mockReturnValue('@claude')
     };
@@ -111,10 +115,12 @@ describe('chatbotController', () => {
       });
       expect(mockProvider.sendResponse).toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        success: true,
-        message: 'Command processed successfully'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          message: 'Command processed successfully'
+        })
+      );
     });
 
     it('should return 401 for invalid webhook signature', async () => {
@@ -224,7 +230,7 @@ describe('chatbotController', () => {
         content: 'help me',
         userId: 'user123',
         username: 'testuser',
-        repo: null,  // No repo provided
+        repo: null, // No repo provided
         branch: null
       });
       mockProvider.extractBotCommand.mockReturnValue({
@@ -239,10 +245,12 @@ describe('chatbotController', () => {
         expect.stringContaining('Repository Required')
       );
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        success: false,
-        error: 'Repository parameter is required'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: 'Repository parameter is required'
+        })
+      );
       expect(claudeService.processCommand).not.toHaveBeenCalled();
     });
 
@@ -259,7 +267,7 @@ describe('chatbotController', () => {
         command: 'help me'
       });
       mockProvider.getUserId.mockReturnValue('user123');
-      
+
       claudeService.processCommand.mockRejectedValue(new Error('Claude service error'));
 
       await chatbotController.handleChatbotWebhook(req, res, 'discord');
@@ -269,10 +277,12 @@ describe('chatbotController', () => {
         expect.stringContaining('🚫 **Error Processing Command**')
       );
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        success: false,
-        error: 'Failed to process command'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: 'Failed to process command'
+        })
+      );
     });
 
     it('should handle provider initialization failure', async () => {
@@ -310,10 +320,12 @@ describe('chatbotController', () => {
       await chatbotController.handleChatbotWebhook(req, res, 'discord');
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: 'Provider initialization failed',
-        message: 'Unexpected error'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Provider initialization failed',
+          message: 'Unexpected error'
+        })
+      );
     });
   });
 
@@ -332,7 +344,6 @@ describe('chatbotController', () => {
       expect(res.status).not.toHaveBeenCalledWith(400); // Should not trigger repo validation
     });
   });
-
 
   describe('getProviderStats', () => {
     it('should return provider statistics successfully', async () => {

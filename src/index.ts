@@ -44,7 +44,7 @@ const webhookRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (_req) => {
+  skip: _req => {
     // Skip rate limiting in test environment
     return process.env['NODE_ENV'] === 'test';
   }

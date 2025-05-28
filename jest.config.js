@@ -8,8 +8,7 @@ module.exports = {
   ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
-      useESM: false,
-      tsconfig: 'tsconfig.json'
+      isolatedModules: true
     }],
     '^.+\\.js$': 'babel-jest'
   },

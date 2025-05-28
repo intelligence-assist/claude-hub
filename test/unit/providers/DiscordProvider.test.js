@@ -24,13 +24,13 @@ describe('DiscordProvider', () => {
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    
+
     // Mock credentials
-    mockSecureCredentials.get.mockImplementation((key) => {
+    mockSecureCredentials.get.mockImplementation(key => {
       const mockCreds = {
-        'DISCORD_BOT_TOKEN': 'mock_bot_token',
-        'DISCORD_PUBLIC_KEY': '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-        'DISCORD_APPLICATION_ID': '123456789012345678'
+        DISCORD_BOT_TOKEN: 'mock_bot_token',
+        DISCORD_PUBLIC_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        DISCORD_APPLICATION_ID: '123456789012345678'
       };
       return mockCreds[key];
     });
@@ -52,7 +52,9 @@ describe('DiscordProvider', () => {
     it('should initialize successfully with valid credentials', async () => {
       await expect(provider.initialize()).resolves.toBeUndefined();
       expect(provider.botToken).toBe('mock_bot_token');
-      expect(provider.publicKey).toBe('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
+      expect(provider.publicKey).toBe(
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+      );
       expect(provider.applicationId).toBe('123456789012345678');
     });
 
@@ -74,7 +76,9 @@ describe('DiscordProvider', () => {
       delete process.env.DISCORD_BOT_TOKEN;
       delete process.env.DISCORD_PUBLIC_KEY;
 
-      await expect(provider.initialize()).rejects.toThrow('Discord bot token and public key are required');
+      await expect(provider.initialize()).rejects.toThrow(
+        'Discord bot token and public key are required'
+      );
     });
   });
 
@@ -89,14 +93,14 @@ describe('DiscordProvider', () => {
     });
 
     it('should return false when only timestamp is present', () => {
-      const req = { 
+      const req = {
         headers: { 'x-signature-timestamp': '1234567890' }
       };
       expect(provider.verifyWebhookSignature(req)).toBe(false);
     });
 
     it('should return false when only signature is present', () => {
-      const req = { 
+      const req = {
         headers: { 'x-signature-ed25519': 'some_signature' }
       };
       expect(provider.verifyWebhookSignature(req)).toBe(false);
@@ -104,7 +108,7 @@ describe('DiscordProvider', () => {
 
     it('should return true in test mode', () => {
       process.env.NODE_ENV = 'test';
-      const req = { 
+      const req = {
         headers: {
           'x-signature-ed25519': 'invalid_signature',
           'x-signature-timestamp': '1234567890'
@@ -117,8 +121,8 @@ describe('DiscordProvider', () => {
       // Temporarily override NODE_ENV to ensure signature verification runs
       const originalNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'production';
-      
-      const req = { 
+
+      const req = {
         headers: {
           'x-signature-ed25519': 'invalid_signature_format',
           'x-signature-timestamp': '1234567890'
@@ -126,10 +130,10 @@ describe('DiscordProvider', () => {
         rawBody: Buffer.from('test body'),
         body: { test: 'data' }
       };
-      
+
       // This should not throw, but return false due to invalid signature
       expect(provider.verifyWebhookSignature(req)).toBe(false);
-      
+
       // Restore original NODE_ENV
       process.env.NODE_ENV = originalNodeEnv;
     });
@@ -150,9 +154,7 @@ describe('DiscordProvider', () => {
         type: 2,
         data: {
           name: 'help',
-          options: [
-            { name: 'topic', value: 'discord' }
-          ]
+          options: [{ name: 'topic', value: 'discord' }]
         },
         channel_id: '123456789',
         guild_id: '987654321',
@@ -212,7 +214,9 @@ describe('DiscordProvider', () => {
       expect(result.options).toHaveLength(3);
       expect(result.repo).toBe('owner/myrepo');
       expect(result.branch).toBe('feature-branch');
-      expect(result.content).toBe('claude repo:owner/myrepo branch:feature-branch command:fix this bug');
+      expect(result.content).toBe(
+        'claude repo:owner/myrepo branch:feature-branch command:fix this bug'
+      );
     });
 
     it('should parse APPLICATION_COMMAND with repo but no branch (defaults to main)', () => {
@@ -390,7 +394,7 @@ describe('DiscordProvider', () => {
         { content: 'test response', flags: 0 },
         {
           headers: {
-            'Authorization': `Bot ${provider.botToken}`,
+            Authorization: `Bot ${provider.botToken}`,
             'Content-Type': 'application/json'
           }
         }
@@ -410,7 +414,7 @@ describe('DiscordProvider', () => {
         { content: 'test response' },
         {
           headers: {
-            'Authorization': `Bot ${provider.botToken}`,
+            Authorization: `Bot ${provider.botToken}`,
             'Content-Type': 'application/json'
           }
         }
@@ -419,13 +423,15 @@ describe('DiscordProvider', () => {
 
     it('should handle axios errors', async () => {
       axios.post.mockRejectedValue(new Error('Network error'));
-      
+
       const context = {
         type: 'command',
         channelId: '123456789'
       };
 
-      await expect(provider.sendResponse(context, 'test response')).rejects.toThrow('Network error');
+      await expect(provider.sendResponse(context, 'test response')).rejects.toThrow(
+        'Network error'
+      );
     });
   });
 
@@ -462,9 +468,9 @@ describe('DiscordProvider', () => {
     it('should format Discord-specific error message', () => {
       const error = new Error('Test error');
       const errorId = 'test-123';
-      
+
       const message = provider.formatErrorMessage(error, errorId);
-      
+
       expect(message).toContain('🚫 **Error Processing Command**');
       expect(message).toContain('**Reference ID:** `test-123`');
       expect(message).toContain('Please contact an administrator');

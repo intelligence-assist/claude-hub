@@ -12,7 +12,7 @@ const logger = createLogger('chatbotController');
 async function handleChatbotWebhook(req, res, providerName) {
   try {
     const startTime = Date.now();
-    
+
     logger.info(
       {
         provider: providerName,
@@ -80,7 +80,7 @@ async function handleChatbotWebhook(req, res, providerName) {
     let messageContext;
     try {
       messageContext = provider.parseWebhookPayload(req.body);
-      
+
       logger.info(
         {
           provider: providerName,
@@ -202,15 +202,15 @@ async function handleChatbotWebhook(req, res, providerName) {
       // Extract repository and branch from message context (for Discord slash commands)
       const repoFullName = messageContext.repo || null;
       const branchName = messageContext.branch || 'main';
-      
+
       // Validate required repository parameter
       if (!repoFullName) {
         const errorMessage = sanitizeBotMentions(
           '❌ **Repository Required**: Please specify a repository using the `repo` parameter.\n\n' +
-          '**Example:** `/claude repo:owner/repository command:fix this issue`'
+            '**Example:** `/claude repo:owner/repository command:fix this issue`'
         );
         await provider.sendResponse(messageContext, errorMessage);
-        
+
         return res.status(400).json({
           success: false,
           error: 'Repository parameter is required',
@@ -347,7 +347,6 @@ async function handleChatbotWebhook(req, res, providerName) {
 async function handleDiscordWebhook(req, res) {
   return await handleChatbotWebhook(req, res, 'discord');
 }
-
 
 /**
  * Get provider status and statistics

@@ -36,9 +36,15 @@ jest.mock('../../../src/services/githubService', () => ({
 }));
 
 // Now require modules after environment and mocks are set up
-const githubController = require('../../../src/controllers/githubController');
-const claudeService = require('../../../src/services/claudeService');
-const githubService = require('../../../src/services/githubService');
+const githubController =
+  require('../../../src/controllers/githubController').default ||
+  require('../../../src/controllers/githubController');
+const claudeService =
+  require('../../../src/services/claudeService').default ||
+  require('../../../src/services/claudeService');
+const githubService =
+  require('../../../src/services/githubService').default ||
+  require('../../../src/services/githubService');
 
 describe('GitHub Controller', () => {
   let req, res;

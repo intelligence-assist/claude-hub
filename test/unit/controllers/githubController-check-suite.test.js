@@ -7,9 +7,15 @@ process.env.PR_REVIEW_TRIGGER_WORKFLOW = 'Pull Request CI';
 process.env.PR_REVIEW_DEBOUNCE_MS = '0'; // Disable debounce for tests
 process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS = 'false'; // Use trigger workflow mode for tests
 
-const githubController = require('../../../src/controllers/githubController');
-const claudeService = require('../../../src/services/claudeService');
-const githubService = require('../../../src/services/githubService');
+const githubController =
+  require('../../../src/controllers/githubController').default ||
+  require('../../../src/controllers/githubController');
+const claudeService =
+  require('../../../src/services/claudeService').default ||
+  require('../../../src/services/claudeService');
+const githubService =
+  require('../../../src/services/githubService').default ||
+  require('../../../src/services/githubService');
 
 // Mock the services
 jest.mock('../../../src/services/claudeService', () => ({

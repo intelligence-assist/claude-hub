@@ -2,6 +2,9 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import request from 'supertest';
 
+// Set required environment variables
+process.env.BOT_USERNAME = '@TestBot';
+
 // Mock all dependencies before any imports
 jest.mock('dotenv/config', () => ({}));
 jest.mock('../../src/utils/logger', () => ({
@@ -38,25 +41,26 @@ jest.mock('../../src/routes/claude', () => {
   router.post('/', (req: Request, res: Response) => res.status(200).send('claude'));
   return router;
 });
+
+const mockExecSync = jest.fn();
 jest.mock('child_process', () => ({
-  execSync: jest.fn()
+  execSync: mockExecSync
 }));
 
 describe('Express Application', () => {
   let app: express.Application;
   const originalEnv = process.env;
-  const mockExecSync = require('child_process').execSync as jest.Mock;
-  const mockLogger = require('../../src/utils/logger').createLogger();
-  const mockStartupMetrics = new (require('../../src/utils/startup-metrics').StartupMetrics)();
-
+  const mockLogger = (require('../../src/utils/logger') as any).createLogger();
+  const mockStartupMetrics = new (require('../../src/utils/startup-metrics') as any).StartupMetrics();
+  
   // Mock express listen to prevent actual server start
   const mockListen = jest.fn((port: number, callback?: () => void) => {
     if (callback) {
       setTimeout(callback, 0);
     }
-    return {
+    return { 
       close: jest.fn((cb?: () => void) => cb && cb()),
-      listening: true
+      listening: true 
     };
   });
 
@@ -65,6 +69,10 @@ describe('Express Application', () => {
     process.env = { ...originalEnv };
     process.env.NODE_ENV = 'test';
     process.env.PORT = '3004';
+    process.env.BOT_USERNAME = '@TestBot';
+    
+    // Reset mockExecSync to default behavior
+    mockExecSync.mockImplementation(() => Buffer.from(''));
   });
 
   afterEach(() => {
@@ -74,7 +82,7 @@ describe('Express Application', () => {
   const getApp = () => {
     // Clear the module cache
     jest.resetModules();
-
+    
     // Re-mock modules for fresh import
     jest.mock('../../src/utils/logger', () => ({
       createLogger: jest.fn(() => mockLogger)
@@ -82,14 +90,17 @@ describe('Express Application', () => {
     jest.mock('../../src/utils/startup-metrics', () => ({
       StartupMetrics: jest.fn(() => mockStartupMetrics)
     }));
-
+    jest.mock('child_process', () => ({
+      execSync: mockExecSync
+    }));
+    
     // Mock express.application.listen
     const express = require('express');
     express.application.listen = mockListen;
-
+    
     // Import the app
     require('../../src/index');
-
+    
     // Get the app instance from the mocked listen call
     return mockListen.mock.contexts[0] as express.Application;
   };
@@ -98,7 +109,7 @@ describe('Express Application', () => {
     it('should initialize with default port when PORT is not set', () => {
       delete process.env.PORT;
       getApp();
-
+      
       expect(mockListen).toHaveBeenCalledWith(3003, expect.any(Function));
       expect(mockStartupMetrics.recordMilestone).toHaveBeenCalledWith(
         'env_loaded',
@@ -108,7 +119,7 @@ describe('Express Application', () => {
 
     it('should record startup milestones', () => {
       getApp();
-
+      
       expect(mockStartupMetrics.recordMilestone).toHaveBeenCalledWith(
         'env_loaded',
         'Environment variables loaded'
@@ -157,16 +168,20 @@ describe('Express Application', () => {
   describe('Routes', () => {
     it('should mount GitHub webhook routes', async () => {
       app = getApp();
-      const response = await request(app).post('/api/webhooks/github').send({});
-
+      const response = await request(app)
+        .post('/api/webhooks/github')
+        .send({});
+      
       expect(response.status).toBe(200);
       expect(response.text).toBe('github');
     });
 
     it('should mount Claude API routes', async () => {
       app = getApp();
-      const response = await request(app).post('/api/claude').send({});
-
+      const response = await request(app)
+        .post('/api/claude')
+        .send({});
+      
       expect(response.status).toBe(200);
       expect(response.text).toBe('claude');
     });
@@ -181,10 +196,10 @@ describe('Express Application', () => {
         milestones: {},
         startTime: Date.now() - 1000
       });
-
+      
       app = getApp();
       const response = await request(app).get('/health');
-
+      
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         status: 'ok',
@@ -203,16 +218,34 @@ describe('Express Application', () => {
     });
 
     it('should return degraded status when Docker is not available', async () => {
-      mockExecSync.mockImplementation((cmd: string) => {
+      // Set up mock before getting app
+      const customMock = jest.fn((cmd: string) => {
         if (cmd.includes('docker ps')) {
           throw new Error('Docker not available');
         }
         return Buffer.from('');
       });
-
-      app = getApp();
+      
+      // Clear modules and re-mock
+      jest.resetModules();
+      jest.mock('child_process', () => ({
+        execSync: customMock
+      }));
+      jest.mock('../../src/utils/logger', () => ({
+        createLogger: jest.fn(() => mockLogger)
+      }));
+      jest.mock('../../src/utils/startup-metrics', () => ({
+        StartupMetrics: jest.fn(() => mockStartupMetrics)
+      }));
+      
+      const express = require('express');
+      express.application.listen = mockListen;
+      
+      require('../../src/index');
+      app = mockListen.mock.contexts[mockListen.mock.contexts.length - 1] as express.Application;
+      
       const response = await request(app).get('/health');
-
+      
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         status: 'degraded',
@@ -224,16 +257,34 @@ describe('Express Application', () => {
     });
 
     it('should return degraded status when Claude image is not available', async () => {
-      mockExecSync.mockImplementation((cmd: string) => {
+      // Set up mock before getting app  
+      const customMock = jest.fn((cmd: string) => {
         if (cmd.includes('docker image inspect')) {
           throw new Error('Image not found');
         }
         return Buffer.from('');
       });
-
-      app = getApp();
+      
+      // Clear modules and re-mock
+      jest.resetModules();
+      jest.mock('child_process', () => ({
+        execSync: customMock
+      }));
+      jest.mock('../../src/utils/logger', () => ({
+        createLogger: jest.fn(() => mockLogger)
+      }));
+      jest.mock('../../src/utils/startup-metrics', () => ({
+        StartupMetrics: jest.fn(() => mockStartupMetrics)
+      }));
+      
+      const express = require('express');
+      express.application.listen = mockListen;
+      
+      require('../../src/index');
+      app = mockListen.mock.contexts[mockListen.mock.contexts.length - 1] as express.Application;
+      
       const response = await request(app).get('/health');
-
+      
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         status: 'degraded',
@@ -251,7 +302,7 @@ describe('Express Application', () => {
       const response = await request(app)
         .get('/api/test-tunnel')
         .set('X-Test-Header', 'test-value');
-
+      
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         status: 'success',
@@ -261,7 +312,7 @@ describe('Express Application', () => {
           'x-test-header': 'test-value'
         })
       });
-
+      
       expect(mockLogger.info).toHaveBeenCalledWith('Test tunnel endpoint hit');
     });
   });
@@ -270,15 +321,15 @@ describe('Express Application', () => {
     it('should handle 404 errors', async () => {
       app = getApp();
       const response = await request(app).get('/non-existent-route');
-
+      
       expect(response.status).toBe(404);
     });
   });
 
   describe('Server Startup', () => {
-    it('should start server and record ready milestone', done => {
+    it('should start server and record ready milestone', (done) => {
       getApp();
-
+      
       // Wait for the callback to be executed
       setTimeout(() => {
         expect(mockStartupMetrics.recordMilestone).toHaveBeenCalledWith(

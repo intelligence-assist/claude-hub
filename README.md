@@ -5,7 +5,7 @@
 [![Jest Tests](https://img.shields.io/badge/tests-jest-green)](test/README.md)
 [![codecov](https://codecov.io/gh/intelligence-assist/claude-hub/branch/main/graph/badge.svg)](https://codecov.io/gh/intelligence-assist/claude-hub)
 [![Version](https://img.shields.io/github/v/release/intelligence-assist/claude-hub?label=version)](https://github.com/intelligence-assist/claude-hub/releases)
-[![Docker Hub](https://img.shields.io/docker/v/intelligenceassist/claude-github-webhook?label=docker)](https://hub.docker.com/r/intelligenceassist/claude-github-webhook)
+[![Docker Hub](https://img.shields.io/docker/v/intelligenceassist/claude-hub?label=docker)](https://hub.docker.com/r/intelligenceassist/claude-hub)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -70,7 +70,7 @@ Claude autonomously handles complete development workflows. It analyzes your ent
 
 ```bash
 # Pull the latest image
-docker pull intelligenceassist/claude-github-webhook:latest
+docker pull intelligenceassist/claude-hub:latest
 
 # Run with environment variables
 docker run -d \
@@ -82,7 +82,7 @@ docker run -d \
   -e ANTHROPIC_API_KEY=your_anthropic_key \
   -e BOT_USERNAME=@YourBotName \
   -e AUTHORIZED_USERS=user1,user2 \
-  intelligenceassist/claude-github-webhook:latest
+  intelligenceassist/claude-hub:latest
 
 # Or use Docker Compose
 wget https://raw.githubusercontent.com/intelligence-assist/claude-hub/main/docker-compose.yml

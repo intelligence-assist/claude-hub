@@ -18,7 +18,7 @@ on:
 env:
   DOCKER_HUB_USERNAME: ${{ vars.DOCKER_HUB_USERNAME || 'cheffromspace' }}
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION || 'intelligenceassist' }}
-  IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME || 'claude-github-webhook' }}
+  IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME || 'claude-hub' }}
 
 jobs:
   build:

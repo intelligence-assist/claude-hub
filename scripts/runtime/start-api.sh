@@ -13,4 +13,4 @@ fi
 
 # Start the server with the specified port
 echo "Starting server on port $DEFAULT_PORT..."
-PORT=$DEFAULT_PORT node src/index.js
+PORT=$DEFAULT_PORT node dist/index.js

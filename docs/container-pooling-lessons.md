@@ -58,8 +58,8 @@ Instead of complex pooled execution, consider:
 
 ## Code Locations
 
-- Container pool service: `src/services/containerPoolService.js`
-- Execution logic: `src/services/claudeService.js:170-210`
+- Container pool service: `src/services/containerPoolService.ts`
+- Execution logic: `src/services/claudeService.ts:170-210`
 - Container creation: Modified Docker command in pool service
 
 ## Performance Gains Observed

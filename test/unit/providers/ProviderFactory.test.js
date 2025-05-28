@@ -13,7 +13,7 @@ jest.mock('../../../src/utils/secureCredentials', () => ({
   loadCredentials: jest.fn()
 }));
 
-const ProviderFactory = require('../../../src/providers/ProviderFactory');
+const _ProviderFactory = require('../../../src/providers/ProviderFactory');
 const DiscordProvider = require('../../../src/providers/DiscordProvider');
 const ChatbotProvider = require('../../../src/providers/ChatbotProvider');
 
@@ -202,7 +202,7 @@ describe('ProviderFactory', () => {
       expect(config).toEqual({
         botToken: 'test_token'
       });
-      expect(config.hasOwnProperty('publicKey')).toBe(false);
+      expect(Object.prototype.hasOwnProperty.call(config, 'publicKey')).toBe(false);
     });
   });
 

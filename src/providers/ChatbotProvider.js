@@ -21,7 +21,7 @@ class ChatbotProvider {
    * @param {Object} req - Express request object
    * @returns {boolean} - True if signature is valid
    */
-  verifyWebhookSignature(req) {
+  verifyWebhookSignature(_req) {
     throw new Error('verifyWebhookSignature() must be implemented by subclass');
   }
 
@@ -30,7 +30,7 @@ class ChatbotProvider {
    * @param {Object} payload - Raw webhook payload
    * @returns {Object} - Standardized message object
    */
-  parseWebhookPayload(payload) {
+  parseWebhookPayload(_payload) {
     throw new Error('parseWebhookPayload() must be implemented by subclass');
   }
 
@@ -39,7 +39,7 @@ class ChatbotProvider {
    * @param {string} message - Message content
    * @returns {Object|null} - Command object or null if no mention
    */
-  extractBotCommand(message) {
+  extractBotCommand(_message) {
     throw new Error('extractBotCommand() must be implemented by subclass');
   }
 
@@ -49,7 +49,7 @@ class ChatbotProvider {
    * @param {string} response - Response text
    * @returns {Promise<void>}
    */
-  async sendResponse(context, response) {
+  async sendResponse(_context, _response) {
     throw new Error('sendResponse() must be implemented by subclass');
   }
 
@@ -58,7 +58,7 @@ class ChatbotProvider {
    * @param {Object} context - Message context
    * @returns {string} - User identifier
    */
-  getUserId(context) {
+  getUserId(_context) {
     throw new Error('getUserId() must be implemented by subclass');
   }
 

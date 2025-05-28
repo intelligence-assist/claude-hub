@@ -1,13 +1,18 @@
+# Dependencies and build artifacts
 node_modules
 npm-debug.log
+coverage
+.nyc_output
+test-results
+dist
+*.tgz
+
+# Development files
 .git
 .gitignore
 .env
 .env.*
 .DS_Store
-coverage
-.nyc_output
-test-results
 *.log
 logs
 .husky
@@ -18,17 +23,34 @@ logs
 *.swo
 *~
 CLAUDE.local.md
+
+# Secrets and config
 secrets
 k8s
+
+# Documentation and tests (except runtime scripts)
 docs
 test
 *.test.js
+*.test.ts
 *.spec.js
+*.spec.ts
 README.md
 *.md
 !CLAUDE.md
+
+# Docker files
 docker-compose*.yml
 Dockerfile*
 .dockerignore
+
+# Scripts (except runtime)
 *.sh
 !scripts/runtime/*.sh
+!scripts/runtime/
+
+# Cache directories
+.npm
+.cache
+.pytest_cache
+__pycache__

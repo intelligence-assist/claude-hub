@@ -5,7 +5,7 @@ A webhook service that enables Claude AI to respond to GitHub mentions and execu
 ## Quick Start
 
 ```bash
-docker pull intelligenceassist/claude-github-webhook:latest
+docker pull intelligenceassist/claude-hub:latest
 
 docker run -d \
   -p 8082:3002 \
@@ -15,7 +15,7 @@ docker run -d \
   -e ANTHROPIC_API_KEY=your_anthropic_key \
   -e BOT_USERNAME=@YourBotName \
   -e AUTHORIZED_USERS=user1,user2 \
-  intelligenceassist/claude-github-webhook:latest
+  intelligenceassist/claude-hub:latest
 ```
 
 ## Features
@@ -34,7 +34,7 @@ version: '3.8'
 
 services:
   claude-webhook:
-    image: intelligenceassist/claude-github-webhook:latest
+    image: intelligenceassist/claude-hub:latest
     ports:
       - "8082:3002"
     volumes:
@@ -84,9 +84,9 @@ Mention your bot in any issue or PR comment:
 
 ## Links
 
-- [GitHub Repository](https://github.com/intelligence-assist/claude-github-webhook)
-- [Documentation](https://github.com/intelligence-assist/claude-github-webhook/tree/main/docs)
-- [Issue Tracker](https://github.com/intelligence-assist/claude-github-webhook/issues)
+- [GitHub Repository](https://github.com/intelligence-assist/claude-hub)
+- [Documentation](https://github.com/intelligence-assist/claude-hub/tree/main/docs)
+- [Issue Tracker](https://github.com/intelligence-assist/claude-hub/issues)
 
 ## License
 

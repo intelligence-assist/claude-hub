@@ -122,7 +122,7 @@ export const handleWebhook: WebhookHandler = async (req, res) => {
         sender: req.body.sender?.login?.replace(/[\r\n\t]/g, '_') || 'unknown',
         repo: req.body.repository?.full_name?.replace(/[\r\n\t]/g, '_') || 'unknown'
       },
-      `Received GitHub ${event} webhook`
+      `Received GitHub ${event?.replace(/[\r\n\t]/g, '_') || 'unknown'} webhook`
     );
 
     // Verify the webhook signature
@@ -320,7 +320,7 @@ async function handleIssueComment(
 
   // Check if comment mentions the bot
   if (comment.body.includes(BOT_USERNAME)) {
-    return await processBotMention(comment, issue, repo, res, false);
+    return await processBotMention(comment, issue, repo, res);
   }
 
   return res.status(200).json({ message: 'Webhook processed successfully' });
@@ -415,8 +415,7 @@ async function processBotMention(
   comment: GitHubComment,
   issue: GitHubIssue | GitHubPullRequest,
   repo: GitHubRepository,
-  res: Response<WebhookResponse | ErrorResponse>,
-  isPullRequest: boolean
+  res: Response<WebhookResponse | ErrorResponse>
 ): Promise<Response<WebhookResponse | ErrorResponse>> {
   // Check if the comment author is authorized
   const authorizedUsers = process.env.AUTHORIZED_USERS
@@ -487,8 +486,8 @@ async function processBotMention(
         repoFullName: repo.full_name,
         issueNumber: issue.number,
         command: command,
-        isPullRequest,
-        branchName: isPullRequest ? (issue as GitHubPullRequest).head.ref : null
+        isPullRequest: false,
+        branchName: null
       });
 
       // Post Claude's response as a comment on the issue
@@ -509,7 +508,7 @@ async function processBotMention(
         context: {
           repo: repo.full_name,
           issue: issue.number,
-          type: isPullRequest ? 'pull_request' : 'issue_comment'
+          type: 'issue_comment'
         }
       });
     } catch (error) {

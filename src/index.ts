@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import bodyParser from 'body-parser';
+import rateLimit from 'express-rate-limit';
 import { createLogger } from './utils/logger';
 import { StartupMetrics } from './utils/startup-metrics';
 import githubRoutes from './routes/github';
@@ -22,6 +23,37 @@ const startupMetrics = new StartupMetrics();
 startupMetrics.recordMilestone('env_loaded', 'Environment variables loaded');
 startupMetrics.recordMilestone('express_initialized', 'Express app initialized');
 
+// Rate limiting configuration
+const generalRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    error: 'Too many requests',
+    message: 'Too many requests from this IP, please try again later.'
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false // Disable the `X-RateLimit-*` headers
+});
+
+const webhookRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 50, // Limit each IP to 50 webhook requests per 5 minutes
+  message: {
+    error: 'Too many webhook requests',
+    message: 'Too many webhook requests from this IP, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (_req) => {
+    // Skip rate limiting in test environment
+    return process.env['NODE_ENV'] === 'test';
+  }
+});
+
+// Apply rate limiting
+app.use('/api/webhooks', webhookRateLimit);
+app.use(generalRateLimit);
+
 // Request logging middleware
 app.use((req, res, next) => {
   const startTime = Date.now();
@@ -35,7 +67,7 @@ app.use((req, res, next) => {
         statusCode: res.statusCode,
         responseTime: `${responseTime}ms`
       },
-      `${req.method} ${req.url}`
+      `${req.method?.replace(/[\r\n\t]/g, '_') || 'UNKNOWN'} ${req.url?.replace(/[\r\n\t]/g, '_') || '/unknown'}`
     );
   });
 

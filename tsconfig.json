@@ -27,6 +27,7 @@
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
     "noFallthroughCasesInSwitch": true,
+    "noErrorTruncation": true,
     "types": ["node", "jest"]
   },
   "include": [

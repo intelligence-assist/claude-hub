@@ -53,7 +53,7 @@ COPY src/ ./src/
 RUN npm run build
 
 # Remove dev dependencies to reduce image size
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm prune --omit=dev && npm cache clean --force
 
 # Copy remaining application files
 COPY . .

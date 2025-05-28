@@ -2,9 +2,6 @@
 import request from 'supertest';
 import express from 'express';
 
-// Set required environment variables before any imports
-process.env.BOT_USERNAME = '@TestBot';
-
 // Mock dependencies before imports
 jest.mock('../../../src/services/claudeService');
 jest.mock('../../../src/utils/logger');

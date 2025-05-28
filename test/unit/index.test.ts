@@ -2,9 +2,6 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import request from 'supertest';
 
-// Set required environment variables
-process.env.BOT_USERNAME = '@TestBot';
-
 // Mock all dependencies before any imports
 jest.mock('dotenv/config', () => ({}));
 jest.mock('../../src/utils/logger', () => ({
@@ -69,7 +66,6 @@ describe('Express Application', () => {
     process.env = { ...originalEnv };
     process.env.NODE_ENV = 'test';
     process.env.PORT = '3004';
-    process.env.BOT_USERNAME = '@TestBot';
     
     // Reset mockExecSync to default behavior
     mockExecSync.mockImplementation(() => Buffer.from(''));

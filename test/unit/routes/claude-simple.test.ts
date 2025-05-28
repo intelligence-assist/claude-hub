@@ -23,7 +23,6 @@ describe('Claude Routes - Simple Coverage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env = { ...originalEnv };
-    process.env.BOT_USERNAME = '@TestBot'; // Required by claudeService
     app = express();
     app.use(express.json());
 

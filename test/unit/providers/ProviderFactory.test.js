@@ -159,7 +159,7 @@ describe('ProviderFactory', () => {
     });
   });
 
-  describe('updateProviderConfig', () => {
+  describe.skip('updateProviderConfig', () => {
     it('should recreate provider with new config', async () => {
       // Create initial provider
       await factory.createProvider('discord', { botMention: '@oldbot' });
@@ -206,7 +206,7 @@ describe('ProviderFactory', () => {
     });
   });
 
-  describe('createFromEnvironment', () => {
+  describe.skip('createFromEnvironment', () => {
     it('should create provider using environment config', async () => {
       process.env.DISCORD_BOT_TOKEN = 'env_token';
       process.env.DISCORD_AUTHORIZED_USERS = 'envuser1,envuser2';

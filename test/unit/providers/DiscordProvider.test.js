@@ -114,6 +114,10 @@ describe('DiscordProvider', () => {
     });
 
     it('should handle crypto verification errors gracefully', () => {
+      // Temporarily override NODE_ENV to ensure signature verification runs
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      
       const req = { 
         headers: {
           'x-signature-ed25519': 'invalid_signature_format',
@@ -125,6 +129,9 @@ describe('DiscordProvider', () => {
       
       // This should not throw, but return false due to invalid signature
       expect(provider.verifyWebhookSignature(req)).toBe(false);
+      
+      // Restore original NODE_ENV
+      process.env.NODE_ENV = originalNodeEnv;
     });
   });
 

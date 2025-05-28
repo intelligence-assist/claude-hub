@@ -1,7 +1,3 @@
-const chatbotController = require('../../../src/controllers/chatbotController');
-const claudeService = require('../../../src/services/claudeService');
-const providerFactory = require('../../../src/providers/ProviderFactory');
-
 // Mock dependencies
 jest.mock('../../../src/services/claudeService');
 jest.mock('../../../src/providers/ProviderFactory');
@@ -13,6 +9,19 @@ jest.mock('../../../src/utils/logger', () => ({
     debug: jest.fn()
   })
 }));
+
+jest.mock('../../../src/utils/secureCredentials', () => ({
+  get: jest.fn(),
+  loadCredentials: jest.fn()
+}));
+
+// Set required environment variables for claudeService
+process.env.BOT_USERNAME = 'testbot';
+process.env.DEFAULT_AUTHORIZED_USER = 'testuser';
+
+const chatbotController = require('../../../src/controllers/chatbotController');
+const claudeService = require('../../../src/services/claudeService');
+const providerFactory = require('../../../src/providers/ProviderFactory');
 jest.mock('../../../src/utils/sanitize', () => ({
   sanitizeBotMentions: jest.fn(msg => msg)
 }));
@@ -286,29 +295,6 @@ describe('chatbotController', () => {
     });
   });
 
-  describe('handleSlackWebhook', () => {
-    it('should call handleChatbotWebhook with slack provider', async () => {
-      const spy = jest.spyOn(chatbotController, 'handleChatbotWebhook');
-      spy.mockResolvedValue();
-
-      await chatbotController.handleSlackWebhook(req, res);
-
-      expect(spy).toHaveBeenCalledWith(req, res, 'slack');
-      spy.mockRestore();
-    });
-  });
-
-  describe('handleNextcloudWebhook', () => {
-    it('should call handleChatbotWebhook with nextcloud provider', async () => {
-      const spy = jest.spyOn(chatbotController, 'handleChatbotWebhook');
-      spy.mockResolvedValue();
-
-      await chatbotController.handleNextcloudWebhook(req, res);
-
-      expect(spy).toHaveBeenCalledWith(req, res, 'nextcloud');
-      spy.mockRestore();
-    });
-  });
 
   describe('getProviderStats', () => {
     it('should return provider statistics successfully', async () => {

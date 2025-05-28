@@ -1,13 +1,13 @@
 # Chatbot Providers Documentation
 
-This document describes the chatbot provider system that enables Claude to work with multiple chat platforms like Discord, Slack, and Nextcloud using dependency injection and configuration-based selection.
+This document describes the chatbot provider system that enables Claude to work with Discord using dependency injection and configuration-based selection. The system is designed with an extensible architecture that can support future platforms.
 
 ## Architecture Overview
 
 The chatbot provider system uses a flexible architecture with:
 
 - **Base Provider Interface**: Common contract for all chatbot providers (`ChatbotProvider.js`)
-- **Provider Implementations**: Platform-specific implementations (Discord, Slack, Nextcloud)
+- **Provider Implementations**: Platform-specific implementations (currently Discord only)
 - **Provider Factory**: Dependency injection container for managing providers (`ProviderFactory.js`)
 - **Generic Controller**: Unified webhook handling logic (`chatbotController.js`)
 - **Route Integration**: Clean API endpoints for each provider
@@ -25,25 +25,6 @@ Features:
 - Message splitting for 2000 character limit
 - Follow-up message support
 
-### Slack Provider
-**Status**: 🚧 Placeholder (ready for implementation)  
-**Endpoint**: `POST /api/webhooks/chatbot/slack`
-
-Planned features:
-- HMAC-SHA256 signature verification
-- Slash command support
-- Interactive component handling
-- Thread support
-
-### Nextcloud Provider
-**Status**: 🚧 Placeholder (ready for implementation)  
-**Endpoint**: `POST /api/webhooks/chatbot/nextcloud`
-
-Planned features:
-- Basic authentication
-- Talk app integration
-- File sharing capabilities
-
 ## Configuration
 
 ### Environment Variables
@@ -57,30 +38,11 @@ DISCORD_AUTHORIZED_USERS=user1,user2,admin
 DISCORD_BOT_MENTION=claude
 ```
 
-#### Slack (Future)
-```bash
-SLACK_BOT_TOKEN=xoxb-your_slack_bot_token
-SLACK_SIGNING_SECRET=your_slack_signing_secret
-SLACK_AUTHORIZED_USERS=user1,user2,admin
-SLACK_BOT_MENTION=@claude
-```
-
-#### Nextcloud (Future)
-```bash
-NEXTCLOUD_SERVER_URL=https://your-nextcloud.example.com
-NEXTCLOUD_USERNAME=claude_bot
-NEXTCLOUD_PASSWORD=your_nextcloud_password
-NEXTCLOUD_AUTHORIZED_USERS=user1,user2,admin
-NEXTCLOUD_BOT_MENTION=@claude
-```
-
 ## API Endpoints
 
 ### Webhook Endpoints
 
 - `POST /api/webhooks/chatbot/discord` - Discord webhook handler
-- `POST /api/webhooks/chatbot/slack` - Slack webhook handler
-- `POST /api/webhooks/chatbot/nextcloud` - Nextcloud webhook handler
 
 ### Management Endpoints
 
@@ -113,7 +75,7 @@ NEXTCLOUD_BOT_MENTION=@claude
 
 ### Adding a New Provider
 
-To add a new chatbot provider:
+To add a new chatbot provider in the future:
 
 1. **Create Provider Class**
    ```javascript
@@ -169,14 +131,11 @@ To add a new chatbot provider:
 ## Security Features
 
 ### Webhook Verification
-Each provider implements platform-specific signature verification:
-- **Discord**: Ed25519 signature verification
-- **Slack**: HMAC-SHA256 signature verification  
-- **GitHub**: HMAC-SHA256 signature verification (existing)
+The Discord provider implements Ed25519 signature verification for secure webhook authentication.
 
 ### User Authorization
-- Configurable authorized user lists per provider
-- Provider-specific user ID validation
+- Configurable authorized user lists for Discord
+- Discord-specific user ID validation
 - Graceful handling of unauthorized access attempts
 
 ### Container Security
@@ -213,7 +172,7 @@ The system provides comprehensive error handling:
 ## Monitoring and Debugging
 
 ### Logging
-All providers use structured logging with:
+The Discord provider uses structured logging with:
 - Provider name identification
 - Request/response tracking
 - Error correlation IDs
@@ -226,10 +185,23 @@ The `/api/webhooks/chatbot/stats` endpoint provides:
 - Basic configuration info (non-sensitive)
 
 ### Health Checks
-Providers can be health-checked individually or collectively to ensure proper operation.
+The provider can be health-checked to ensure proper operation.
+
+## Extensible Architecture
+
+While only Discord is currently implemented, the system is designed to easily support additional platforms:
+
+- **Modular Design**: Each provider is self-contained with common interfaces
+- **Dependency Injection**: Clean separation between provider logic and application code
+- **Configuration-Driven**: Environment-based provider selection and configuration
+- **Unified Webhook Handling**: Common controller logic with platform-specific implementations
+- **Standardized Security**: Consistent signature verification and authorization patterns
 
 ## Future Enhancements
 
+The extensible architecture enables future enhancements such as:
+
+- **Additional Platforms**: Easy integration of new chat platforms
 - **Message Threading**: Support for threaded conversations
 - **Rich Media**: File attachments and embeds
 - **Interactive Components**: Buttons, dropdowns, forms

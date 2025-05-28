@@ -1,10 +1,15 @@
 const fs = require('fs');
+const fsPromises = require('fs/promises');
 
 // Mock dependencies
 jest.mock('fs', () => ({
   promises: {
     readFile: jest.fn()
   }
+}));
+
+jest.mock('fs/promises', () => ({
+  readFile: jest.fn()
 }));
 jest.mock('../../../src/utils/logger', () => ({
   createLogger: jest.fn().mockReturnValue({
@@ -20,7 +25,7 @@ process.env.AWS_PROFILE = 'test-profile';
 process.env.AWS_REGION = 'us-west-2';
 
 // Import module after setting up mocks
-const awsCredentialProvider = require('../../../src/utils/awsCredentialProvider');
+const awsCredentialProvider = require('../../../src/utils/awsCredentialProvider').default;
 
 describe('AWS Credential Provider', () => {
   const mockCredentialsFile = `
@@ -48,27 +53,36 @@ region = us-west-2
     awsCredentialProvider.clearCache();
 
     // Mock file system
-    fs.promises.readFile.mockImplementation(filePath => {
+    const mockFileRead = filePath => {
       if (filePath.endsWith('credentials')) {
         return Promise.resolve(mockCredentialsFile);
       } else if (filePath.endsWith('config')) {
         return Promise.resolve(mockConfigFile);
       }
       throw new Error(`Unexpected file path: ${filePath}`);
-    });
+    };
+
+    fs.promises.readFile.mockImplementation(mockFileRead);
+    fsPromises.readFile.mockImplementation(mockFileRead);
   });
 
   test('should get credentials from AWS profile', async () => {
-    const credentials = await awsCredentialProvider.getCredentials();
+    const result = await awsCredentialProvider.getCredentials();
 
-    expect(credentials).toEqual({
+    expect(result.credentials).toEqual({
       accessKeyId: 'test-access-key',
       secretAccessKey: 'example-test-secret-key',
       region: 'us-west-2'
     });
 
-    expect(awsCredentialProvider.credentialSource).toBe('AWS Profile (test-profile)');
-    expect(fs.promises.readFile).toHaveBeenCalledTimes(2);
+    expect(result.source).toEqual({
+      type: 'profile',
+      profileName: 'test-profile',
+      isDefault: false
+    });
+
+    expect(awsCredentialProvider.getCredentialSource()).toBe('AWS Profile (test-profile)');
+    expect(fsPromises.readFile).toHaveBeenCalledTimes(2);
   });
 
   test('should cache credentials', async () => {
@@ -76,38 +90,38 @@ region = us-west-2
     awsCredentialProvider.clearCache();
 
     // Reset mock counters
-    fs.promises.readFile.mockClear();
+    fsPromises.readFile.mockClear();
 
     // First call should read from files
-    const credentials1 = await awsCredentialProvider.getCredentials();
+    const result1 = await awsCredentialProvider.getCredentials();
 
     // Count how many times readFile was called on first request
-    const firstCallCount = fs.promises.readFile.mock.calls.length;
+    const firstCallCount = fsPromises.readFile.mock.calls.length;
 
     // Should be exactly 2 calls (credentials and config files)
     expect(firstCallCount).toBe(2);
 
     // Reset counter to clearly see calls for second request
-    fs.promises.readFile.mockClear();
+    fsPromises.readFile.mockClear();
 
     // Second call should use cached credentials and not read files again
-    const credentials2 = await awsCredentialProvider.getCredentials();
+    const result2 = await awsCredentialProvider.getCredentials();
 
     // Verify credentials are the same object (cached)
-    expect(credentials1).toBe(credentials2);
+    expect(result1.credentials).toEqual(result2.credentials);
 
     // Verify no additional file reads occurred on second call
-    expect(fs.promises.readFile).not.toHaveBeenCalled();
+    expect(fsPromises.readFile).not.toHaveBeenCalled();
   });
 
   test('should clear credential cache', async () => {
-    const credentials1 = await awsCredentialProvider.getCredentials();
+    const result1 = await awsCredentialProvider.getCredentials();
     awsCredentialProvider.clearCache();
-    const credentials2 = await awsCredentialProvider.getCredentials();
+    const result2 = await awsCredentialProvider.getCredentials();
 
-    expect(credentials1).not.toBe(credentials2);
+    expect(result1.credentials).not.toBe(result2.credentials);
     // Should read files twice (once for each getCredentials call)
-    expect(fs.promises.readFile).toHaveBeenCalledTimes(4);
+    expect(fsPromises.readFile).toHaveBeenCalledTimes(4);
   });
 
   test('should get Docker environment variables', async () => {
@@ -124,10 +138,12 @@ region = us-west-2
     const originalProfile = process.env.AWS_PROFILE;
     delete process.env.AWS_PROFILE;
 
-    await expect(awsCredentialProvider.getCredentials()).rejects.toThrow('AWS_PROFILE must be set');
+    await expect(awsCredentialProvider.getCredentials()).rejects.toThrow(
+      'AWS_PROFILE must be set. Direct credential passing is not supported.'
+    );
 
-    await expect(awsCredentialProvider.getDockerEnvVars()).rejects.toThrow(
-      'AWS_PROFILE must be set'
+    expect(() => awsCredentialProvider.getDockerEnvVars()).toThrow(
+      'AWS_PROFILE must be set. Direct credential passing is not supported.'
     );
 
     // Restore AWS_PROFILE
@@ -152,8 +168,8 @@ region = us-west-2
 aws_access_key_id = test-access-key
     `;
 
-    fs.promises.readFile.mockImplementationOnce(() => Promise.resolve(incompleteCredentials));
-    fs.promises.readFile.mockImplementationOnce(() => Promise.resolve(mockConfigFile));
+    fsPromises.readFile.mockImplementationOnce(() => Promise.resolve(incompleteCredentials));
+    fsPromises.readFile.mockImplementationOnce(() => Promise.resolve(mockConfigFile));
 
     await expect(awsCredentialProvider.getCredentials()).rejects.toThrow(
       'Incomplete credentials for profile \'test-profile\''

@@ -13,11 +13,11 @@ const logger = createLogger('claudeRoutes');
 const handleClaudeRequest: ClaudeAPIHandler = async (req, res) => {
   logger.info({ request: req.body }, 'Received direct Claude request');
   try {
-    const { 
-      repoFullName, 
-      repository, 
-      command, 
-      authToken, 
+    const {
+      repoFullName,
+      repository,
+      command,
+      authToken,
       useContainer = false,
       issueNumber,
       isPullRequest = false,
@@ -25,7 +25,7 @@ const handleClaudeRequest: ClaudeAPIHandler = async (req, res) => {
     } = req.body;
 
     // Handle both repoFullName and repository parameters
-    const repoName = repoFullName || repository;
+    const repoName = repoFullName ?? repository;
 
     // Validate required parameters
     if (!repoName) {
@@ -62,10 +62,10 @@ const handleClaudeRequest: ClaudeAPIHandler = async (req, res) => {
     try {
       claudeResponse = await processCommand({
         repoFullName: repoName,
-        issueNumber: issueNumber || null,
+        issueNumber: issueNumber ?? null,
         command,
         isPullRequest,
-        branchName: branchName || null
+        branchName: branchName ?? null
       });
 
       logger.debug(
@@ -117,6 +117,6 @@ const handleClaudeRequest: ClaudeAPIHandler = async (req, res) => {
   }
 };
 
-router.post('/', handleClaudeRequest as any);
+router.post('/', handleClaudeRequest as express.RequestHandler);
 
 export default router;

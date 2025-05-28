@@ -25,7 +25,7 @@ import type {
   GitHubCheckSuite,
   GitHubRepository
 } from '../types/github';
-import { Response } from 'express';
+import type { Response } from 'express';
 
 const logger = createLogger('githubController');
 
@@ -74,7 +74,7 @@ function verifyWebhookSignature(req: WebhookRequest): boolean {
     throw new Error('Webhook secret not configured');
   }
 
-  const payload = req.rawBody || JSON.stringify(req.body);
+  const payload = req.rawBody ?? JSON.stringify(req.body);
   const hmac = crypto.createHmac('sha256', webhookSecret);
   const calculatedSignature = 'sha256=' + hmac.update(payload).digest('hex');
 
@@ -109,7 +109,7 @@ function verifyWebhookSignature(req: WebhookRequest): boolean {
 /**
  * Handles incoming GitHub webhook events
  */
-export const handleWebhook: WebhookHandler = async (req, res) => {
+export const handleWebhook: WebhookHandler = async (req, res): Promise<Response<WebhookResponse | ErrorResponse>> => {
   try {
     const event = req.headers['x-github-event'] as string;
     const delivery = req.headers['x-github-delivery'] as string;
@@ -119,8 +119,8 @@ export const handleWebhook: WebhookHandler = async (req, res) => {
       {
         event,
         delivery,
-        sender: req.body.sender?.login,
-        repo: req.body.repository?.full_name
+        sender: req.body.sender.login,
+        repo: req.body.repository.full_name
       },
       `Received GitHub ${event} webhook`
     );
@@ -173,8 +173,15 @@ async function handleIssueOpened(
   payload: GitHubWebhookPayload,
   res: Response<WebhookResponse | ErrorResponse>
 ): Promise<Response<WebhookResponse | ErrorResponse>> {
-  const issue = payload.issue!;
+  const issue = payload.issue;
   const repo = payload.repository;
+
+  if (!issue) {
+    logger.error('Issue data is missing from payload');
+    return res.status(400).json({
+      error: 'Issue data is missing from payload'
+    });
+  }
 
   logger.info(
     {
@@ -192,7 +199,7 @@ async function handleIssueOpened(
 
 Issue Details:
 - Title: ${issue.title}
-- Description: ${issue.body || 'No description provided'}
+- Description: ${issue.body ?? 'No description provided'}
 - Issue Number: ${issue.number}
 
 Instructions:
@@ -230,7 +237,7 @@ Complete the auto-tagging task using only GitHub CLI commands.`;
       );
 
       // Fall back to basic tagging based on keywords
-      const fallbackLabels = await getFallbackLabels(issue.title, issue.body);
+      const fallbackLabels = getFallbackLabels(issue.title, issue.body);
       if (fallbackLabels.length > 0) {
         await addLabelsToIssue({
           repoOwner: repo.owner.login,
@@ -290,9 +297,16 @@ async function handleIssueComment(
   payload: GitHubWebhookPayload,
   res: Response<WebhookResponse | ErrorResponse>
 ): Promise<Response<WebhookResponse | ErrorResponse>> {
-  const comment = payload.comment!;
-  const issue = payload.issue!;
+  const comment = payload.comment;
+  const issue = payload.issue;
   const repo = payload.repository;
+
+  if (!comment || !issue) {
+    logger.error('Comment or issue data is missing from payload');
+    return res.status(400).json({
+      error: 'Comment or issue data is missing from payload'
+    });
+  }
 
   logger.info(
     {
@@ -319,9 +333,19 @@ async function handlePullRequestComment(
   payload: GitHubWebhookPayload,
   res: Response<WebhookResponse | ErrorResponse>
 ): Promise<Response<WebhookResponse | ErrorResponse>> {
-  const pr = payload.pull_request!;
+  const pr = payload.pull_request;
   const repo = payload.repository;
-  const comment = payload.comment || { body: payload.pull_request!.body || '', user: payload.sender };
+  const comment = payload.comment ?? {
+    body: payload.pull_request?.body ?? '',
+    user: payload.sender
+  };
+
+  if (!pr) {
+    logger.error('Pull request data is missing from payload');
+    return res.status(400).json({
+      error: 'Pull request data is missing from payload'
+    });
+  }
 
   logger.info(
     {
@@ -333,7 +357,7 @@ async function handlePullRequestComment(
   );
 
   // Check if comment mentions the bot
-  if (comment && typeof comment.body === 'string' && comment.body.includes(BOT_USERNAME)) {
+  if (typeof comment.body === 'string' && comment.body.includes(BOT_USERNAME)) {
     logger.info(
       {
         repo: repo.full_name,
@@ -347,7 +371,7 @@ async function handlePullRequestComment(
     const escapedUsername = BOT_USERNAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const mentionRegex = new RegExp(`${escapedUsername}\\s+(.*)`, 's');
     const commandMatch = comment.body.match(mentionRegex);
-    if (commandMatch && commandMatch[1]) {
+    if (commandMatch?.[1]) {
       const command = commandMatch[1].trim();
 
       try {
@@ -397,7 +421,7 @@ async function processBotMention(
   // Check if the comment author is authorized
   const authorizedUsers = process.env.AUTHORIZED_USERS
     ? process.env.AUTHORIZED_USERS.split(',').map(user => user.trim())
-    : [process.env.DEFAULT_AUTHORIZED_USER || 'admin'];
+    : [process.env.DEFAULT_AUTHORIZED_USER ?? 'admin'];
   const commentAuthor = comment.user.login;
 
   if (!authorizedUsers.includes(commentAuthor)) {
@@ -452,8 +476,8 @@ async function processBotMention(
   const escapedUsername = BOT_USERNAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const mentionRegex = new RegExp(`${escapedUsername}\\s+(.*)`, 's');
   const commandMatch = comment.body.match(mentionRegex);
-  
-  if (commandMatch && commandMatch[1]) {
+
+  if (commandMatch?.[1]) {
     const command = commandMatch[1].trim();
 
     try {
@@ -464,7 +488,7 @@ async function processBotMention(
         issueNumber: issue.number,
         command: command,
         isPullRequest,
-        branchName: isPullRequest ? (issue as GitHubPullRequest).head?.ref || null : null
+        branchName: isPullRequest ? (issue as GitHubPullRequest).head.ref : null
       });
 
       // Post Claude's response as a comment on the issue
@@ -549,7 +573,9 @@ Please check with an administrator to review the logs for more details.`
   };
 
   // Don't await the error comment posting to avoid blocking the response
-  handleErrorComment();
+  handleErrorComment().catch(() => {
+    // Intentionally ignore errors in error comment posting
+  });
 
   return res.status(500).json({
     success: false,
@@ -570,8 +596,15 @@ async function handleCheckSuiteCompleted(
   payload: GitHubWebhookPayload,
   res: Response<WebhookResponse | ErrorResponse>
 ): Promise<Response<WebhookResponse | ErrorResponse>> {
-  const checkSuite = payload.check_suite!;
+  const checkSuite = payload.check_suite;
   const repo = payload.repository;
+
+  if (!checkSuite) {
+    logger.error('Check suite data is missing from payload');
+    return res.status(400).json({
+      error: 'Check suite data is missing from payload'
+    });
+  }
 
   logger.info(
     {
@@ -583,7 +616,7 @@ async function handleCheckSuiteCompleted(
       headSha: checkSuite.head_sha,
       appName: checkSuite.app?.name,
       appSlug: checkSuite.app?.slug,
-      pullRequestCount: checkSuite.pull_requests?.length || 0,
+      pullRequestCount: checkSuite.pull_requests ? checkSuite.pull_requests.length : 0,
       pullRequests: checkSuite.pull_requests?.map(pr => ({
         number: pr.number,
         headRef: pr.head?.ref,
@@ -639,7 +672,7 @@ async function handleCheckSuiteCompleted(
       : 'Waiting for other check suites to complete';
   } else {
     // Use specific workflow trigger
-    const workflowName = await getWorkflowNameFromCheckSuite(checkSuite, repo);
+    const workflowName = getWorkflowNameFromCheckSuite(checkSuite, repo);
 
     // For GitHub Actions, we need to check the actual workflow name
     const effectiveWorkflowName =
@@ -656,7 +689,7 @@ async function handleCheckSuiteCompleted(
       repo: repo.full_name,
       checkSuite: checkSuite.id,
       conclusion: checkSuite.conclusion,
-      pullRequestCount: checkSuite.pull_requests?.length || 0,
+      pullRequestCount: checkSuite.pull_requests.length,
       shouldTriggerReview,
       triggerReason,
       waitForAllChecks,
@@ -683,7 +716,7 @@ async function processAutomatedPRReviews(
 ): Promise<Response<WebhookResponse | ErrorResponse>> {
   try {
     // Process PRs in parallel for better performance
-    const prPromises = checkSuite.pull_requests.map(async pr => {
+    const prPromises = (checkSuite.pull_requests ?? []).map(async pr => {
       const prResult = {
         prNumber: pr.number,
         success: false,
@@ -851,7 +884,9 @@ async function processAutomatedPRReviews(
     // Wait for all PR reviews to complete
     const results = await Promise.allSettled(prPromises);
     const prResults = results.map(result =>
-      result.status === 'fulfilled' ? result.value : { success: false, error: (result.reason as Error).message }
+      result.status === 'fulfilled'
+        ? result.value
+        : { success: false, error: (result.reason as Error).message, skippedReason: null }
     );
 
     // Count successes and failures
@@ -1098,9 +1133,12 @@ async function checkAllCheckSuitesComplete({
   repo: GitHubRepository;
   pullRequests: GitHubPullRequest[];
 }): Promise<boolean> {
-  const debounceDelayMs = parseInt(process.env.PR_REVIEW_DEBOUNCE_MS || '5000', 10);
-  const maxWaitTimeMs = parseInt(process.env.PR_REVIEW_MAX_WAIT_MS || '1800000', 10);
-  const conditionalJobTimeoutMs = parseInt(process.env.PR_REVIEW_CONDITIONAL_TIMEOUT_MS || '300000', 10);
+  const debounceDelayMs = parseInt(process.env.PR_REVIEW_DEBOUNCE_MS ?? '5000', 10);
+  const maxWaitTimeMs = parseInt(process.env.PR_REVIEW_MAX_WAIT_MS ?? '1800000', 10);
+  const conditionalJobTimeoutMs = parseInt(
+    process.env.PR_REVIEW_CONDITIONAL_TIMEOUT_MS ?? '300000',
+    10
+  );
 
   try {
     // Add a small delay to account for GitHub's eventual consistency
@@ -1116,7 +1154,7 @@ async function checkAllCheckSuitesComplete({
           ref: pr.head.sha
         });
 
-        const checkSuites = checkSuitesResponse.check_suites || [];
+        const checkSuites = checkSuitesResponse.check_suites;
         const now = Date.now();
 
         logger.info(
@@ -1138,13 +1176,25 @@ async function checkAllCheckSuitesComplete({
         );
 
         // Categorize check suites for smarter processing
-        const meaningfulSuites = [];
-        const skippedSuites = [];
-        const timeoutSuites = [];
+        const meaningfulSuites: GitHubCheckSuite[] = [];
+        const skippedSuites: Array<{
+          id: number;
+          app?: string;
+          conclusion: string;
+          reason: string;
+        }> = [];
+        const timeoutSuites: Array<{
+          id: number;
+          app?: string;
+          reason: string;
+          ageMs: number;
+          stalenessMs: number;
+          status?: string;
+        }> = [];
 
         for (const suite of checkSuites) {
-          const createdTime = new Date(suite.created_at).getTime();
-          const updatedTime = new Date(suite.updated_at).getTime();
+          const createdTime = new Date(suite.created_at ?? new Date()).getTime();
+          const updatedTime = new Date(suite.updated_at ?? new Date()).getTime();
           const ageMs = now - createdTime;
           const stalenessMs = now - updatedTime;
 
@@ -1166,6 +1216,7 @@ async function checkAllCheckSuitesComplete({
               app: suite.app?.name,
               status: suite.status,
               ageMs: ageMs,
+              stalenessMs: stalenessMs,
               reason: 'conditional_job_timeout'
             });
             logger.info(
@@ -1189,6 +1240,7 @@ async function checkAllCheckSuitesComplete({
               app: suite.app?.name,
               status: suite.status,
               ageMs: ageMs,
+              stalenessMs: stalenessMs,
               reason: 'empty_check_suite'
             });
             logger.info(
@@ -1211,6 +1263,7 @@ async function checkAllCheckSuitesComplete({
               id: suite.id,
               app: suite.app?.name,
               status: suite.status,
+              ageMs: ageMs,
               stalenessMs: stalenessMs,
               reason: 'stale_in_progress'
             });
@@ -1255,9 +1308,12 @@ async function checkAllCheckSuitesComplete({
             },
             'No meaningful check suites found - all were skipped or timed out'
           );
-          
+
           // If we only have skipped/neutral suites, consider that as "passed"
-          if (checkSuites.length > 0 && skippedSuites.length + timeoutSuites.length === checkSuites.length) {
+          if (
+            checkSuites.length > 0 &&
+            skippedSuites.length + timeoutSuites.length === checkSuites.length
+          ) {
             logger.info(
               {
                 repo: repo.full_name,
@@ -1348,14 +1404,14 @@ async function checkAllCheckSuitesComplete({
 /**
  * Extract workflow name from check suite
  */
-async function getWorkflowNameFromCheckSuite(
-  checkSuite: GitHubCheckSuite, 
+function getWorkflowNameFromCheckSuite(
+  checkSuite: GitHubCheckSuite,
   repo: GitHubRepository
-): Promise<string | null> {
+): string | null {
   try {
     // Use the app name if it's GitHub Actions
     if (checkSuite.app && checkSuite.app.slug === 'github-actions') {
-      return checkSuite.app.name || 'GitHub Actions';
+      return checkSuite.app.name;
     }
 
     // For other apps, return the app name
@@ -1376,12 +1432,9 @@ async function getWorkflowNameFromCheckSuite(
 /**
  * Handle general webhook errors
  */
-function handleWebhookError(
-  error: unknown,
-  res: Response<ErrorResponse>
-): Response<ErrorResponse> {
+function handleWebhookError(error: unknown, res: Response<WebhookResponse | ErrorResponse>): Response<WebhookResponse | ErrorResponse> {
   const err = error as Error;
-  
+
   // Generate a unique error reference
   const timestamp = new Date().toISOString();
   const errorId = `err-${Math.random().toString(36).substring(2, 10)}`;

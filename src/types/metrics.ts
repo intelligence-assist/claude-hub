@@ -1,4 +1,6 @@
 // Performance metrics and monitoring types
+import type { Request, Response, NextFunction } from 'express';
+
 export interface StartupMilestone {
   name: string;
   timestamp: number;
@@ -10,11 +12,11 @@ export interface StartupMetrics {
   milestones: StartupMilestone[];
   ready: boolean;
   totalStartupTime?: number;
-  
+
   // Methods (when implemented as a class)
   recordMilestone(name: string, description?: string): void;
   markReady(): number;
-  metricsMiddleware(): (req: any, res: any, next: any) => void;
+  metricsMiddleware(): (req: Request, res: Response, next: NextFunction) => void;
 }
 
 export interface PerformanceMetrics {
@@ -125,15 +127,15 @@ export interface MetricsCollector {
   recordRequest(metrics: RequestMetrics): void;
   recordClaudeExecution(success: boolean, duration: number, operationType: string): void;
   recordGitHubAPICall(endpoint: string, success: boolean, rateLimitRemaining?: number): void;
-  
+
   // Health monitoring
   checkComponentHealth(componentName: string): Promise<ComponentHealth>;
   getOverallHealth(): Promise<DetailedHealthCheck>;
-  
+
   // Metrics retrieval
   getMetrics(): PerformanceMetrics;
   getStartupMetrics(): StartupMetrics;
-  
+
   // Alerting
   checkThresholds(): MetricAlert[];
   addThreshold(threshold: AlertThreshold): void;

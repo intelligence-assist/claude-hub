@@ -28,15 +28,15 @@ class SecureCredentials {
   private loadCredentials(): void {
     const credentialMappings: CredentialMappings = {
       GITHUB_TOKEN: {
-        file: process.env['GITHUB_TOKEN_FILE'] || '/run/secrets/github_token',
+        file: process.env['GITHUB_TOKEN_FILE'] ?? '/run/secrets/github_token',
         env: 'GITHUB_TOKEN'
       },
       ANTHROPIC_API_KEY: {
-        file: process.env['ANTHROPIC_API_KEY_FILE'] || '/run/secrets/anthropic_api_key',
+        file: process.env['ANTHROPIC_API_KEY_FILE'] ?? '/run/secrets/anthropic_api_key',
         env: 'ANTHROPIC_API_KEY'
       },
       GITHUB_WEBHOOK_SECRET: {
-        file: process.env['GITHUB_WEBHOOK_SECRET_FILE'] || '/run/secrets/webhook_secret',
+        file: process.env['GITHUB_WEBHOOK_SECRET_FILE'] ?? '/run/secrets/webhook_secret',
         env: 'GITHUB_WEBHOOK_SECRET'
       }
     };
@@ -57,7 +57,7 @@ class SecureCredentials {
 
       // Fallback to environment variable (less secure)
       if (!value && process.env[config.env]) {
-        value = process.env[config.env]!;
+        value = process.env[config.env] as string;
         logger.warn(`Using ${key} from environment variable (less secure)`);
       }
 
@@ -73,7 +73,7 @@ class SecureCredentials {
    * Get credential value
    */
   get(key: string): string | null {
-    return this.credentials.get(key) || null;
+    return this.credentials.get(key) ?? null;
   }
 
   /**

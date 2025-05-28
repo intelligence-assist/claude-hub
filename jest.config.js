@@ -7,7 +7,10 @@ module.exports = {
     '**/test/e2e/scenarios/**/*.test.{js,ts}'
   ],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      useESM: false,
+      tsconfig: 'tsconfig.json'
+    }],
     '^.+\\.js$': 'babel-jest'
   },
   moduleFileExtensions: ['ts', 'js', 'json'],
@@ -25,13 +28,5 @@ module.exports = {
   reporters: [
     'default',
     ['jest-junit', { outputDirectory: 'test-results/jest', outputName: 'results.xml' }]
-  ],
-  // For TypeScript tests, prefer importing from '@jest/globals' instead of relying on globals
-  // e.g., import { describe, it, expect } from '@jest/globals'
-  globals: {
-    'ts-jest': {
-      useESM: false,
-      tsconfig: 'tsconfig.json'
-    }
-  }
+  ]
 };

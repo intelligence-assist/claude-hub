@@ -32,24 +32,31 @@ export interface ApiError {
   requestId?: string;
 }
 
+// Import types for type guards and aliases
+import type { GitHubWebhookPayload } from './github';
+import type { ClaudeCommandOptions } from './claude';
+import type { AWSCredentials } from './aws';
+import type { ApplicationConfig } from './config';
+import type { PerformanceMetrics } from './metrics';
+
 // Type guards for runtime type checking
-export function isWebhookPayload(obj: unknown): obj is import('./github').GitHubWebhookPayload {
+export function isWebhookPayload(obj: unknown): obj is GitHubWebhookPayload {
   return typeof obj === 'object' && obj !== null && 'repository' in obj && 'sender' in obj;
 }
 
-export function isClaudeCommandOptions(obj: unknown): obj is import('./claude').ClaudeCommandOptions {
-  return typeof obj === 'object' && obj !== null && 
-         'repoFullName' in obj && 'command' in obj;
+export function isClaudeCommandOptions(obj: unknown): obj is ClaudeCommandOptions {
+  return typeof obj === 'object' && obj !== null && 'repoFullName' in obj && 'command' in obj;
 }
 
-export function isAWSCredentials(obj: unknown): obj is import('./aws').AWSCredentials {
-  return typeof obj === 'object' && obj !== null && 
-         'accessKeyId' in obj && 'secretAccessKey' in obj;
+export function isAWSCredentials(obj: unknown): obj is AWSCredentials {
+  return (
+    typeof obj === 'object' && obj !== null && 'accessKeyId' in obj && 'secretAccessKey' in obj
+  );
 }
 
 // Common type aliases for convenience
-export type WebhookPayload = import('./github').GitHubWebhookPayload;
-export type ClaudeOptions = import('./claude').ClaudeCommandOptions;
-export type AWSCreds = import('./aws').AWSCredentials;
-export type AppConfig = import('./config').ApplicationConfig;
-export type Metrics = import('./metrics').PerformanceMetrics;
+export type WebhookPayload = GitHubWebhookPayload;
+export type ClaudeOptions = ClaudeCommandOptions;
+export type AWSCreds = AWSCredentials;
+export type AppConfig = ApplicationConfig;
+export type Metrics = PerformanceMetrics;

@@ -53,7 +53,9 @@ jest.mock('../../../src/utils/secureCredentials', () => ({
 const { execFileSync } = require('child_process');
 const { promisify } = require('util');
 const { sanitizeBotMentions } = require('../../../src/utils/sanitize');
-const claudeService = require('../../../src/services/claudeService');
+const claudeService =
+  require('../../../src/services/claudeService').default ||
+  require('../../../src/services/claudeService');
 
 describe('Claude Service', () => {
   beforeEach(() => {

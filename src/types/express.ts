@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { GitHubWebhookPayload } from './github';
-import { StartupMetrics } from './metrics';
+import type { Request, Response, NextFunction } from 'express';
+import type { GitHubWebhookPayload } from './github';
+import type { StartupMetrics } from './metrics';
 
 // Extended Express Request with custom properties
 export interface WebhookRequest extends Request {
@@ -75,9 +75,11 @@ export interface ErrorResponse {
 // Middleware types
 export type WebhookHandler = (
   req: WebhookRequest,
-  res: Response<WebhookResponse | ErrorResponse>,
-  next: NextFunction
-) => Promise<Response<WebhookResponse | ErrorResponse> | void> | Response<WebhookResponse | ErrorResponse> | void;
+  res: Response<WebhookResponse | ErrorResponse>
+) =>
+  | Promise<Response<WebhookResponse | ErrorResponse> | void>
+  | Response<WebhookResponse | ErrorResponse>
+  | void;
 
 export type ClaudeAPIHandler = (
   req: ClaudeAPIRequest,

@@ -47,7 +47,7 @@ export function sanitizeLabels(labels: string[]): string[] {
  */
 export function sanitizeCommandInput(input: string): string {
   if (!input) return input;
-  
+
   // Remove or escape potentially dangerous characters
   return input
     .replace(/[`$\\]/g, '') // Remove backticks, dollar signs, and backslashes
@@ -76,14 +76,19 @@ export function validateGitHubRef(ref: string): boolean {
  */
 export function sanitizeEnvironmentValue(key: string, value: string): string {
   const sensitiveKeys = [
-    'TOKEN', 'SECRET', 'KEY', 'PASSWORD', 'CREDENTIAL',
-    'GITHUB_TOKEN', 'ANTHROPIC_API_KEY', 'AWS_ACCESS_KEY_ID',
-    'AWS_SECRET_ACCESS_KEY', 'WEBHOOK_SECRET'
+    'TOKEN',
+    'SECRET',
+    'KEY',
+    'PASSWORD',
+    'CREDENTIAL',
+    'GITHUB_TOKEN',
+    'ANTHROPIC_API_KEY',
+    'AWS_ACCESS_KEY_ID',
+    'AWS_SECRET_ACCESS_KEY',
+    'WEBHOOK_SECRET'
   ];
-  
-  const isSensitive = sensitiveKeys.some(sensitiveKey => 
-    key.toUpperCase().includes(sensitiveKey)
-  );
-  
+
+  const isSensitive = sensitiveKeys.some(sensitiveKey => key.toUpperCase().includes(sensitiveKey));
+
   return isSensitive ? '[REDACTED]' : value;
 }

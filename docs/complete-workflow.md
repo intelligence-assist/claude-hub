@@ -15,7 +15,7 @@ GitHub → Webhook Service → Docker Container → Claude API
 ### 1. GitHub Webhook Reception
 
 **Endpoint**: `POST /api/webhooks/github`
-**Handler**: `src/index.js:38`
+**Handler**: `src/index.ts:38`
 
 1. GitHub sends webhook event to the service
 2. Express middleware captures raw body for signature verification
@@ -23,7 +23,7 @@ GitHub → Webhook Service → Docker Container → Claude API
 
 ### 2. Webhook Verification & Processing
 
-**Controller**: `src/controllers/githubController.js`
+**Controller**: `src/controllers/githubController.ts`
 **Method**: `handleWebhook()`
 
 1. Verifies webhook signature using `GITHUB_WEBHOOK_SECRET`
@@ -45,7 +45,7 @@ GitHub → Webhook Service → Docker Container → Claude API
 
 ### 4. Claude Container Preparation
 
-**Service**: `src/services/claudeService.js`
+**Service**: `src/services/claudeService.ts`
 **Method**: `processCommand()`
 
 1. Builds Docker image if not exists: `claude-code-runner:latest`
@@ -79,7 +79,7 @@ GitHub → Webhook Service → Docker Container → Claude API
 
 ### 6. Response Handling
 
-**Controller**: `src/controllers/githubController.js`
+**Controller**: `src/controllers/githubController.ts`
 **Method**: `handleWebhook()`
 
 1. Read response from container

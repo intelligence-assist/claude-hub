@@ -277,8 +277,8 @@ describe('chatbotController', () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: 'Internal server error',
-        provider: 'discord'
+        error: 'Provider initialization failed',
+        message: 'Unexpected error'
       }));
     });
   });

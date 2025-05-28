@@ -90,48 +90,49 @@ class DiscordProvider extends ChatbotProvider {
     try {
       // Handle Discord interaction types
       switch (payload.type) {
-        case 1: // PING
-          return {
-            type: 'ping',
-            shouldRespond: true,
-            responseData: { type: 1 } // PONG
-          };
+      case 1: // PING
+        return {
+          type: 'ping',
+          shouldRespond: true,
+          responseData: { type: 1 } // PONG
+        };
 
-        case 2: // APPLICATION_COMMAND
-          const repoInfo = this.extractRepoAndBranch(payload.data);
-          return {
-            type: 'command',
-            command: payload.data?.name,
-            options: payload.data?.options || [],
-            channelId: payload.channel_id,
-            guildId: payload.guild_id,
-            userId: payload.member?.user?.id || payload.user?.id,
-            username: payload.member?.user?.username || payload.user?.username,
-            content: this.buildCommandContent(payload.data),
-            interactionToken: payload.token,
-            interactionId: payload.id,
-            repo: repoInfo.repo,
-            branch: repoInfo.branch
-          };
+      case 2: { // APPLICATION_COMMAND
+        const repoInfo = this.extractRepoAndBranch(payload.data);
+        return {
+          type: 'command',
+          command: payload.data?.name,
+          options: payload.data?.options || [],
+          channelId: payload.channel_id,
+          guildId: payload.guild_id,
+          userId: payload.member?.user?.id || payload.user?.id,
+          username: payload.member?.user?.username || payload.user?.username,
+          content: this.buildCommandContent(payload.data),
+          interactionToken: payload.token,
+          interactionId: payload.id,
+          repo: repoInfo.repo,
+          branch: repoInfo.branch
+        };
+      }
 
-        case 3: // MESSAGE_COMPONENT
-          return {
-            type: 'component',
-            customId: payload.data?.custom_id,
-            channelId: payload.channel_id,
-            guildId: payload.guild_id,
-            userId: payload.member?.user?.id || payload.user?.id,
-            username: payload.member?.user?.username || payload.user?.username,
-            interactionToken: payload.token,
-            interactionId: payload.id
-          };
+      case 3: // MESSAGE_COMPONENT
+        return {
+          type: 'component',
+          customId: payload.data?.custom_id,
+          channelId: payload.channel_id,
+          guildId: payload.guild_id,
+          userId: payload.member?.user?.id || payload.user?.id,
+          username: payload.member?.user?.username || payload.user?.username,
+          interactionToken: payload.token,
+          interactionId: payload.id
+        };
 
-        default:
-          logger.warn({ type: payload.type }, 'Unknown Discord interaction type');
-          return {
-            type: 'unknown',
-            shouldRespond: false
-          };
+      default:
+        logger.warn({ type: payload.type }, 'Unknown Discord interaction type');
+        return {
+          type: 'unknown',
+          shouldRespond: false
+        };
       }
     } catch (error) {
       logger.error({ err: error }, 'Error parsing Discord webhook payload');
@@ -327,10 +328,10 @@ class DiscordProvider extends ChatbotProvider {
    */
   formatErrorMessage(error, errorId) {
     const timestamp = new Date().toISOString();
-    return `🚫 **Error Processing Command**\n\n` +
+    return '🚫 **Error Processing Command**\n\n' +
            `**Reference ID:** \`${errorId}\`\n` +
            `**Time:** ${timestamp}\n\n` +
-           `Please contact an administrator with the reference ID above.`;
+           'Please contact an administrator with the reference ID above.';
   }
 
   /**

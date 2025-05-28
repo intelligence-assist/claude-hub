@@ -20,7 +20,7 @@ const mockSecureCredentials = require('../../../src/utils/secureCredentials');
 describe.skip('Signature Verification Security Tests', () => {
   let provider;
   const validPublicKey = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-  const validPrivateKey = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
+  const _validPrivateKey = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
   
   // Helper function to run test with production NODE_ENV
   const withProductionEnv = (testFn) => {

@@ -166,7 +166,7 @@ async function handleChatbotWebhook(req, res, providerName) {
 
       try {
         const errorMessage = sanitizeBotMentions(
-          `❌ Sorry, only authorized users can trigger Claude commands.`
+          '❌ Sorry, only authorized users can trigger Claude commands.'
         );
         await provider.sendResponse(messageContext, errorMessage);
       } catch (responseError) {
@@ -206,8 +206,8 @@ async function handleChatbotWebhook(req, res, providerName) {
       // Validate required repository parameter
       if (!repoFullName) {
         const errorMessage = sanitizeBotMentions(
-          `❌ **Repository Required**: Please specify a repository using the \`repo\` parameter.\n\n` +
-          `**Example:** \`/claude repo:owner/repository command:fix this issue\``
+          '❌ **Repository Required**: Please specify a repository using the `repo` parameter.\n\n' +
+          '**Example:** `/claude repo:owner/repository command:fix this issue`'
         );
         await provider.sendResponse(messageContext, errorMessage);
         

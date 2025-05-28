@@ -15,7 +15,7 @@ const chatbotLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  skip: (req) => {
+  skip: (_req) => {
     // Skip rate limiting in test environment
     return process.env.NODE_ENV === 'test';
   }

@@ -160,15 +160,15 @@ class ProviderFactory {
     
     // Provider-specific environment variables
     switch (providerName) {
-      case 'discord':
-        config.botToken = process.env.DISCORD_BOT_TOKEN;
-        config.publicKey = process.env.DISCORD_PUBLIC_KEY;
-        config.applicationId = process.env.DISCORD_APPLICATION_ID;
-        config.authorizedUsers = process.env.DISCORD_AUTHORIZED_USERS?.split(',').map(u => u.trim());
-        config.botMention = process.env.DISCORD_BOT_MENTION;
-        break;
-      default:
-        throw new Error(`Unsupported provider: ${providerName}. Only 'discord' is currently supported.`);
+    case 'discord':
+      config.botToken = process.env.DISCORD_BOT_TOKEN;
+      config.publicKey = process.env.DISCORD_PUBLIC_KEY;
+      config.applicationId = process.env.DISCORD_APPLICATION_ID;
+      config.authorizedUsers = process.env.DISCORD_AUTHORIZED_USERS?.split(',').map(u => u.trim());
+      config.botMention = process.env.DISCORD_BOT_MENTION;
+      break;
+    default:
+      throw new Error(`Unsupported provider: ${providerName}. Only 'discord' is currently supported.`);
     }
 
     // Remove undefined values

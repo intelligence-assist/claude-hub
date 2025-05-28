@@ -4,6 +4,8 @@
 [![Security Scans](https://github.com/intelligence-assist/claude-hub/actions/workflows/security.yml/badge.svg)](https://github.com/intelligence-assist/claude-hub/actions/workflows/security.yml)
 [![Jest Tests](https://img.shields.io/badge/tests-jest-green)](test/README.md)
 [![codecov](https://codecov.io/gh/intelligence-assist/claude-hub/branch/main/graph/badge.svg)](https://codecov.io/gh/intelligence-assist/claude-hub)
+[![Version](https://img.shields.io/github/v/release/intelligence-assist/claude-hub?label=version)](https://github.com/intelligence-assist/claude-hub/releases)
+[![Docker Hub](https://img.shields.io/docker/v/intelligenceassist/claude-github-webhook?label=docker)](https://hub.docker.com/r/intelligenceassist/claude-github-webhook)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -63,6 +65,31 @@ Claude autonomously handles complete development workflows. It analyzes your ent
 - Fine-grained GitHub token scoping
 
 ## Quick Start
+
+### Option 1: Docker Image (Recommended)
+
+```bash
+# Pull the latest image
+docker pull intelligenceassist/claude-github-webhook:latest
+
+# Run with environment variables
+docker run -d \
+  --name claude-webhook \
+  -p 8082:3002 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e GITHUB_TOKEN=your_github_token \
+  -e GITHUB_WEBHOOK_SECRET=your_webhook_secret \
+  -e ANTHROPIC_API_KEY=your_anthropic_key \
+  -e BOT_USERNAME=@YourBotName \
+  -e AUTHORIZED_USERS=user1,user2 \
+  intelligenceassist/claude-github-webhook:latest
+
+# Or use Docker Compose
+wget https://raw.githubusercontent.com/intelligence-assist/claude-hub/main/docker-compose.yml
+docker compose up -d
+```
+
+### Option 2: From Source
 
 ```bash
 # Clone and setup

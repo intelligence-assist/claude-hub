@@ -124,20 +124,20 @@ The system automatically triggers comprehensive PR reviews when all checks pass:
 ## Architecture Overview
 
 ### Core Components
-1. **Express Server** (`src/index.js`): Main application entry point that sets up middleware, routes, and error handling
+1. **Express Server** (`src/index.ts`): Main application entry point that sets up middleware, routes, and error handling
 2. **Routes**:
    - GitHub Webhook: `/api/webhooks/github` - Processes GitHub webhook events
    - Claude API: `/api/claude` - Direct API access to Claude
    - Health Check: `/health` - Service status monitoring
 3. **Controllers**:
-   - `githubController.js` - Handles webhook verification and processing
+   - `githubController.ts` - Handles webhook verification and processing
 4. **Services**:
-   - `claudeService.js` - Interfaces with Claude Code CLI
-   - `githubService.js` - Handles GitHub API interactions
+   - `claudeService.ts` - Interfaces with Claude Code CLI
+   - `githubService.ts` - Handles GitHub API interactions
 5. **Utilities**:
-   - `logger.js` - Logging functionality with redaction capability
-   - `awsCredentialProvider.js` - Secure AWS credential management
-   - `sanitize.js` - Input sanitization and security
+   - `logger.ts` - Logging functionality with redaction capability
+   - `awsCredentialProvider.ts` - Secure AWS credential management
+   - `sanitize.ts` - Input sanitization and security
 
 ### Execution Modes & Security Architecture
 The system uses different execution modes based on operation type:
@@ -179,7 +179,7 @@ The service supports multiple AWS authentication methods, with a focus on securi
 - **Task Roles** (ECS): Automatically uses container credentials
 - **Direct credentials**: Not recommended, but supported for backward compatibility
 
-The `awsCredentialProvider.js` utility handles credential retrieval and rotation.
+The `awsCredentialProvider.ts` utility handles credential retrieval and rotation.
 
 ## Security Features
 - Webhook signature verification using HMAC

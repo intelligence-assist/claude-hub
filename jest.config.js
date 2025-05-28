@@ -26,6 +26,8 @@ module.exports = {
     'default',
     ['jest-junit', { outputDirectory: 'test-results/jest', outputName: 'results.xml' }]
   ],
+  // For TypeScript tests, prefer importing from '@jest/globals' instead of relying on globals
+  // e.g., import { describe, it, expect } from '@jest/globals'
   globals: {
     'ts-jest': {
       useESM: false,

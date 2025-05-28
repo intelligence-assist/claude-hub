@@ -213,10 +213,11 @@ class AWSCredentialProvider {
       const credentialsContent = await fs.readFile(credentialsPath, 'utf8');
       const configContent = await fs.readFile(configPath, 'utf8');
 
-      // Parse credentials for the specific profile
-      const profileRegex = new RegExp(`\\[${profileName}\\]([^\\[]*)`);
+      // Parse credentials for the specific profile (escape profile name to prevent regex injection)
+      const escapedProfileName = profileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const profileRegex = new RegExp(`\\[${escapedProfileName}\\]([^\\[]*)`);
       const credentialsMatch = credentialsContent.match(profileRegex);
-      const configMatch = configContent.match(new RegExp(`\\[profile ${profileName}\\]([^\\[]*)`));
+      const configMatch = configContent.match(new RegExp(`\\[profile ${escapedProfileName}\\]([^\\[]*)`));
 
       if (!credentialsMatch && !configMatch) {
         const error = new Error(`Profile '${profileName}' not found`) as AWSCredentialError;

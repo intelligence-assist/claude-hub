@@ -119,7 +119,7 @@ app.get('/api/test-tunnel', (req, res: express.Response<TestTunnelResponse>) => 
     message: 'CF tunnel is working!',
     timestamp: new Date().toISOString(),
     headers: req.headers,
-    ip: req.ip ?? (req.connection as { remoteAddress?: string })?.remoteAddress
+    ip: req.ip ?? (req.connection as { remoteAddress?: string }).remoteAddress
   });
 });
 

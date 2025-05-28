@@ -109,7 +109,7 @@ function verifyWebhookSignature(req: WebhookRequest): boolean {
 /**
  * Handles incoming GitHub webhook events
  */
-export const handleWebhook: WebhookHandler = async (req, res): Promise<Response<WebhookResponse | ErrorResponse>> => {
+export const handleWebhook: WebhookHandler = async (req, res) => {
   try {
     const event = req.headers['x-github-event'] as string;
     const delivery = req.headers['x-github-delivery'] as string;
@@ -119,8 +119,8 @@ export const handleWebhook: WebhookHandler = async (req, res): Promise<Response<
       {
         event,
         delivery,
-        sender: req.body.sender.login,
-        repo: req.body.repository.full_name
+        sender: req.body.sender?.login,
+        repo: req.body.repository?.full_name
       },
       `Received GitHub ${event} webhook`
     );
@@ -663,7 +663,7 @@ async function handleCheckSuiteCompleted(
     // Check if all check suites for the PR are complete and successful
     const allChecksPassed = await checkAllCheckSuitesComplete({
       repo,
-      pullRequests: checkSuite.pull_requests
+      pullRequests: checkSuite.pull_requests ?? []
     });
 
     shouldTriggerReview = allChecksPassed;
@@ -689,7 +689,7 @@ async function handleCheckSuiteCompleted(
       repo: repo.full_name,
       checkSuite: checkSuite.id,
       conclusion: checkSuite.conclusion,
-      pullRequestCount: checkSuite.pull_requests.length,
+      pullRequestCount: checkSuite.pull_requests?.length ?? 0,
       shouldTriggerReview,
       triggerReason,
       waitForAllChecks,

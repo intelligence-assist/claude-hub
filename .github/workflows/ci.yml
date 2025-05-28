@@ -41,13 +41,29 @@ jobs:
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
 
+    - name: Check for integration tests
+      id: check-integration-tests
+      run: |
+        if grep -q '"test:integration"' package.json; then
+          echo "Integration tests found in package.json"
+          echo "has_integration_tests=true" >> $GITHUB_OUTPUT
+        else
+          echo "No integration tests found in package.json"
+          echo "has_integration_tests=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Run integration tests
-      run: npm run test:integration || echo "No integration tests found, skipping"
+      if: steps.check-integration-tests.outputs.has_integration_tests == 'true'
+      run: npm run test:integration
       env:
         NODE_ENV: test
         BOT_USERNAME: '@TestBot'
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
+        
+    - name: Skip integration tests
+      if: steps.check-integration-tests.outputs.has_integration_tests != 'true'
+      run: echo "Integration tests script not found in package.json, skipping"
 
     - name: Run e2e tests
       run: npm run test:e2e
@@ -67,9 +83,11 @@ jobs:
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
+      continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: intelligence-assist/claude-hub
+        fail_ci_if_error: false
 
   # Security scans
   security:

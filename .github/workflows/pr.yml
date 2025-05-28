@@ -93,9 +93,11 @@ jobs:
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
+      continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: intelligence-assist/claude-hub
+        fail_ci_if_error: false
 
   # Integration tests - moderate complexity
   test-integration:
@@ -169,6 +171,21 @@ jobs:
         
         # Wait for both builds to complete
         wait
+        
+    - name: Save Docker images for e2e tests
+      run: |
+        # Save images to tarball artifacts for reuse in e2e tests
+        mkdir -p /tmp/docker-images
+        docker save claude-github-webhook:latest -o /tmp/docker-images/claude-github-webhook.tar
+        docker save claude-code-runner:latest -o /tmp/docker-images/claude-code-runner.tar
+        echo "Docker images saved for later reuse"
+        
+    - name: Upload Docker images as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-images
+        path: /tmp/docker-images/
+        retention-days: 1
 
     - name: Test Docker containers
       run: |
@@ -203,22 +220,20 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Restore Docker images from cache
+    - name: Download Docker images from artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: docker-images
+        path: /tmp/docker-images
+      
+    - name: Load Docker images from artifacts
       run: |
-        # Use cached images from docker-build job
-        docker buildx build \
-          --cache-from type=gha,scope=pr-main \
-          --load \
-          -t claude-github-webhook:latest \
-          -f Dockerfile . &
-        
-        docker buildx build \
-          --cache-from type=gha,scope=pr-claudecode \
-          --load \
-          -t claude-code-runner:latest \
-          -f Dockerfile.claudecode . &
-        
-        wait
+        # Load images from saved artifacts (much faster than rebuilding)
+        echo "Loading Docker images from artifacts..."
+        docker load -i /tmp/docker-images/claude-github-webhook.tar
+        docker load -i /tmp/docker-images/claude-code-runner.tar
+        echo "Images loaded successfully:"
+        docker images | grep -E "claude-github-webhook|claude-code-runner"
 
     - name: Setup Node.js
       uses: actions/setup-node@v4

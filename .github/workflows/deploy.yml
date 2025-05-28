@@ -40,6 +40,28 @@ jobs:
           ALLOWED_REPOS_STAGING=${{ vars.ALLOWED_REPOS_STAGING }}
           EOF
       
+      - name: Validate deployment script
+        run: |
+          if [ ! -f ./scripts/deploy/deploy-staging.sh ]; then
+            echo "::error::Deployment script not found: ./scripts/deploy/deploy-staging.sh"
+            exit 1
+          fi
+          if [ ! -x ./scripts/deploy/deploy-staging.sh ]; then
+            echo "::error::Deployment script is not executable: ./scripts/deploy/deploy-staging.sh"
+            chmod +x ./scripts/deploy/deploy-staging.sh
+            echo "Made deployment script executable"
+          fi
+
+      - name: Validate environment file
+        run: |
+          if [ ! -f .env.staging ]; then
+            echo "::error::Environment file not found: .env.staging"
+            exit 1
+          fi
+          # Check if env file has required variables
+          grep -q "GITHUB_APP_ID_STAGING" .env.staging || echo "::warning::GITHUB_APP_ID_STAGING not found in env file"
+          grep -q "GITHUB_WEBHOOK_SECRET_STAGING" .env.staging || echo "::warning::GITHUB_WEBHOOK_SECRET_STAGING not found in env file"
+          
       - name: Deploy to staging
         run: |
           export $(cat .env.staging | xargs)
@@ -117,6 +139,29 @@ jobs:
           DEPLOYMENT_VERSION=${{ steps.version.outputs.version }}
           EOF
       
+      - name: Validate deployment script
+        run: |
+          if [ ! -f ./scripts/deploy/deploy-production.sh ]; then
+            echo "::error::Deployment script not found: ./scripts/deploy/deploy-production.sh"
+            exit 1
+          fi
+          if [ ! -x ./scripts/deploy/deploy-production.sh ]; then
+            echo "::error::Deployment script is not executable: ./scripts/deploy/deploy-production.sh"
+            chmod +x ./scripts/deploy/deploy-production.sh
+            echo "Made deployment script executable"
+          fi
+
+      - name: Validate environment file
+        run: |
+          if [ ! -f .env ]; then
+            echo "::error::Environment file not found: .env"
+            exit 1
+          fi
+          # Check if env file has required variables
+          grep -q "GITHUB_APP_ID" .env || echo "::warning::GITHUB_APP_ID not found in env file"
+          grep -q "GITHUB_WEBHOOK_SECRET" .env || echo "::warning::GITHUB_WEBHOOK_SECRET not found in env file"
+          grep -q "DEPLOYMENT_VERSION" .env || echo "::warning::DEPLOYMENT_VERSION not found in env file"
+          
       - name: Deploy to production
         run: |
           export $(cat .env | xargs)

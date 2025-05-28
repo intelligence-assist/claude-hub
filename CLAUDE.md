@@ -18,17 +18,25 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 
 ## Build & Run Commands
 
+### TypeScript Build Commands
+- **Build TypeScript**: `npm run build` (compiles to `dist/` directory)
+- **Build TypeScript (watch mode)**: `npm run build:watch`
+- **Type checking only**: `npm run typecheck` (no compilation)
+- **Clean build artifacts**: `npm run clean`
+
 ### Setup and Installation
 - **Initial setup**: `./scripts/setup.sh`
 - **Setup secure credentials**: `./scripts/setup/setup-secure-credentials.sh`
 - **Start with Docker (recommended)**: `docker compose up -d`
-- **Start the server locally**: `npm start`
-- **Development mode with auto-restart**: `npm run dev`
+- **Start production build**: `npm start` (runs compiled JavaScript from `dist/`)
+- **Start development build**: `npm run start:dev` (runs JavaScript directly from `src/`)
+- **Development mode with TypeScript**: `npm run dev` (uses ts-node)
+- **Development mode with auto-restart**: `npm run dev:watch` (uses nodemon + ts-node)
 - **Start on specific port**: `./scripts/runtime/start-api.sh` (uses port 3003)
 - **Run tests**: `npm test`
 - Run specific test types:
-  - Unit tests: `npm run test:unit`
-  - End-to-end tests: `npm run test:e2e`
+  - Unit tests: `npm run test:unit` (supports both `.js` and `.ts` files)
+  - End-to-end tests: `npm run test:e2e` (supports both `.js` and `.ts` files)
   - Test with coverage: `npm run test:coverage`
   - Watch mode: `npm run test:watch`
 
@@ -205,9 +213,34 @@ The `awsCredentialProvider.js` utility handles credential retrieval and rotation
 - `PR_REVIEW_MAX_WAIT_MS`: Maximum time to wait for stale in-progress check suites before considering them failed (default: `"1800000"` = 30 minutes).
 - `PR_REVIEW_CONDITIONAL_TIMEOUT_MS`: Time to wait for conditional jobs that never start before skipping them (default: `"300000"` = 5 minutes).
 
+## TypeScript Infrastructure
+The project is configured with TypeScript for enhanced type safety and developer experience:
+
+### Configuration Files
+- **tsconfig.json**: TypeScript compiler configuration with strict mode enabled
+- **eslint.config.js**: ESLint configuration with TypeScript support and strict rules
+- **jest.config.js**: Jest configuration with ts-jest for TypeScript test support
+- **babel.config.js**: Babel configuration for JavaScript file transformation
+
+### Build Process
+- TypeScript source files in `src/` compile to JavaScript in `dist/`
+- Support for both `.js` and `.ts` files during the transition period
+- Source maps enabled for debugging compiled code
+- Watch mode available for development with automatic recompilation
+
+### Migration Strategy
+- **Phase 1** (Current): Infrastructure setup with TypeScript tooling
+- **Phase 2** (Future): Gradual conversion of JavaScript files to TypeScript
+- **Backward Compatibility**: Existing JavaScript files continue to work during transition
+
 ## Code Style Guidelines
-- JavaScript with Node.js
+- **TypeScript/JavaScript** with Node.js (ES2022 target)
 - Use async/await for asynchronous operations
 - Comprehensive error handling and logging
 - camelCase variable and function naming
 - Input validation and sanitization for security
+- **TypeScript specific**:
+  - Strict mode enabled for all TypeScript files
+  - Interface definitions preferred over type aliases
+  - Type imports when importing only for types
+  - No explicit `any` types (use `unknown` or proper typing)

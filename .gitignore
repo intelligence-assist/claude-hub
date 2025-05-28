@@ -24,6 +24,10 @@ pids
 coverage/
 test-results/
 
+# TypeScript build artifacts
+dist/
+*.tsbuildinfo
+
 # Temporary files
 tmp/
 temp/

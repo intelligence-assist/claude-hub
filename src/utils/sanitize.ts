@@ -67,6 +67,15 @@ export function validateRepositoryName(name: string): boolean {
  * Validates that a string contains only safe GitHub reference characters
  */
 export function validateGitHubRef(ref: string): boolean {
+  // GitHub refs cannot:
+  // - be empty
+  // - contain consecutive dots (..)
+  // - contain spaces or special characters like @ or #
+  if (!ref || ref.includes('..') || ref.includes(' ') || ref.includes('@') || ref.includes('#')) {
+    return false;
+  }
+  
+  // Must contain only allowed characters
   const refPattern = /^[a-zA-Z0-9._/-]+$/;
   return refPattern.test(ref);
 }

@@ -12,7 +12,7 @@ class ProviderFactory {
     this.providers = new Map();
     this.providerClasses = new Map();
     this.defaultConfig = {};
-    
+
     // Register built-in providers
     this.registerProvider('discord', DiscordProvider);
   }
@@ -35,7 +35,7 @@ class ProviderFactory {
    */
   async createProvider(name, config = {}) {
     const providerName = name.toLowerCase();
-    
+
     // Check if provider is already created
     if (this.providers.has(providerName)) {
       return this.providers.get(providerName);
@@ -53,7 +53,7 @@ class ProviderFactory {
     try {
       // Merge with default config
       const finalConfig = { ...this.defaultConfig, ...config };
-      
+
       // Create and initialize provider
       const provider = new ProviderClass(finalConfig);
       await provider.initialize();
@@ -62,20 +62,20 @@ class ProviderFactory {
       this.providers.set(providerName, provider);
 
       logger.info(
-        { 
+        {
           provider: name,
           config: Object.keys(finalConfig)
-        }, 
+        },
         'Created and initialized chatbot provider'
       );
 
       return provider;
     } catch (error) {
       logger.error(
-        { 
+        {
           err: error,
-          provider: name 
-        }, 
+          provider: name
+        },
         'Failed to create provider'
       );
       throw new Error(`Failed to create ${name} provider: ${error.message}`);
@@ -113,10 +113,7 @@ class ProviderFactory {
    */
   setDefaultConfig(config) {
     this.defaultConfig = { ...config };
-    logger.info(
-      { configKeys: Object.keys(config) }, 
-      'Set default provider configuration'
-    );
+    logger.info({ configKeys: Object.keys(config) }, 'Set default provider configuration');
   }
 
   /**
@@ -127,7 +124,7 @@ class ProviderFactory {
    */
   async updateProviderConfig(name, config) {
     const providerName = name.toLowerCase();
-    
+
     // Remove existing provider to force recreation with new config
     if (this.providers.has(providerName)) {
       this.providers.delete(providerName);
@@ -146,7 +143,7 @@ class ProviderFactory {
   async createFromEnvironment(name) {
     const providerName = name.toLowerCase();
     const config = this.getEnvironmentConfig(providerName);
-    
+
     return await this.createProvider(name, config);
   }
 
@@ -157,18 +154,22 @@ class ProviderFactory {
    */
   getEnvironmentConfig(providerName) {
     const config = {};
-    
+
     // Provider-specific environment variables
     switch (providerName) {
     case 'discord':
       config.botToken = process.env.DISCORD_BOT_TOKEN;
       config.publicKey = process.env.DISCORD_PUBLIC_KEY;
       config.applicationId = process.env.DISCORD_APPLICATION_ID;
-      config.authorizedUsers = process.env.DISCORD_AUTHORIZED_USERS?.split(',').map(u => u.trim());
+      config.authorizedUsers = process.env.DISCORD_AUTHORIZED_USERS?.split(',').map(u =>
+        u.trim()
+      );
       config.botMention = process.env.DISCORD_BOT_MENTION;
       break;
     default:
-      throw new Error(`Unsupported provider: ${providerName}. Only 'discord' is currently supported.`);
+      throw new Error(
+        `Unsupported provider: ${providerName}. Only 'discord' is currently supported.`
+      );
     }
 
     // Remove undefined values
@@ -197,20 +198,17 @@ class ProviderFactory {
       } catch (error) {
         errors.push({ provider: name, error: error.message });
         logger.error(
-          { 
+          {
             err: error,
-            provider: name 
-          }, 
+            provider: name
+          },
           'Failed to create provider in batch'
         );
       }
     }
 
     if (errors.length > 0) {
-      logger.warn(
-        { errors, successCount: results.size }, 
-        'Some providers failed to initialize'
-      );
+      logger.warn({ errors, successCount: results.size }, 'Some providers failed to initialize');
     }
 
     return results;
@@ -220,11 +218,8 @@ class ProviderFactory {
    * Clean up all providers
    */
   async cleanup() {
-    logger.info(
-      { providerCount: this.providers.size }, 
-      'Cleaning up chatbot providers'
-    );
-    
+    logger.info({ providerCount: this.providers.size }, 'Cleaning up chatbot providers');
+
     this.providers.clear();
     logger.info('All providers cleaned up');
   }

@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
  */
 class ContainerExecutor {
   constructor() {
-    this.defaultImage = 'claude-code-runner:latest';
+    this.defaultImage = 'claudecode:latest';
     this.defaultTimeout = 30000; // 30 seconds
   }
 

@@ -80,7 +80,7 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
     }
 
     // Build Docker image if it doesn't exist
-    const dockerImageName = process.env['CLAUDE_CONTAINER_IMAGE'] ?? 'claude-code-runner:latest';
+    const dockerImageName = process.env['CLAUDE_CONTAINER_IMAGE'] ?? 'claudecode:latest';
     try {
       execFileSync('docker', ['inspect', dockerImageName], { stdio: 'ignore' });
       logger.info({ dockerImageName }, 'Docker image already exists');

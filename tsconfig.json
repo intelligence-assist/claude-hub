@@ -31,14 +31,18 @@
     "types": ["node", "jest"]
   },
   "include": [
-    "src/**/*",
-    "test/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "coverage",
-    "test-results"
+    "test-results",
+    "test/**/*",
+    "**/*.test.ts",
+    "**/*.test.js",
+    "**/*.spec.ts",
+    "**/*.spec.js"
   ],
   "ts-node": {
     "files": true,

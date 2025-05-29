@@ -1,6 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  setupFiles: ['<rootDir>/test/setup.js'],
   testMatch: [
     '**/test/unit/**/*.test.{js,ts}',
     '**/test/integration/**/*.test.{js,ts}',
@@ -8,12 +9,14 @@ module.exports = {
   ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
-      useESM: false,
-      tsconfig: 'tsconfig.json'
+      isolatedModules: true
     }],
     '^.+\\.js$': 'babel-jest'
   },
   moduleFileExtensions: ['ts', 'js', 'json'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(universal-user-agent|@octokit|before-after-hook)/)'
+  ],
   collectCoverage: true,
   coverageReporters: ['text', 'lcov'],
   coverageDirectory: 'coverage',

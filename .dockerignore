@@ -1,34 +1,75 @@
+# Dependencies
 node_modules
 npm-debug.log
+dist
+
+# Git
 .git
 .gitignore
+.gitattributes
+
+# Environment
 .env
 .env.*
+!.env.example
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Testing
 coverage
 .nyc_output
 test-results
 *.log
 logs
+
+# Development
 .husky
-.github
 .vscode
 .idea
 *.swp
 *.swo
 *~
-CLAUDE.local.md
-secrets
-k8s
-docs
-test
-*.test.js
-*.spec.js
+
+# Documentation
 README.md
 *.md
 !CLAUDE.md
+!README.dockerhub.md
+
+# CI/CD
+.github
+!.github/workflows
+
+# Secrets
+secrets
+CLAUDE.local.md
+
+# Kubernetes
+k8s
+
+# Docker
 docker-compose*.yml
+!docker-compose.test.yml
 Dockerfile*
+!Dockerfile
+!Dockerfile.claudecode
 .dockerignore
+
+# Scripts - exclude all by default for security, then explicitly include needed runtime scripts
 *.sh
 !scripts/runtime/*.sh
+
+# Test files (keep for test stage)
+# Removed test exclusion to allow test stage to access tests
+
+# Build artifacts
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Cache
+.cache
+.buildx-cache*
+tmp
+temp

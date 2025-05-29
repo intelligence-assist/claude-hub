@@ -7,27 +7,35 @@ on:
       - master
     tags:
       - 'v*.*.*'
-    paths:
-      - 'Dockerfile*'
-      - 'package*.json'
-      - '.github/workflows/docker-publish.yml'
-      - 'src/**'
-      - 'scripts/**'
-      - 'claude-config*'
+  pull_request:
+    branches:
+      - main
+      - master
 
 env:
   DOCKER_HUB_USERNAME: ${{ vars.DOCKER_HUB_USERNAME || 'cheffromspace' }}
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION || 'intelligenceassist' }}
   IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME || 'claude-hub' }}
+  # Runner configuration - set USE_SELF_HOSTED to 'false' to force GitHub-hosted runners
+  USE_SELF_HOSTED: ${{ vars.USE_SELF_HOSTED || 'true' }}
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Use self-hosted runners by default, with ability to override via repository variable
+    runs-on: ${{ fromJSON(format('["{0}"]', (vars.USE_SELF_HOSTED == 'false' && 'ubuntu-latest' || 'self-hosted, linux, x64, docker'))) }}
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
+      security-events: write
 
     steps:
+      - name: Runner Information
+        run: |
+          echo "Running on: ${{ runner.name }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Runner labels: ${{ join(runner.labels, ', ') }}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -47,29 +55,48 @@ jobs:
         with:
           images: ${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.IMAGE_NAME }}
           tags: |
-            # For semantic version tags (v0.1.0 -> 0.1.0, 0.1, 0, latest)
+            type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            # Latest tag for version tags
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            # Nightly tag for main branch pushes
             type=raw,value=nightly,enable=${{ github.ref == 'refs/heads/main' }}
 
+      # Build and test in container for PRs
+      - name: Build and test Docker image (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          # Build the test stage
+          docker build --target test -t ${{ env.IMAGE_NAME }}:test-${{ github.sha }} -f Dockerfile .
+          
+          # Run tests in container
+          docker run --rm \
+            -e CI=true \
+            -e NODE_ENV=test \
+            -v ${{ github.workspace }}/coverage:/app/coverage \
+            ${{ env.IMAGE_NAME }}:test-${{ github.sha }} \
+            npm test
+          
+          # Build production image for smoke test
+          docker build --target production -t ${{ env.IMAGE_NAME }}:pr-${{ github.event.number }} -f Dockerfile .
+          
+          # Smoke test
+          docker run --rm ${{ env.IMAGE_NAME }}:pr-${{ github.event.number }} \
+            test -f /app/scripts/runtime/startup.sh && echo "✓ Startup script exists"
+
+      # Build and push for main branch
       - name: Build and push Docker image
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
-          push: ${{ github.event_name != 'pull_request' }}
+          platforms: linux/amd64,linux/arm64
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: |
-            type=gha,scope=publish-main
-            type=local,src=/tmp/.buildx-cache-main
-          cache-to: |
-            type=gha,mode=max,scope=publish-main
-            type=local,dest=/tmp/.buildx-cache-main-new,mode=max
+          target: production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Update Docker Hub Description
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -81,11 +108,11 @@ jobs:
           readme-filepath: ./README.dockerhub.md
           short-description: ${{ github.event.repository.description }}
 
-  # Additional job to build and push the Claude Code container
+  # Build claudecode separately
   build-claudecode:
-    runs-on: ubuntu-latest
-    # Only run when not a pull request
+    runs-on: ${{ fromJSON(format('["{0}"]', (vars.USE_SELF_HOSTED == 'false' && 'ubuntu-latest' || 'self-hosted, linux, x64, docker'))) }}
     if: github.event_name != 'pull_request'
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
@@ -112,9 +139,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            # Latest tag for version tags
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            # Nightly tag for main branch pushes
             type=raw,value=nightly,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Claude Code Docker image
@@ -126,9 +151,28 @@ jobs:
           push: true
           tags: ${{ steps.meta-claudecode.outputs.tags }}
           labels: ${{ steps.meta-claudecode.outputs.labels }}
-          cache-from: |
-            type=gha,scope=publish-claudecode
-            type=local,src=/tmp/.buildx-cache-claude
-          cache-to: |
-            type=gha,mode=max,scope=publish-claudecode
-            type=local,dest=/tmp/.buildx-cache-claude-new,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Fallback job if self-hosted runners timeout
+  build-fallback:
+    needs: [build, build-claudecode]
+    if: |
+      always() && 
+      (needs.build.result == 'failure' || needs.build-claudecode.result == 'failure') &&
+      vars.USE_SELF_HOSTED != 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Trigger rebuild on GitHub-hosted runners
+        run: |
+          echo "Self-hosted runner build failed. To retry with GitHub-hosted runners:"
+          echo "1. Set the repository variable USE_SELF_HOSTED to 'false'"
+          echo "2. Re-run this workflow"
+          echo ""
+          echo "Or manually trigger a new workflow run with GitHub-hosted runners."
+          exit 1

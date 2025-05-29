@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Test runner service - runs tests in container
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+      cache_from:
+        - ${DOCKER_HUB_ORGANIZATION:-intelligenceassist}/claude-hub:test-cache
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-test-token}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-test-secret}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-test-key}
+    volumes:
+      - ./coverage:/app/coverage
+    # Run only unit tests in CI (no e2e tests that require Docker)
+    command: npm run test:unit
+
+  # Integration test service
+  integration-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - TEST_SUITE=integration
+    volumes:
+      - ./coverage:/app/coverage
+    command: npm run test:integration
+    depends_on:
+      - webhook
+
+  # Webhook service for integration testing
+  webhook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    environment:
+      - NODE_ENV=test
+      - PORT=3002
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-test-token}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-test-secret}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-test-key}
+    ports:
+      - "3002:3002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # E2E test service - removed from CI, use for local development only
+  # To run e2e tests locally with Docker access:
+  # docker compose -f docker-compose.test.yml run --rm -v /var/run/docker.sock:/var/run/docker.sock e2e-test
+
+# Networks
+networks:
+  default:
+    name: claude-hub-test
+    driver: bridge

@@ -1,9 +1,69 @@
-FROM node:24-slim
+# syntax=docker/dockerfile:1
+
+# Build stage - compile TypeScript and prepare production files
+FROM node:24-slim AS builder
+
+WORKDIR /app
+
+# Copy package files first for better caching
+COPY package*.json tsconfig.json babel.config.js ./
+
+# Install all dependencies (including dev)
+RUN npm ci
+
+# Copy source code
+COPY src/ ./src/
+
+# Build TypeScript
+RUN npm run build
+
+# Copy remaining application files
+COPY . .
+
+# Production dependency stage - smaller layer for dependencies
+FROM node:24-slim AS prod-deps
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Test stage - includes dev dependencies and test files
+FROM node:24-slim AS test
+
+# Set shell with pipefail option
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+WORKDIR /app
+
+# Copy package files and install all dependencies
+COPY package*.json tsconfig*.json babel.config.js jest.config.js ./
+RUN npm ci
+
+# Copy source and test files
+COPY src/ ./src/
+COPY test/ ./test/
+COPY scripts/ ./scripts/
+
+# Copy built files from builder
+COPY --from=builder /app/dist ./dist
+
+# Set test environment
+ENV NODE_ENV=test
+
+# Run tests by default in this stage
+CMD ["npm", "test"]
+
+# Production stage - minimal runtime image
+FROM node:24-slim AS production
 
 # Set shell with pipefail option for better error handling
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install git, Claude Code, Docker, and required dependencies with pinned versions and --no-install-recommends
+# Install runtime dependencies with pinned versions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git=1:2.39.5-0+deb12u2 \
     curl=7.88.1-10+deb12u12 \
@@ -23,56 +83,60 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     && apt-get install -y --no-install-recommends docker-ce-cli=5:27.* \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Claude Code (latest version)
-# hadolint ignore=DL3016
-RUN npm install -g @anthropic-ai/claude-code
-
 # Create docker group first, then create a non-root user for running the application
 RUN groupadd -g 999 docker 2>/dev/null || true \
     && useradd -m -u 1001 -s /bin/bash claudeuser \
     && usermod -aG docker claudeuser 2>/dev/null || true
 
-# Create claude config directory and copy config
+# Create npm global directory for claudeuser and set permissions
+RUN mkdir -p /home/claudeuser/.npm-global \
+    && chown -R claudeuser:claudeuser /home/claudeuser/.npm-global
+
+# Configure npm to use the user directory for global packages
+USER claudeuser
+ENV NPM_CONFIG_PREFIX=/home/claudeuser/.npm-global
+ENV PATH=/home/claudeuser/.npm-global/bin:$PATH
+
+# Install Claude Code (latest version) as non-root user
+# hadolint ignore=DL3016
+RUN npm install -g @anthropic-ai/claude-code
+
+USER root
+
+# Create claude config directory
 RUN mkdir -p /home/claudeuser/.config/claude
-COPY claude-config.json /home/claudeuser/.config/claude/config.json
 
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package*.json ./
-COPY tsconfig.json ./
-COPY babel.config.js ./
+# Copy production dependencies from prod-deps stage
+COPY --from=prod-deps /app/node_modules ./node_modules
 
-# Install all dependencies (including dev for build)
-RUN npm ci
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
 
-# Copy source code
-COPY src/ ./src/
+# Copy configuration and runtime files
+COPY package*.json tsconfig.json babel.config.js ./
+COPY claude-config.json /home/claudeuser/.config/claude/config.json
+COPY scripts/ ./scripts/
+COPY docs/ ./docs/
+COPY cli/ ./cli/
 
-# Build TypeScript
-RUN npm run build
-
-# Remove dev dependencies to reduce image size
-RUN npm prune --omit=dev && npm cache clean --force
-
-# Copy remaining application files
-COPY . .
-
-# Consolidate permission changes into a single RUN instruction
+# Set permissions
 RUN chown -R claudeuser:claudeuser /home/claudeuser/.config /app \
     && chmod +x /app/scripts/runtime/startup.sh
-
-# Note: Docker socket will be mounted at runtime, no need to create it here
 
 # Expose the port
 EXPOSE 3002
 
 # Set default environment variables
 ENV NODE_ENV=production \
-    PORT=3002
+    PORT=3002 \
+    NPM_CONFIG_PREFIX=/home/claudeuser/.npm-global \
+    PATH=/home/claudeuser/.npm-global/bin:$PATH
 
-# Stay as root user to run Docker commands
-# (The container will need to run with Docker socket mounted)
+# Switch to non-root user for running the application
+# Docker commands will work via docker group membership when socket is mounted
+USER claudeuser
 
 # Run the startup script
 CMD ["bash", "/app/scripts/runtime/startup.sh"]

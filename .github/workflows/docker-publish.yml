@@ -16,16 +16,26 @@ env:
   DOCKER_HUB_USERNAME: ${{ vars.DOCKER_HUB_USERNAME || 'cheffromspace' }}
   DOCKER_HUB_ORGANIZATION: ${{ vars.DOCKER_HUB_ORGANIZATION || 'intelligenceassist' }}
   IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME || 'claude-hub' }}
+  # Runner configuration - set USE_SELF_HOSTED to 'false' to force GitHub-hosted runners
+  USE_SELF_HOSTED: ${{ vars.USE_SELF_HOSTED || 'true' }}
 
 jobs:
   build:
-    runs-on: [self-hosted, linux, x64, docker]
+    # Use self-hosted runners by default, with ability to override via repository variable
+    runs-on: ${{ fromJSON(format('["{0}"]', (vars.USE_SELF_HOSTED == 'false' && 'ubuntu-latest' || 'self-hosted, linux, x64, docker'))) }}
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
       security-events: write
 
     steps:
+      - name: Runner Information
+        run: |
+          echo "Running on: ${{ runner.name }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Runner labels: ${{ join(runner.labels, ', ') }}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -100,8 +110,9 @@ jobs:
 
   # Build claudecode separately
   build-claudecode:
-    runs-on: [self-hosted, linux, x64, docker]
+    runs-on: ${{ fromJSON(format('["{0}"]', (vars.USE_SELF_HOSTED == 'false' && 'ubuntu-latest' || 'self-hosted, linux, x64, docker'))) }}
     if: github.event_name != 'pull_request'
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
@@ -142,3 +153,26 @@ jobs:
           labels: ${{ steps.meta-claudecode.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Fallback job if self-hosted runners timeout
+  build-fallback:
+    needs: [build, build-claudecode]
+    if: |
+      always() && 
+      (needs.build.result == 'failure' || needs.build-claudecode.result == 'failure') &&
+      vars.USE_SELF_HOSTED != 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Trigger rebuild on GitHub-hosted runners
+        run: |
+          echo "Self-hosted runner build failed. To retry with GitHub-hosted runners:"
+          echo "1. Set the repository variable USE_SELF_HOSTED to 'false'"
+          echo "2. Re-run this workflow"
+          echo ""
+          echo "Or manually trigger a new workflow run with GitHub-hosted runners."
+          exit 1

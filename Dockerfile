@@ -88,23 +88,24 @@ RUN groupadd -g 999 docker 2>/dev/null || true \
     && useradd -m -u 1001 -s /bin/bash claudeuser \
     && usermod -aG docker claudeuser 2>/dev/null || true
 
-# Create npm global directory for claudeuser and set permissions
+# Create necessary directories and set permissions while still root
 RUN mkdir -p /home/claudeuser/.npm-global \
-    && chown -R claudeuser:claudeuser /home/claudeuser/.npm-global
+    && mkdir -p /home/claudeuser/.config/claude \
+    && chown -R claudeuser:claudeuser /home/claudeuser/.npm-global /home/claudeuser/.config
 
 # Configure npm to use the user directory for global packages
-USER claudeuser
 ENV NPM_CONFIG_PREFIX=/home/claudeuser/.npm-global
 ENV PATH=/home/claudeuser/.npm-global/bin:$PATH
+
+# Switch to non-root user and install Claude Code
+USER claudeuser
 
 # Install Claude Code (latest version) as non-root user
 # hadolint ignore=DL3016
 RUN npm install -g @anthropic-ai/claude-code
 
+# Switch back to root for remaining setup
 USER root
-
-# Create claude config directory
-RUN mkdir -p /home/claudeuser/.config/claude
 
 WORKDIR /app
 

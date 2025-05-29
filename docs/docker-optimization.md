@@ -16,22 +16,38 @@ Our optimized Docker build pipeline includes:
 
 ### Configuration
 - **Labels**: `self-hosted, linux, x64, docker`
-- **Usage**: All Docker builds use self-hosted runners for improved performance and caching
+- **Usage**: All Docker builds use self-hosted runners by default for improved performance
 - **Local Cache**: Self-hosted runners maintain Docker layer cache between builds
-- **Fallback**: Manual fallback to GitHub-hosted runners if self-hosted are unavailable
+- **Fallback**: Configurable via `USE_SELF_HOSTED` repository variable
 
 ### Runner Setup
 Self-hosted runners provide:
 - Persistent Docker layer cache
-- Faster builds (no image pull overhead)
+- Faster builds (no image pull overhead)  
 - Better network throughput for pushing images
 - Cost savings on GitHub Actions minutes
 
 ### Fallback Strategy
-If self-hosted runners are unavailable:
-1. Workflow will queue waiting for runners
-2. Can be manually cancelled and re-run with modified workflow
-3. Consider implementing automatic fallback in future iterations
+The workflow implements a flexible fallback mechanism:
+
+1. **Default behavior**: Uses self-hosted runners (`self-hosted, linux, x64, docker`)
+2. **Override option**: Set repository variable `USE_SELF_HOSTED=false` to force GitHub-hosted runners
+3. **Timeout protection**: 30-minute timeout prevents hanging on unavailable runners
+4. **Failure detection**: `build-fallback` job provides instructions if self-hosted runners fail
+
+To manually switch to GitHub-hosted runners:
+```bash
+# Via GitHub UI: Settings → Secrets and variables → Actions → Variables
+# Add: USE_SELF_HOSTED = false
+
+# Or via GitHub CLI:
+gh variable set USE_SELF_HOSTED --body "false"
+```
+
+The runner selection logic:
+```yaml
+runs-on: ${{ fromJSON(format('["{0}"]', (vars.USE_SELF_HOSTED == 'false' && 'ubuntu-latest' || 'self-hosted, linux, x64, docker'))) }}
+```
 
 ## Multi-Stage Dockerfile
 

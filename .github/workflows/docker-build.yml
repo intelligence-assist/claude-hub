@@ -106,8 +106,6 @@ jobs:
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             # Nightly tag for main branch pushes
             type=raw,value=nightly,enable=${{ github.ref == 'refs/heads/main' }}
-            # Add short SHA for all builds
-            type=sha,prefix={{branch}}-,format=short
 
       # Build test target first (only for images with test stage)
       - name: Build test stage
@@ -169,19 +167,30 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           target: ${{ matrix.has-test-stage && 'production' || '' }}  # Use production target for multi-stage builds
-          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || matrix.platforms }}
-          push: ${{ github.event_name != 'pull_request' }}
-          load: ${{ github.event_name == 'pull_request' }}  # Load image locally for PR testing
+          platforms: linux/amd64  # Always use single platform for now
+          push: false  # Never push in this step
+          load: true  # Always load locally
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=gha,scope=${{ matrix.image }}-prod
           cache-to: |
             type=gha,mode=max,scope=${{ matrix.image }}-prod
-            type=inline
           build-args: |
             BUILDKIT_INLINE_CACHE=1
             ${{ matrix.build-args }}
+
+      # Push the image if not a PR
+      - name: Push production image
+        if: github.event_name != 'pull_request'
+        run: |
+          # Parse the tags from metadata output (newline separated)
+          echo "${{ steps.meta.outputs.tags }}" | while IFS= read -r tag; do
+            if [ -n "$tag" ]; then
+              echo "Pushing $tag"
+              docker push "$tag"
+            fi
+          done
 
       # Test the production image
       - name: Test production image
@@ -227,14 +236,6 @@ jobs:
           sarif_file: 'trivy-results.sarif'
           category: 'docker-${{ matrix.image }}'
 
-      # Push cache image for better performance
-      - name: Push cache image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          docker buildx imagetools create \
-            --tag ${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.REGISTRY_CACHE_NAME }}:${{ matrix.image }}-prod \
-            ${{ env.DOCKER_HUB_ORGANIZATION }}/${{ matrix.image }}:nightly
-        continue-on-error: true
 
   update-docker-hub:
     needs: build-test

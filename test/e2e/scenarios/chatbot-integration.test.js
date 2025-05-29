@@ -16,14 +16,16 @@ describe('Chatbot Integration Tests', () => {
 
   beforeEach(() => {
     app = express();
-    
+
     // Middleware to capture raw body for signature verification
-    app.use(bodyParser.json({
-      verify: (req, res, buf) => {
-        req.rawBody = buf;
-      }
-    }));
-    
+    app.use(
+      bodyParser.json({
+        verify: (req, res, buf) => {
+          req.rawBody = buf;
+        }
+      })
+    );
+
     // Mount chatbot routes
     app.use('/api/webhooks/chatbot', chatbotRoutes);
 
@@ -51,7 +53,7 @@ describe('Chatbot Integration Tests', () => {
 
     it('should handle Discord slash command webhook', async () => {
       chatbotController.handleDiscordWebhook.mockImplementation((req, res) => {
-        res.status(200).json({ 
+        res.status(200).json({
           success: true,
           message: 'Command processed successfully',
           context: {
@@ -113,10 +115,7 @@ describe('Chatbot Integration Tests', () => {
         id: 'interaction_id'
       };
 
-      await request(app)
-        .post('/api/webhooks/chatbot/discord')
-        .send(componentPayload)
-        .expect(200);
+      await request(app).post('/api/webhooks/chatbot/discord').send(componentPayload).expect(200);
 
       expect(chatbotController.handleDiscordWebhook).toHaveBeenCalledTimes(1);
     });
@@ -128,14 +127,11 @@ describe('Chatbot Integration Tests', () => {
         res.status(200).json({ success: true });
       });
 
-      await request(app)
-        .post('/api/webhooks/chatbot/discord')
-        .send({ type: 1 });
+      await request(app).post('/api/webhooks/chatbot/discord').send({ type: 1 });
 
       expect(chatbotController.handleDiscordWebhook).toHaveBeenCalledTimes(1);
     });
   });
-
 
   describe('Provider stats endpoint', () => {
     it('should return provider statistics', async () => {
@@ -159,9 +155,7 @@ describe('Chatbot Integration Tests', () => {
         });
       });
 
-      const response = await request(app)
-        .get('/api/webhooks/chatbot/stats')
-        .expect(200);
+      const response = await request(app).get('/api/webhooks/chatbot/stats').expect(200);
 
       expect(chatbotController.getProviderStats).toHaveBeenCalledTimes(1);
       expect(response.body.success).toBe(true);
@@ -177,9 +171,7 @@ describe('Chatbot Integration Tests', () => {
         });
       });
 
-      const response = await request(app)
-        .get('/api/webhooks/chatbot/stats')
-        .expect(500);
+      const response = await request(app).get('/api/webhooks/chatbot/stats').expect(500);
 
       expect(response.body.error).toBe('Failed to get provider statistics');
     });
@@ -205,7 +197,6 @@ describe('Chatbot Integration Tests', () => {
       expect(response.body.errorReference).toBeDefined();
       expect(response.body.provider).toBe('discord');
     });
-
 
     it('should handle invalid JSON payloads', async () => {
       // This test ensures that malformed JSON is handled by Express
@@ -255,17 +246,16 @@ describe('Chatbot Integration Tests', () => {
         type: 2,
         data: {
           name: 'claude',
-          options: [{
-            name: 'command',
-            value: 'A'.repeat(2000) // Large command
-          }]
+          options: [
+            {
+              name: 'command',
+              value: 'A'.repeat(2000) // Large command
+            }
+          ]
         }
       };
 
-      await request(app)
-        .post('/api/webhooks/chatbot/discord')
-        .send(largePayload)
-        .expect(200);
+      await request(app).post('/api/webhooks/chatbot/discord').send(largePayload).expect(200);
     });
   });
 });

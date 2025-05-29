@@ -81,9 +81,10 @@ class ChatbotProvider {
   isUserAuthorized(userId) {
     if (!userId) return false;
 
-    const authorizedUsers = this.config.authorizedUsers || 
-      process.env.AUTHORIZED_USERS?.split(',').map(u => u.trim()) ||
-      [process.env.DEFAULT_AUTHORIZED_USER || 'admin'];
+    const authorizedUsers = this.config.authorizedUsers ||
+      process.env.AUTHORIZED_USERS?.split(',').map(u => u.trim()) || [
+      process.env.DEFAULT_AUTHORIZED_USER || 'admin'
+    ];
 
     return authorizedUsers.includes(userId);
   }

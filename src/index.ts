@@ -44,7 +44,7 @@ const webhookRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (_req) => {
+  skip: _req => {
     // Skip rate limiting in test environment
     return process.env['NODE_ENV'] === 'test';
   }
@@ -176,7 +176,12 @@ app.use(
       'Request error'
     );
 
-    res.status(500).json({ error: 'Internal server error' });
+    // Handle JSON parsing errors
+    if (err instanceof SyntaxError && 'body' in err) {
+      res.status(400).json({ error: 'Invalid JSON' });
+    } else {
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }
 );
 

@@ -21,9 +21,9 @@ describe.skip('Signature Verification Security Tests', () => {
   let provider;
   const validPublicKey = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
   const _validPrivateKey = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
-  
+
   // Helper function to run test with production NODE_ENV
-  const withProductionEnv = (testFn) => {
+  const withProductionEnv = testFn => {
     const originalNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
     try {
@@ -34,11 +34,11 @@ describe.skip('Signature Verification Security Tests', () => {
   };
 
   beforeEach(() => {
-    mockSecureCredentials.get.mockImplementation((key) => {
+    mockSecureCredentials.get.mockImplementation(key => {
       const mockCreds = {
-        'DISCORD_BOT_TOKEN': 'mock_bot_token',
-        'DISCORD_PUBLIC_KEY': validPublicKey,
-        'DISCORD_APPLICATION_ID': '123456789012345678'
+        DISCORD_BOT_TOKEN: 'mock_bot_token',
+        DISCORD_PUBLIC_KEY: validPublicKey,
+        DISCORD_APPLICATION_ID: '123456789012345678'
       };
       return mockCreds[key];
     });
@@ -108,7 +108,7 @@ describe.skip('Signature Verification Security Tests', () => {
 
     it('should handle invalid public key format gracefully', async () => {
       // Override with invalid key format
-      mockSecureCredentials.get.mockImplementation((key) => {
+      mockSecureCredentials.get.mockImplementation(key => {
         if (key === 'DISCORD_PUBLIC_KEY') return 'invalid_key_format';
         return 'mock_value';
       });
@@ -118,7 +118,8 @@ describe.skip('Signature Verification Security Tests', () => {
 
       const req = {
         headers: {
-          'x-signature-ed25519': '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          'x-signature-ed25519':
+            '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
           'x-signature-timestamp': '1234567890'
         },
         rawBody: Buffer.from('test body'),
@@ -155,7 +156,8 @@ describe.skip('Signature Verification Security Tests', () => {
 
       const req = {
         headers: {
-          'x-signature-ed25519': '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          'x-signature-ed25519':
+            '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
           'x-signature-timestamp': '1234567890'
         },
         rawBody: Buffer.from('test body'),
@@ -176,7 +178,8 @@ describe.skip('Signature Verification Security Tests', () => {
 
       const req = {
         headers: {
-          'x-signature-ed25519': '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          'x-signature-ed25519':
+            '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
           'x-signature-timestamp': timestamp
         },
         rawBody: Buffer.from(body),
@@ -194,7 +197,7 @@ describe.skip('Signature Verification Security Tests', () => {
         'ed25519',
         Buffer.from(expectedMessage),
         expect.any(Buffer), // public key buffer
-        expect.any(Buffer)  // signature buffer
+        expect.any(Buffer) // signature buffer
       );
 
       crypto.verify = originalVerify;
@@ -207,7 +210,8 @@ describe.skip('Signature Verification Security Tests', () => {
 
       const req = {
         headers: {
-          'x-signature-ed25519': '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          'x-signature-ed25519':
+            '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
           'x-signature-timestamp': timestamp
         },
         rawBody: Buffer.from(rawBodyContent),
@@ -238,7 +242,8 @@ describe.skip('Signature Verification Security Tests', () => {
 
       const req = {
         headers: {
-          'x-signature-ed25519': '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          'x-signature-ed25519':
+            '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
           'x-signature-timestamp': timestamp
         },
         // No rawBody provided
@@ -283,7 +288,8 @@ describe.skip('Signature Verification Security Tests', () => {
     it('should handle empty timestamp gracefully', () => {
       const req = {
         headers: {
-          'x-signature-ed25519': '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          'x-signature-ed25519':
+            '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
           'x-signature-timestamp': ''
         },
         rawBody: Buffer.from('test body'),
@@ -323,7 +329,8 @@ describe.skip('Signature Verification Security Tests', () => {
     it('should handle unicode characters in timestamp', () => {
       const req = {
         headers: {
-          'x-signature-ed25519': '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          'x-signature-ed25519':
+            '64byte_hex_signature_placeholder_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
           'x-signature-timestamp': '123😀567890'
         },
         rawBody: Buffer.from('test body'),
@@ -350,7 +357,7 @@ describe.skip('Signature Verification Security Tests', () => {
     it('should handle Buffer conversion errors gracefully', () => {
       // Mock Buffer.from to throw an error
       const originalBufferFrom = Buffer.from;
-      Buffer.from = jest.fn().mockImplementation((data) => {
+      Buffer.from = jest.fn().mockImplementation(data => {
         if (typeof data === 'string' && data.includes('signature')) {
           throw new Error('Buffer conversion failed');
         }

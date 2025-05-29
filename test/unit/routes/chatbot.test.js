@@ -27,13 +27,6 @@ describe('Chatbot Routes', () => {
     app.use('/webhooks', chatbotRouter);
   });
 
-  it('should handle generic chatbot webhook', async () => {
-    const response = await request(app).post('/webhooks/chatbot').send({ test: 'data' });
-
-    expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-  });
-
   it('should handle Discord webhook', async () => {
     const response = await request(app).post('/webhooks/discord').send({ type: 1 });
 

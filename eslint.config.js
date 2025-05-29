@@ -109,6 +109,12 @@ module.exports = [
   {
     files: ['test/**/*.js', '**/*.test.js', 'test/**/*.ts', '**/*.test.ts'],
     languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'commonjs',
+        project: './tsconfig.test.json'
+      },
       globals: {
         jest: 'readonly',
         describe: 'readonly',

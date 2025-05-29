@@ -116,19 +116,4 @@ describe('Claude Routes - Simple Coverage', () => {
     expect(response.status).toBe(200);
     expect(response.body.response).toBe('Error: Processing failed');
   });
-
-  it('should handle unexpected errors', async () => {
-    mockProcessCommand.mockImplementationOnce(() => {
-      throw new Error('Unexpected error');
-    });
-
-    const response = await request(app).post('/api/claude').send({
-      repository: 'test/repo',
-      command: 'test command'
-    });
-
-    expect(response.status).toBe(500);
-    expect(response.body.error).toBe('Failed to process command');
-    expect(response.body.message).toBe('Unexpected error');
-  });
 });

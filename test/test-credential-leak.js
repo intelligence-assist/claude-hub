@@ -12,7 +12,7 @@ const mockEnv = {
 console.log('Testing credential sanitization...\n');
 
 // Test dockerCommand sanitization
-const dockerCommand = `docker run --rm --privileged -e GITHUB_TOKEN="${mockEnv.GITHUB_TOKEN}" -e AWS_ACCESS_KEY_ID="${mockEnv.AWS_ACCESS_KEY_ID}" -e AWS_SECRET_ACCESS_KEY="${mockEnv.AWS_SECRET_ACCESS_KEY}" claude-code-runner:latest`;
+const dockerCommand = `docker run --rm --privileged -e GITHUB_TOKEN="${mockEnv.GITHUB_TOKEN}" -e AWS_ACCESS_KEY_ID="${mockEnv.AWS_ACCESS_KEY_ID}" -e AWS_SECRET_ACCESS_KEY="${mockEnv.AWS_SECRET_ACCESS_KEY}" claudecode:latest`;
 
 const sanitizedCommand = dockerCommand.replace(/-e [A-Z_]+="[^"]*"/g, match => {
   const envKey = match.match(/-e ([A-Z_]+)="/)[1];

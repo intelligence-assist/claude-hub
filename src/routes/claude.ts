@@ -84,6 +84,8 @@ const handleClaudeRequest: ClaudeAPIHandler = async (req, res) => {
     } catch (processingError) {
       const err = processingError as Error;
       logger.error({ error: err }, 'Error during Claude processing');
+      // When Claude processing fails, we still return 200 but with the error message
+      // This allows the webhook to complete successfully even if Claude had issues
       claudeResponse = `Error: ${err.message}`;
     }
 

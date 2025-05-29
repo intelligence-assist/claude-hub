@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Test runner service - runs tests in container
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+      cache_from:
+        - ${DOCKER_HUB_ORGANIZATION:-intelligenceassist}/claude-hub:test-cache
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-test-token}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-test-secret}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-test-key}
+    volumes:
+      - ./coverage:/app/coverage
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: npm test
+
+  # Integration test service
+  integration-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - TEST_SUITE=integration
+    volumes:
+      - ./coverage:/app/coverage
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: npm run test:integration
+    depends_on:
+      - webhook
+
+  # Webhook service for integration testing
+  webhook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    environment:
+      - NODE_ENV=test
+      - PORT=3002
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-test-token}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-test-secret}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-test-key}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "3002:3002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # E2E test service
+  e2e-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - TEST_SUITE=e2e
+      - WEBHOOK_URL=http://webhook:3002
+    volumes:
+      - ./coverage:/app/coverage
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: npm run test:e2e
+    depends_on:
+      webhook:
+        condition: service_healthy
+
+# Networks
+networks:
+  default:
+    name: claude-hub-test
+    driver: bridge

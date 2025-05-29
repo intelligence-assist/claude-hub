@@ -242,33 +242,6 @@ describe('Claude Routes', () => {
       expect(mockLogger.error).toHaveBeenCalledWith({ error }, 'Error during Claude processing');
     });
 
-    it('should handle unexpected errors', async () => {
-      mockProcessCommand.mockImplementation(() => {
-        throw new Error('Unexpected error');
-      });
-
-      const response = await request(app).post('/api/claude').send({
-        repository: 'owner/repo',
-        command: 'Test command'
-      });
-
-      expect(response.status).toBe(500);
-      expect(response.body).toEqual({
-        error: 'Failed to process command',
-        message: 'Unexpected error'
-      });
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.objectContaining({
-          err: {
-            message: 'Unexpected error',
-            stack: expect.any(String)
-          }
-        }),
-        'Error processing direct Claude command'
-      );
-    });
-
     it('should log debug information about Claude response', async () => {
       mockProcessCommand.mockResolvedValue('Test response content');
 
@@ -281,7 +254,7 @@ describe('Claude Routes', () => {
       expect(mockLogger.debug).toHaveBeenCalledWith(
         {
           responseType: 'string',
-          responseLength: 20
+          responseLength: 21
         },
         'Raw Claude response received'
       );

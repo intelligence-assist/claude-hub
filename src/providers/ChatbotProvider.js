@@ -83,8 +83,8 @@ class ChatbotProvider {
 
     const authorizedUsers = this.config.authorizedUsers ||
       process.env.AUTHORIZED_USERS?.split(',').map(u => u.trim()) || [
-        process.env.DEFAULT_AUTHORIZED_USER || 'admin'
-      ];
+      process.env.DEFAULT_AUTHORIZED_USER || 'admin'
+    ];
 
     return authorizedUsers.includes(userId);
   }

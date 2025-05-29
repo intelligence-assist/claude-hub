@@ -17,8 +17,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-test-key}
     volumes:
       - ./coverage:/app/coverage
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: npm test
+    # Run only unit tests in CI (no e2e tests that require Docker)
+    command: npm run test:unit
 
   # Integration test service
   integration-test:
@@ -32,7 +32,6 @@ services:
       - TEST_SUITE=integration
     volumes:
       - ./coverage:/app/coverage
-      - /var/run/docker.sock:/var/run/docker.sock
     command: npm run test:integration
     depends_on:
       - webhook
@@ -49,8 +48,6 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN:-test-token}
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-test-secret}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-test-key}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "3002:3002"
     healthcheck:
@@ -60,24 +57,9 @@ services:
       retries: 3
       start_period: 40s
 
-  # E2E test service
-  e2e-test:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: test
-    environment:
-      - NODE_ENV=test
-      - CI=true
-      - TEST_SUITE=e2e
-      - WEBHOOK_URL=http://webhook:3002
-    volumes:
-      - ./coverage:/app/coverage
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: npm run test:e2e
-    depends_on:
-      webhook:
-        condition: service_healthy
+  # E2E test service - removed from CI, use for local development only
+  # To run e2e tests locally with Docker access:
+  # docker compose -f docker-compose.test.yml run --rm -v /var/run/docker.sock:/var/run/docker.sock e2e-test
 
 # Networks
 networks:

@@ -57,7 +57,7 @@ Dockerfile*
 !Dockerfile.claudecode
 .dockerignore
 
-# Scripts (keep runtime scripts)
+# Scripts - exclude all by default for security, then explicitly include needed runtime scripts
 *.sh
 !scripts/runtime/*.sh
 

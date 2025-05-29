@@ -83,14 +83,16 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     && apt-get install -y --no-install-recommends docker-ce-cli=5:27.* \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Claude Code (latest version)
-# hadolint ignore=DL3016
-RUN npm install -g @anthropic-ai/claude-code
-
 # Create docker group first, then create a non-root user for running the application
 RUN groupadd -g 999 docker 2>/dev/null || true \
     && useradd -m -u 1001 -s /bin/bash claudeuser \
     && usermod -aG docker claudeuser 2>/dev/null || true
+
+# Install Claude Code (latest version) as non-root user
+# hadolint ignore=DL3016
+USER claudeuser
+RUN npm install -g @anthropic-ai/claude-code
+USER root
 
 # Create claude config directory
 RUN mkdir -p /home/claudeuser/.config/claude
@@ -121,8 +123,9 @@ EXPOSE 3002
 ENV NODE_ENV=production \
     PORT=3002
 
-# Stay as root user to run Docker commands
-# (The container will need to run with Docker socket mounted)
+# Switch to non-root user for running the application
+# Docker commands will work via docker group membership when socket is mounted
+USER claudeuser
 
 # Run the startup script
 CMD ["bash", "/app/scripts/runtime/startup.sh"]

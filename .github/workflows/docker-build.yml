@@ -121,7 +121,6 @@ jobs:
           tags: ${{ matrix.image }}:test-${{ github.sha }}
           cache-from: |
             type=gha,scope=${{ matrix.image }}-test
-            type=registry,ref=${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.REGISTRY_CACHE_NAME }}:${{ matrix.image }}-test
           cache-to: |
             type=gha,mode=max,scope=${{ matrix.image }}-test
           build-args: |
@@ -163,8 +162,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=gha,scope=${{ matrix.image }}-prod
-            type=registry,ref=${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.REGISTRY_CACHE_NAME }}:${{ matrix.image }}-prod
-            type=registry,ref=${{ env.DOCKER_HUB_ORGANIZATION }}/${{ matrix.image }}:nightly
           cache-to: |
             type=gha,mode=max,scope=${{ matrix.image }}-prod
             type=inline
@@ -196,6 +193,7 @@ jobs:
 
       # Scan for vulnerabilities
       - name: Run Trivy vulnerability scanner
+        if: success()  # Only run if previous steps succeeded
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.DOCKER_HUB_ORGANIZATION }}/${{ matrix.image }}:${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'nightly' }}
@@ -203,10 +201,11 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
+        continue-on-error: true  # Don't fail the build on scan errors
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: success() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'docker-${{ matrix.image }}'

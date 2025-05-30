@@ -8,7 +8,7 @@ services:
       - /app/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.aws:/root/.aws:ro
-      - ${HOME}/.claude:/home/claudeuser/.claude
+      - ${HOME}/.claude:/home/node/.claude:ro
     environment:
       - NODE_ENV=production
       - PORT=3003
@@ -20,6 +20,8 @@ services:
       - DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
       - CLAUDE_USE_CONTAINERS=1
       - CLAUDE_CONTAINER_IMAGE=claudecode:latest
+      - CLAUDE_AUTH_HOST_DIR=${CLAUDE_AUTH_HOST_DIR}
+      - DISABLE_LOG_REDACTION=true
       # Smart wait for all meaningful checks by default, or use specific workflow trigger
       - PR_REVIEW_WAIT_FOR_ALL_CHECKS=${PR_REVIEW_WAIT_FOR_ALL_CHECKS:-true}
       - PR_REVIEW_TRIGGER_WORKFLOW=${PR_REVIEW_TRIGGER_WORKFLOW:-}

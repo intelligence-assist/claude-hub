@@ -1,0 +1,90 @@
+FROM node:24
+
+# Install dependencies for interactive session
+RUN apt update && apt install -y \
+  git \
+  sudo \
+  zsh \
+  curl \
+  vim \
+  nano \
+  gh
+
+# Set up npm global directory
+RUN mkdir -p /usr/local/share/npm-global && \
+  chown -R node:node /usr/local/share
+
+# Switch to node user for npm install
+USER node
+ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
+ENV PATH=$PATH:/usr/local/share/npm-global/bin
+
+# Install Claude Code
+RUN npm install -g @anthropic-ai/claude-code
+
+# Switch back to root for setup
+USER root
+
+# Create authentication workspace
+RUN mkdir -p /auth-setup && chown -R node:node /auth-setup
+
+# Set up interactive shell environment
+ENV SHELL /bin/zsh
+WORKDIR /auth-setup
+
+# Create setup script that captures authentication state
+RUN cat > /setup-claude-auth.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "🔧 Claude Authentication Setup Container"
+echo "========================================"
+echo ""
+echo "This container allows you to authenticate with Claude interactively"
+echo "and capture the authentication state for use in other containers."
+echo ""
+echo "Instructions:"
+echo "1. Run: claude login"
+echo "2. Follow the authentication flow"
+echo "3. Test with: claude status"
+echo "4. Type 'exit' when authentication is working"
+echo ""
+echo "The ~/.claude directory will be preserved in /auth-output"
+echo ""
+
+# Function to copy authentication state
+copy_auth_state() {
+  if [ -d "/home/node/.claude" ] && [ -d "/auth-output" ]; then
+    echo "💾 Copying authentication state..."
+    cp -r /home/node/.claude/* /auth-output/ 2>/dev/null || true
+    cp -r /home/node/.claude/.* /auth-output/ 2>/dev/null || true
+    chown -R node:node /auth-output
+    echo "✅ Authentication state copied to /auth-output"
+  fi
+}
+
+# Set up signal handling to capture state on exit
+trap copy_auth_state EXIT
+
+# Create .claude directory for node user
+sudo -u node mkdir -p /home/node/.claude
+
+echo "🔐 Starting interactive shell as 'node' user..."
+echo "💡 Tip: Run 'claude --version' to verify Claude CLI is available"
+echo ""
+
+# Switch to node user and start interactive shell
+sudo -u node bash -c '
+  export HOME=/home/node
+  export PATH=/usr/local/share/npm-global/bin:$PATH
+  cd /home/node
+  echo "Environment ready! Claude CLI is available at: $(which claude || echo "/usr/local/share/npm-global/bin/claude")"
+  echo "Run: claude login"
+  exec bash -i
+'
+EOF
+
+RUN chmod +x /setup-claude-auth.sh
+
+# Set entrypoint to setup script
+ENTRYPOINT ["/setup-claude-auth.sh"]

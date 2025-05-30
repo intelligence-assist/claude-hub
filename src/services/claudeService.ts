@@ -380,6 +380,13 @@ function buildDockerArgs({
   // Add container name
   dockerArgs.push('--name', containerName);
 
+  // Add Claude authentication directory as a volume mount for syncing
+  // This allows the entrypoint to copy auth files to a writable location
+  const hostAuthDir = process.env.CLAUDE_AUTH_HOST_DIR;
+  if (hostAuthDir) {
+    dockerArgs.push('-v', `${hostAuthDir}:/claude-auth-source:ro`);
+  }
+
   // Add environment variables as separate arguments
   Object.entries(envVars)
     .filter(([, value]) => value !== undefined && value !== '')

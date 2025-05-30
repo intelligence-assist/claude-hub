@@ -80,8 +80,6 @@ service-account.json
 # Docker secrets
 secrets/
 
-# Benchmark results
-benchmark_results_*.json
 
 # Temporary and backup files
 *.backup

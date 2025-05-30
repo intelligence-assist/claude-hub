@@ -75,8 +75,10 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
 # Create scripts directory and copy entrypoint scripts
 RUN mkdir -p /scripts/runtime
 COPY scripts/runtime/claudecode-entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY scripts/runtime/claudecode-entrypoint.sh /scripts/runtime/claudecode-entrypoint.sh
 COPY scripts/runtime/claudecode-tagging-entrypoint.sh /scripts/runtime/claudecode-tagging-entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh && \
+  chmod +x /scripts/runtime/claudecode-entrypoint.sh && \
   chmod +x /scripts/runtime/claudecode-tagging-entrypoint.sh
 
 # Set the default shell to bash

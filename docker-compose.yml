@@ -9,10 +9,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.aws:/root/.aws:ro
       - ${HOME}/.claude:/home/claudeuser/.claude
-    secrets:
-      - github_token
-      - anthropic_api_key
-      - webhook_secret
     environment:
       - NODE_ENV=production
       - PORT=3002
@@ -29,10 +25,10 @@ services:
       - PR_REVIEW_DEBOUNCE_MS=${PR_REVIEW_DEBOUNCE_MS:-5000}
       - PR_REVIEW_MAX_WAIT_MS=${PR_REVIEW_MAX_WAIT_MS:-1800000}
       - PR_REVIEW_CONDITIONAL_TIMEOUT_MS=${PR_REVIEW_CONDITIONAL_TIMEOUT_MS:-300000}
-      # Point to secret files instead of env vars
-      - GITHUB_TOKEN_FILE=/run/secrets/github_token
-      - ANTHROPIC_API_KEY_FILE=/run/secrets/anthropic_api_key
-      - GITHUB_WEBHOOK_SECRET_FILE=/run/secrets/webhook_secret
+      # Secrets from environment variables
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
@@ -40,11 +36,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-
-secrets:
-  github_token:
-    file: ./secrets/github_token.txt
-  anthropic_api_key:
-    file: ./secrets/anthropic_api_key.txt
-  webhook_secret:
-    file: ./secrets/webhook_secret.txt

@@ -1,4 +1,4 @@
-/* eslint-disable no-redeclare */
+ 
 import type { Request, Response, NextFunction } from 'express';
 
 // Mock the logger

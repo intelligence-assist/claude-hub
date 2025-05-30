@@ -10,10 +10,6 @@ jest.mock('../../../src/utils/logger', () => ({
   })
 }));
 
-jest.mock('../../../src/utils/secureCredentials', () => ({
-  get: jest.fn(),
-  loadCredentials: jest.fn()
-}));
 
 // Set required environment variables for claudeService
 process.env.BOT_USERNAME = 'testbot';

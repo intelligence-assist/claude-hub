@@ -10,7 +10,6 @@ import {
 } from '../services/githubService';
 import { createLogger } from '../utils/logger';
 import { sanitizeBotMentions } from '../utils/sanitize';
-import secureCredentials from '../utils/secureCredentials';
 import type {
   WebhookHandler,
   WebhookRequest,
@@ -68,9 +67,9 @@ function verifyWebhookSignature(req: WebhookRequest): boolean {
     'Verifying webhook signature'
   );
 
-  const webhookSecret = secureCredentials.get('GITHUB_WEBHOOK_SECRET');
+  const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    logger.error('GITHUB_WEBHOOK_SECRET not found in secure credentials');
+    logger.error('GITHUB_WEBHOOK_SECRET not found in environment');
     throw new Error('Webhook secret not configured');
   }
 

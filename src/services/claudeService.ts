@@ -4,7 +4,6 @@ import { execFile } from 'child_process';
 import path from 'path';
 import { createLogger } from '../utils/logger';
 import { sanitizeBotMentions } from '../utils/sanitize';
-import secureCredentials from '../utils/secureCredentials';
 import type {
   ClaudeCommandOptions,
   OperationType,
@@ -52,7 +51,7 @@ export async function processCommand({
       'Processing command with Claude'
     );
 
-    const githubToken = secureCredentials.get('GITHUB_TOKEN');
+    const githubToken = process.env.GITHUB_TOKEN;
 
     // In test mode, skip execution and return a mock response
     if (process.env['NODE_ENV'] === 'test' || !githubToken?.includes('ghp_')) {
@@ -351,7 +350,7 @@ function createEnvironmentVars({
     OPERATION_TYPE: operationType,
     COMMAND: fullPrompt,
     GITHUB_TOKEN: githubToken,
-    ANTHROPIC_API_KEY: secureCredentials.get('ANTHROPIC_API_KEY') ?? ''
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? ''
   };
 }
 
@@ -508,7 +507,7 @@ function handleDockerExecutionError(
     // Sensitive values to redact
     const sensitiveValues = [
       context.githubToken,
-      secureCredentials.get('ANTHROPIC_API_KEY')
+      process.env.ANTHROPIC_API_KEY
     ].filter(val => val && val.length > 0);
 
     // Redact specific sensitive values first

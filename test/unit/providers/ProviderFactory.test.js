@@ -8,10 +8,6 @@ jest.mock('../../../src/utils/logger', () => ({
   })
 }));
 
-jest.mock('../../../src/utils/secureCredentials', () => ({
-  get: jest.fn(),
-  loadCredentials: jest.fn()
-}));
 
 const _ProviderFactory = require('../../../src/providers/ProviderFactory');
 const DiscordProvider = require('../../../src/providers/DiscordProvider');

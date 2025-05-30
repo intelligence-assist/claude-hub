@@ -33,17 +33,6 @@ jest.mock('../../../src/utils/logger', () => ({
 }));
 
 // Mock secureCredentials before requiring modules that use it
-jest.mock('../../../src/utils/secureCredentials', () => ({
-  get: jest.fn(key => {
-    const mockCredentials = {
-      GITHUB_TOKEN: 'ghp_test_token_with_proper_prefix',
-      ANTHROPIC_API_KEY: 'test_anthropic_key',
-      GITHUB_WEBHOOK_SECRET: 'test_secret'
-    };
-    return mockCredentials[key] || null;
-  }),
-  has: jest.fn(() => true)
-}));
 
 const githubService =
   require('../../../src/services/githubService').default ||

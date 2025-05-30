@@ -2,6 +2,7 @@
 process.env.BOT_USERNAME = '@TestBot';
 process.env.NODE_ENV = 'test';
 process.env.GITHUB_TOKEN = 'ghp_test_token'; // Use token format that passes validation
+process.env.ANTHROPIC_API_KEY = 'sk-ant-test-key';
 
 // Mock dependencies
 jest.mock('child_process', () => ({
@@ -40,14 +41,6 @@ jest.mock('../../../src/utils/sanitize', () => ({
   sanitizeBotMentions: jest.fn(input => input)
 }));
 
-jest.mock('../../../src/utils/secureCredentials', () => ({
-  get: jest.fn(key => {
-    if (key === 'GITHUB_TOKEN') return 'ghp_test_github_token_mock123456789012345678901234';
-    if (key === 'ANTHROPIC_API_KEY')
-      return 'sk-ant-test-anthropic-key12345678901234567890123456789';
-    return null;
-  })
-}));
 
 // Now require the module under test
 const { execFileSync } = require('child_process');

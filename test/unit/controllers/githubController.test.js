@@ -4,27 +4,8 @@ const SignatureHelper = require('../../utils/signatureHelper');
 process.env.BOT_USERNAME = '@TestBot';
 process.env.NODE_ENV = 'test';
 process.env.GITHUB_TOKEN = 'test_token';
+process.env.GITHUB_WEBHOOK_SECRET = 'test_webhook_secret';
 process.env.AUTHORIZED_USERS = 'testuser,admin';
-
-// Mock secureCredentials before requiring actual modules
-jest.mock('../../../src/utils/secureCredentials', () => ({
-  get: jest.fn(key => {
-    const mockCredentials = {
-      GITHUB_WEBHOOK_SECRET: 'test_secret',
-      GITHUB_TOKEN: 'test_token',
-      ANTHROPIC_API_KEY: 'test_anthropic_key'
-    };
-    return mockCredentials[key] || null;
-  }),
-  has: jest.fn(key => {
-    const mockCredentials = {
-      GITHUB_WEBHOOK_SECRET: 'test_secret',
-      GITHUB_TOKEN: 'test_token',
-      ANTHROPIC_API_KEY: 'test_anthropic_key'
-    };
-    return !!mockCredentials[key];
-  })
-}));
 
 // Mock services before requiring actual modules
 jest.mock('../../../src/services/claudeService', () => ({

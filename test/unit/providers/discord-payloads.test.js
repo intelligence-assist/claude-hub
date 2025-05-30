@@ -10,9 +10,6 @@ jest.mock('../../../src/utils/logger', () => ({
   })
 }));
 
-jest.mock('../../../src/utils/secureCredentials', () => ({
-  get: jest.fn().mockReturnValue('mock_value')
-}));
 
 describe('Discord Payload Processing Tests', () => {
   let provider;

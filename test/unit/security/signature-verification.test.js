@@ -11,9 +11,6 @@ jest.mock('../../../src/utils/logger', () => ({
   })
 }));
 
-jest.mock('../../../src/utils/secureCredentials', () => ({
-  get: jest.fn()
-}));
 
 const mockSecureCredentials = require('../../../src/utils/secureCredentials');
 

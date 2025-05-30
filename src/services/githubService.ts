@@ -1,6 +1,5 @@
 import { Octokit } from '@octokit/rest';
 import { createLogger } from '../utils/logger';
-import secureCredentials from '../utils/secureCredentials';
 import type {
   CreateCommentRequest,
   CreateCommentResponse,
@@ -23,7 +22,7 @@ let octokit: Octokit | null = null;
 
 function getOctokit(): Octokit | null {
   if (!octokit) {
-    const githubToken = secureCredentials.get('GITHUB_TOKEN');
+    const githubToken = process.env.GITHUB_TOKEN;
     if (githubToken?.includes('ghp_')) {
       octokit = new Octokit({
         auth: githubToken,

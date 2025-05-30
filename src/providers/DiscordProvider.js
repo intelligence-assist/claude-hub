@@ -2,7 +2,6 @@ const { verify } = require('crypto');
 const axios = require('axios');
 const ChatbotProvider = require('./ChatbotProvider');
 const { createLogger } = require('../utils/logger');
-const secureCredentials = require('../utils/secureCredentials');
 
 const logger = createLogger('DiscordProvider');
 
@@ -23,11 +22,9 @@ class DiscordProvider extends ChatbotProvider {
    */
   async initialize() {
     try {
-      this.botToken = secureCredentials.get('DISCORD_BOT_TOKEN') || process.env.DISCORD_BOT_TOKEN;
-      this.publicKey =
-        secureCredentials.get('DISCORD_PUBLIC_KEY') || process.env.DISCORD_PUBLIC_KEY;
-      this.applicationId =
-        secureCredentials.get('DISCORD_APPLICATION_ID') || process.env.DISCORD_APPLICATION_ID;
+      this.botToken = process.env.DISCORD_BOT_TOKEN;
+      this.publicKey = process.env.DISCORD_PUBLIC_KEY;
+      this.applicationId = process.env.DISCORD_APPLICATION_ID;
 
       if (!this.botToken || !this.publicKey) {
         throw new Error('Discord bot token and public key are required');

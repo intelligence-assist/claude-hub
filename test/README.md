@@ -9,7 +9,6 @@ This directory contains the test framework for the Claude Webhook service. The t
   /unit             # Unit tests for individual components
     /controllers    # Tests for controllers
     /services       # Tests for services
-    /providers      # Tests for chatbot providers
     /security       # Security-focused tests
     /utils          # Tests for utility functions
   /integration      # Integration tests between components
@@ -34,9 +33,6 @@ npm test
 ```bash
 # Run only unit tests
 npm run test:unit
-
-# Run only chatbot provider tests
-npm run test:chatbot
 
 # Run only integration tests
 npm run test:integration

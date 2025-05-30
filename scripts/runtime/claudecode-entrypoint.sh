@@ -121,9 +121,15 @@ fi
 # Log the command length for debugging
 echo "Command length: ${#COMMAND}" >&2
 
-# Run Claude Code
-# Use working directory as HOME if we have Claude auth there, otherwise use default
-CLAUDE_USER_HOME="${CLAUDE_HOME:-/home/node}"
+# Run Claude Code with proper HOME environment
+# If we synced Claude auth to workspace, use workspace as HOME
+if [ -f "/workspace/.claude/.credentials.json" ]; then
+  CLAUDE_USER_HOME="/workspace"
+  echo "DEBUG: Using /workspace as HOME for Claude CLI (synced auth)" >&2
+else
+  CLAUDE_USER_HOME="${CLAUDE_HOME:-/home/node}"
+  echo "DEBUG: Using $CLAUDE_USER_HOME as HOME for Claude CLI (fallback)" >&2
+fi
 
 sudo -u node -E env \
     HOME="$CLAUDE_USER_HOME" \

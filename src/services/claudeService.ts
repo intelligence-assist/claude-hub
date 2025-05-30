@@ -384,7 +384,12 @@ function buildDockerArgs({
   // This allows the entrypoint to copy auth files to a writable location
   const hostAuthDir = process.env.CLAUDE_AUTH_HOST_DIR;
   if (hostAuthDir) {
-    dockerArgs.push('-v', `${hostAuthDir}:/claude-auth-source:ro`);
+    // Resolve relative paths to absolute paths for Docker volume mounting
+    const path = require('path');
+    const absoluteAuthDir = path.isAbsolute(hostAuthDir) 
+      ? hostAuthDir 
+      : path.resolve(process.cwd(), hostAuthDir);
+    dockerArgs.push('-v', `${absoluteAuthDir}:/claude-auth-source:ro`);
   }
 
   // Add environment variables as separate arguments

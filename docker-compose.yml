@@ -20,7 +20,7 @@ services:
       - DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
       - CLAUDE_USE_CONTAINERS=1
       - CLAUDE_CONTAINER_IMAGE=claudecode:latest
-      - CLAUDE_AUTH_HOST_DIR=${CLAUDE_AUTH_HOST_DIR}
+      - CLAUDE_AUTH_HOST_DIR=${CLAUDE_AUTH_HOST_DIR:-./claude-auth-output}
       - DISABLE_LOG_REDACTION=true
       # Smart wait for all meaningful checks by default, or use specific workflow trigger
       - PR_REVIEW_WAIT_FOR_ALL_CHECKS=${PR_REVIEW_WAIT_FOR_ALL_CHECKS:-true}

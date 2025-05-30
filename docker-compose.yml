@@ -40,8 +40,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    networks:
-      - n8n_default
 
 secrets:
   github_token:
@@ -50,7 +48,3 @@ secrets:
     file: ./secrets/anthropic_api_key.txt
   webhook_secret:
     file: ./secrets/webhook_secret.txt
-
-networks:
-  n8n_default:
-    external: true

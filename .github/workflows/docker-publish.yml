@@ -22,7 +22,7 @@ env:
 jobs:
   build:
     # Use self-hosted runners by default, with ability to override via repository variable
-    runs-on: ${{ fromJSON(format('["{0}"]', (vars.USE_SELF_HOSTED == 'false' && 'ubuntu-latest' || 'self-hosted, linux, x64, docker'))) }}
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'false' && 'ubuntu-latest' || fromJSON('["self-hosted", "linux", "x64", "docker"]') }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -110,7 +110,7 @@ jobs:
 
   # Build claudecode separately
   build-claudecode:
-    runs-on: ${{ fromJSON(format('["{0}"]', (vars.USE_SELF_HOSTED == 'false' && 'ubuntu-latest' || 'self-hosted, linux, x64, docker'))) }}
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'false' && 'ubuntu-latest' || fromJSON('["self-hosted", "linux", "x64", "docker"]') }}
     if: github.event_name != 'pull_request'
     timeout-minutes: 30
     permissions:

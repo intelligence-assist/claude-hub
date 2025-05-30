@@ -47,8 +47,8 @@ jest.mock('child_process', () => ({
 describe('Express Application', () => {
   let app: express.Application;
   const originalEnv = process.env;
-  const mockLogger = (require('../../src/utils/logger') as any).createLogger();
-  const mockStartupMetrics = new (require('../../src/utils/startup-metrics') as any).StartupMetrics();
+  const mockLogger = (require('../../src/utils/logger')).createLogger();
+  const mockStartupMetrics = new (require('../../src/utils/startup-metrics')).StartupMetrics();
   
   // Mock express listen to prevent actual server start
   const mockListen = jest.fn((port: number, callback?: () => void) => {

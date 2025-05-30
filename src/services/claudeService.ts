@@ -55,7 +55,9 @@ export async function processCommand({
     const githubToken = secureCredentials.get('GITHUB_TOKEN');
 
     // In test mode, skip execution and return a mock response
-    if (process.env['NODE_ENV'] === 'test' || !githubToken?.includes('ghp_')) {
+    // Support both classic (ghp_) and fine-grained (github_pat_) GitHub tokens
+    const isValidGitHubToken = githubToken && (githubToken.includes('ghp_') || githubToken.includes('github_pat_'));
+    if (process.env['NODE_ENV'] === 'test' || !isValidGitHubToken) {
       logger.info(
         {
           repo: repoFullName,

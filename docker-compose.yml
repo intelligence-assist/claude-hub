@@ -41,7 +41,7 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - n8n_default
+      - claude-hub
 
 secrets:
   github_token:
@@ -52,5 +52,5 @@ secrets:
     file: ./secrets/webhook_secret.txt
 
 networks:
-  n8n_default:
-    external: true
+  claude-hub:
+    driver: bridge

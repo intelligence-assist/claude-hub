@@ -95,7 +95,7 @@ This service supports three authentication methods for different use cases:
 
 | Method | Best For | Cost | Documentation |
 |--------|----------|------|---------------|
-| **Setup Container** | Development/Personal ($20-200/month subscriptions) | Fixed subscription cost | [Setup Container Guide](./docs/setup-container-guide.md) |
+| **Setup Container** | Development/Personal (subscription users) | Fixed subscription cost | [Setup Container Guide](./docs/setup-container-guide.md) |
 | **ANTHROPIC_API_KEY** | Production/Team | Pay-per-use (high cost) | [Authentication Guide](./docs/claude-authentication-guide.md) |
 | **AWS Bedrock** | Enterprise | Enterprise pricing | [Authentication Guide](./docs/claude-authentication-guide.md) |
 

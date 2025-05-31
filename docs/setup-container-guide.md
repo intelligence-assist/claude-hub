@@ -34,10 +34,10 @@ graph TD
 
 ## Architecture Benefits
 
-### For $200/month Claude 20x Users
+### For Claude Max/20x Subscribers
 - **Massive Cost Savings**: Use subscription instead of pay-per-token
-- **Full Feature Access**: All Claude 20x benefits (speed, priority)
-- **No Usage Anxiety**: Unlimited usage within subscription
+- **Full Feature Access**: All subscription benefits (speed, priority)
+- **No Usage Anxiety**: Use existing subscription limits
 
 ### Technical Advantages
 - **OAuth Security**: No API keys in environment variables

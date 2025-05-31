@@ -153,8 +153,8 @@ Use your existing Claude Max subscription for automation instead of pay-per-use 
 ./scripts/setup/setup-claude-interactive.sh
 
 # 2. In container: authenticate with your subscription
-claude login  # Follow browser flow
-exit          # Save authentication
+claude --dangerously-skip-permissions  # Follow authentication flow
+exit                                    # Save authentication
 
 # 3. Use captured authentication  
 cp -r ${CLAUDE_HUB_DIR:-~/.claude-hub}/* ~/.claude/

@@ -1,6 +1,6 @@
 {
   "name": "claude-github-webhook",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A webhook endpoint for Claude to perform git and GitHub actions",
   "main": "dist/index.js",
   "scripts": {

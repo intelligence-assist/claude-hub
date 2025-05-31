@@ -4,7 +4,7 @@ set -e
 # Test captured Claude authentication
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-AUTH_OUTPUT_DIR="$PROJECT_ROOT/claude-auth-output"
+AUTH_OUTPUT_DIR="${CLAUDE_HUB_DIR:-$HOME/.claude-hub}"
 
 echo "🧪 Testing Claude Authentication"
 echo "================================"

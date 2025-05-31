@@ -65,29 +65,19 @@ You can use your existing Claude Max subscription (5x or 20x plans) instead of p
 - **[Pre-commit Setup](./pre-commit-setup.md)** - Code quality automation
 - **[Scripts Documentation](./SCRIPTS.md)** - Available utility scripts
 
-## 💰 Cost Comparison
-
-| Usage Level | Setup Container | API Key | AWS Bedrock |
-|-------------|-----------------|---------|-------------|
-| **Light** (< 1M tokens/month) | $100-200/month (Max 5x/20x) | ~$15/month | ~$20/month |
-| **Medium** (1-10M tokens/month) | $100-200/month (Max 5x/20x) | $150-1500/month | $150-1500/month |
-| **Heavy** (10M+ tokens/month) | $100-200/month (Max 5x/20x) | $1500+/month | $1500+/month |
-
-**💡 Pro Tip**: If you're already paying for Claude Max subscriptions (5x or 20x plans), the setup container method lets you use your existing subscription for automation at no additional cost!
-
-## 🎯 Use Case Recommendations
+## 🎯 Authentication Method Selection
 
 ### Individual Developers
-- **Start with**: [Setup Container](./setup-container-guide.md) (use your Claude subscription)
-- **Scale to**: API Key if you need higher stability
+- **Setup Container**: Use existing Claude Max subscription for automation
+- **API Key**: Direct API access for stable production usage
 
-### Small Teams (2-10 developers)
-- **Recommended**: [ANTHROPIC_API_KEY](./claude-authentication-guide.md#-option-2-anthropic_api_key-productionteam)
-- **Budget option**: Multiple setup containers for different team members
+### Small Teams
+- **ANTHROPIC_API_KEY**: Recommended for team environments
+- **Setup Container**: Alternative for development workflows
 
-### Enterprise (10+ developers)
-- **Recommended**: [AWS Bedrock](./claude-authentication-guide.md#️-option-3-aws-bedrock-enterprise)
-- **Alternative**: ANTHROPIC_API_KEY with enterprise support
+### Enterprise
+- **AWS Bedrock**: Enterprise-grade deployment with compliance features
+- **ANTHROPIC_API_KEY**: Alternative with enterprise support
 
 ## 🔧 Quick Commands
 
@@ -147,17 +137,17 @@ npm run build
 - **Testing**: Use CLI tools for isolated testing
 - **Community**: Share experiences and solutions
 
-## 🚀 Innovation Highlights
+## Technical Features
 
 ### Setup Container Method
-Our **setup container approach** is a breakthrough innovation that allows Claude Max/20x subscribers to use their existing subscriptions for automation - potentially saving thousands of dollars compared to API usage.
+The setup container approach captures Claude CLI authentication state for use in automated environments, enabling subscription-based authentication.
 
 ### Multi-tier Authentication
-Flexible authentication supports everything from personal development ($20/month) to enterprise deployment with full compliance and security.
+Supports multiple authentication methods from personal development to enterprise deployment with security and compliance features.
 
 ### Production Ready
-Built for real-world usage with comprehensive logging, security, container isolation, and monitoring capabilities.
+Includes comprehensive logging, security, container isolation, and monitoring capabilities for production usage.
 
 ---
 
-**Get started today**: Choose your authentication method and follow the corresponding guide above! 🚀
+**Getting Started**: Choose your authentication method and follow the corresponding guide above.

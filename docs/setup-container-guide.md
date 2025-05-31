@@ -1,12 +1,12 @@
-# Setup Container Deep Dive
+# Setup Container Authentication
 
-The setup container method allows Claude Max subscribers to use their existing subscriptions for automation and webhook integrations by capturing and reusing authentication state.
+The setup container method captures Claude CLI authentication state for use in automated environments by preserving OAuth tokens and session data.
 
-## The Approach
+## Overview
 
-Traditional Claude CLI usage requires interactive sessions. This setup container captures the complete authentication state, including OAuth tokens and session data, making it portable to non-interactive environments.
+Claude CLI requires interactive authentication. This container approach captures the authentication state from an interactive session and makes it available for automated use.
 
-**Note**: Claude Code access is only available with Claude Max subscriptions (5x at $100/month or 20x at $200/month). Claude Pro ($20/month) does not include Claude Code access.
+**Prerequisites**: Claude Code access requires Claude Max subscriptions. Claude Pro plans do not include Claude Code access.
 
 ## How It Works
 
@@ -20,32 +20,26 @@ graph TD
 ```
 
 ### 1. Interactive Authentication
-- Clean container environment with Claude CLI
-- User runs `claude login` and completes browser flow
-- OAuth tokens are stored locally
+- Clean container environment with Claude CLI installed
+- User runs `claude login` and completes browser authentication
+- OAuth tokens and session data stored in `~/.claude`
 
 ### 2. State Capture
-- Complete `~/.claude` directory is copied on container exit
-- Includes credentials, settings, project data, session info
+- Complete `~/.claude` directory copied to persistent storage on container exit
+- Includes credentials, settings, project data, and session info
 - Preserves all authentication context
 
 ### 3. Production Mount
-- Captured authentication mounted read-only
-- Working copy created for each execution
+- Captured authentication mounted read-only in production containers
+- Working copy created for each execution to avoid state conflicts
 - OAuth tokens used automatically by Claude CLI
 
-## Architecture Benefits
+## Technical Benefits
 
-### For Claude Max Subscribers (5x or 20x Plans)
-- **Massive Cost Savings**: Use subscription instead of pay-per-token
-- **Full Feature Access**: All subscription benefits including Claude Code access
-- **High Usage Limits**: 5x or 20x more usage than Claude Pro
-
-### Technical Advantages
-- **OAuth Security**: No API keys in environment variables
-- **Session Persistence**: Maintains Claude CLI session state
-- **Portable**: Works across different container environments
-- **Reusable**: One setup, multiple deployments
+- **OAuth Security**: Uses OAuth tokens instead of API keys in environment variables
+- **Session Persistence**: Maintains Claude CLI session state across executions
+- **Portable**: Authentication state works across different container environments
+- **Reusable**: One-time setup supports multiple deployments
 
 ## Files Captured
 
@@ -114,32 +108,22 @@ The Claude CLI automatically attempts to refresh tokens when:
 
 However, refresh tokens themselves eventually expire, requiring **full re-authentication**.
 
-### Expected Maintenance Schedule
-For production usage with setup containers:
+### Maintenance Requirements
 
-**Daily Operations** (Recommended)
-- Monitor authentication health
-- Check for expired tokens in logs
+**Monitoring**
+- Check authentication health regularly
+- Monitor for expired token errors in logs
 
-**Weekly Maintenance** (Conservative)
-- Re-run authentication setup
-- Update captured authentication state
-- Test authentication validity
+**Re-authentication**
+- Required when OAuth tokens expire (typically every few days to weeks)
+- Refresh tokens also expire and require full re-authentication
+- Test authentication validity after updates
 
-**As-Needed Basis** (Minimum)
-- Re-authenticate when tokens expire
-- Typically required every few days to weeks
+### Current Limitations
 
-### Automated Refresh Implementation
-Currently, token refresh requires manual intervention. Future enhancements could include:
-
-```bash
-# Planned: Automated refresh script
-./scripts/setup/refresh-claude-auth.sh
-
-# Planned: Health check with auto-refresh
-./scripts/setup/check-and-refresh-auth.sh
-```
+- Token refresh requires manual intervention
+- No automated re-authentication when tokens expire
+- Manual monitoring required for authentication health
 
 ## Advanced Usage
 
@@ -246,13 +230,6 @@ docker run --rm -v "$(pwd)/${CLAUDE_HUB_DIR:-~/.claude-hub}:/tmp/auth:ro" \
 cat ${CLAUDE_HUB_DIR:-~/.claude-hub}/.credentials.json | jq '.claudeAiOauth'
 ```
 
-## Future Enhancements
-
-### Planned Improvements
-- **Automatic token refresh**: Monitor and refresh expired tokens
-- **Multi-user support**: Separate auth for different users
-- **Token rotation**: Automated re-authentication workflow
-- **Health monitoring**: Proactive auth status checking
 
 ### Community Contributions
 - **Authentication sharing**: Secure team auth distribution

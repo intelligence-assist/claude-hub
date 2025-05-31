@@ -99,6 +99,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        clean: true
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -117,6 +119,12 @@ jobs:
         BOT_USERNAME: '@TestBot'
         GITHUB_WEBHOOK_SECRET: 'test-secret'
         GITHUB_TOKEN: 'test-token'
+
+    - name: Fix coverage file permissions
+      run: |
+        # Fix permissions on coverage files that may be created with restricted access
+        find coverage -type f -exec chmod 644 {} \; 2>/dev/null || true
+        find coverage -type d -exec chmod 755 {} \; 2>/dev/null || true
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5

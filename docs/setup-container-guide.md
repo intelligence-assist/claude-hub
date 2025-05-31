@@ -144,7 +144,7 @@ Currently, token refresh requires manual intervention. Future enhancements could
 ### Multiple Environments
 ```bash
 # Development
-./claude-auth-output → ~/.claude/
+./${CLAUDE_HUB_DIR:-~/.claude-hub} → ~/.claude/
 
 # Staging
 ./claude-auth-staging → staging container
@@ -159,7 +159,7 @@ Currently, token refresh requires manual intervention. Future enhancements could
 ./scripts/setup/setup-claude-interactive.sh
 
 # Share auth directory (be cautious with tokens)
-tar -czf claude-auth.tar.gz claude-auth-output/
+tar -czf claude-auth.tar.gz ${CLAUDE_HUB_DIR:-~/.claude-hub}/
 
 # Deploy to team environments
 ```
@@ -189,7 +189,7 @@ tar -czf claude-auth.tar.gz claude-auth-output/
 ./scripts/setup/test-claude-auth.sh
 
 # Verify token validity
-docker run --rm -v "./claude-auth-output:/home/node/.claude:ro" \
+docker run --rm -v "./${CLAUDE_HUB_DIR:-~/.claude-hub}:/home/node/.claude:ro" \
   claude-setup:latest claude status
 ```
 
@@ -199,7 +199,7 @@ docker run --rm -v "./claude-auth-output:/home/node/.claude:ro" \
 ./scripts/setup/setup-claude-interactive.sh
 
 # Update production environment
-cp -r claude-auth-output/* ~/.claude/
+cp -r ${CLAUDE_HUB_DIR:-~/.claude-hub}/* ~/.claude/
 docker compose restart webhook
 ```
 
@@ -231,17 +231,17 @@ docker compose restart webhook
 
 ```bash
 # Check captured files
-ls -la claude-auth-output/
+ls -la ${CLAUDE_HUB_DIR:-~/.claude-hub}/
 
 # Test authentication directly
-docker run --rm -v "$(pwd)/claude-auth-output:/tmp/auth:ro" \
+docker run --rm -v "$(pwd)/${CLAUDE_HUB_DIR:-~/.claude-hub}:/tmp/auth:ro" \
   --entrypoint="" claude-setup:latest \
   bash -c "cp -r /tmp/auth /home/node/.claude && 
            sudo -u node env HOME=/home/node \
            /usr/local/share/npm-global/bin/claude --print 'test'"
 
 # Verify OAuth tokens
-cat claude-auth-output/.credentials.json | jq '.claudeAiOauth'
+cat ${CLAUDE_HUB_DIR:-~/.claude-hub}/.credentials.json | jq '.claudeAiOauth'
 ```
 
 ## Future Enhancements

@@ -115,7 +115,7 @@ exit          # Save authentication
 ./scripts/setup/test-claude-auth.sh
 
 # 4. Use in production
-cp -r claude-auth-output/* ~/.claude/
+cp -r ${CLAUDE_HUB_DIR:-~/.claude-hub}/* ~/.claude/
 ```
 
 📖 **See [Complete Authentication Guide](./docs/claude-authentication-guide.md) for all methods**

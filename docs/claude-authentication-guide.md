@@ -52,11 +52,11 @@ exit          # Save authentication state
 #### 4. Use Captured Authentication
 ```bash
 # Option A: Copy to your main Claude directory
-cp -r claude-auth-output/* ~/.claude/
+cp -r ${CLAUDE_HUB_DIR:-~/.claude-hub}/* ~/.claude/
 
 # Option B: Mount in docker-compose
 # Update docker-compose.yml:
-# - ./claude-auth-output:/home/node/.claude:ro
+# - ./${CLAUDE_HUB_DIR:-~/.claude-hub}:/home/node/.claude:ro
 ```
 
 #### 5. Verify Setup

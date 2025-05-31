@@ -36,8 +36,16 @@ jobs:
           echo "Runner OS: ${{ runner.os }}"
           echo "Runner labels: ${{ join(runner.labels, ', ') }}"
 
+      - name: Clean workspace (fix coverage permissions)
+        run: |
+          # Fix any existing coverage file permissions before checkout
+          sudo find . -name "coverage" -type d -exec chmod -R 755 {} \; 2>/dev/null || true
+          sudo rm -rf coverage 2>/dev/null || true
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          clean: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -118,8 +126,16 @@ jobs:
       packages: write
 
     steps:
+      - name: Clean workspace (fix coverage permissions)
+        run: |
+          # Fix any existing coverage file permissions before checkout
+          sudo find . -name "coverage" -type d -exec chmod -R 755 {} \; 2>/dev/null || true
+          sudo rm -rf coverage 2>/dev/null || true
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          clean: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

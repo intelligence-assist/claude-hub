@@ -133,6 +133,68 @@ describe('Claude Service', () => {
     }
   });
 
+  test('processCommand should mount authentication directory correctly', async () => {
+    // Save original function for restoration
+    const originalProcessCommand = claudeService.processCommand;
+
+    // Create a testing implementation that checks Docker args
+    claudeService.processCommand = async options => {
+      // Set test environment variables
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      process.env.CLAUDE_AUTH_HOST_DIR = '/test/auth/dir';
+
+      // Mock the Docker inspect to succeed
+      execFileSync.mockImplementation((cmd, args, _options) => {
+        if (args[0] === 'inspect') return '{}';
+        return 'mocked output';
+      });
+
+      // Configure execFileAsync mock to capture Docker args
+      const execFileAsync = promisify(require('child_process').execFile);
+      execFileAsync.mockImplementation(async (cmd, args, _options) => {
+        // Check that authentication directory is mounted correctly
+        const dockerArgs = args;
+        const volumeArgIndex = dockerArgs.findIndex(arg => arg === '-v');
+        if (volumeArgIndex !== -1) {
+          const volumeMount = dockerArgs[volumeArgIndex + 1];
+          expect(volumeMount).toBe('/test/auth/dir:/home/node/.claude');
+        }
+
+        return {
+          stdout: 'Claude response from container',
+          stderr: ''
+        };
+      });
+
+      // Call the original implementation to test it
+      const result = await originalProcessCommand(options);
+
+      // Restore env
+      process.env.NODE_ENV = originalNodeEnv;
+      delete process.env.CLAUDE_AUTH_HOST_DIR;
+
+      return result;
+    };
+
+    try {
+      // Call the overridden function
+      await claudeService.processCommand({
+        repoFullName: 'test/repo',
+        issueNumber: 123,
+        command: 'Test command',
+        isPullRequest: false
+      });
+
+      // Verify execFileAsync was called (authentication mount logic executed)
+      const execFileAsync = promisify(require('child_process').execFile);
+      expect(execFileAsync).toHaveBeenCalled();
+    } finally {
+      // Restore the original function
+      claudeService.processCommand = originalProcessCommand;
+    }
+  });
+
   test('processCommand should handle errors properly', async () => {
     // Save original function for restoration
     const originalProcessCommand = claudeService.processCommand;

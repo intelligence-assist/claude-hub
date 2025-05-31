@@ -8,9 +8,7 @@ module.exports = {
     '**/test/e2e/scenarios/**/*.test.{js,ts}'
   ],
   transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      isolatedModules: true
-    }],
+    '^.+\\.ts$': 'ts-jest',
     '^.+\\.js$': 'babel-jest'
   },
   moduleFileExtensions: ['ts', 'js', 'json'],

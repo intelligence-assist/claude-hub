@@ -56,13 +56,6 @@ export interface HealthCheckResponse {
   healthCheckDuration?: number;
 }
 
-export interface TestTunnelResponse {
-  status: 'success';
-  message: string;
-  timestamp: string;
-  headers: Record<string, string | string[] | undefined>;
-  ip: string | undefined;
-}
 
 export interface ErrorResponse {
   error: string;

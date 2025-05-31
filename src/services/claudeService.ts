@@ -55,7 +55,9 @@ export async function processCommand({
     const githubToken = secureCredentials.get('GITHUB_TOKEN');
 
     // In test mode, skip execution and return a mock response
-    if (process.env['NODE_ENV'] === 'test' || !githubToken?.includes('ghp_')) {
+    // Support both classic (ghp_) and fine-grained (github_pat_) GitHub tokens
+    const isValidGitHubToken = githubToken && (githubToken.includes('ghp_') || githubToken.includes('github_pat_'));
+    if (process.env['NODE_ENV'] === 'test' || !isValidGitHubToken) {
       logger.info(
         {
           repo: repoFullName,
@@ -377,6 +379,18 @@ function buildDockerArgs({
 
   // Add container name
   dockerArgs.push('--name', containerName);
+
+  // Add Claude authentication directory as a volume mount for syncing
+  // This allows the entrypoint to copy auth files to a writable location
+  const hostAuthDir = process.env.CLAUDE_AUTH_HOST_DIR;
+  if (hostAuthDir) {
+    // Resolve relative paths to absolute paths for Docker volume mounting
+    const path = require('path');
+    const absoluteAuthDir = path.isAbsolute(hostAuthDir) 
+      ? hostAuthDir 
+      : path.resolve(process.cwd(), hostAuthDir);
+    dockerArgs.push('-v', `${absoluteAuthDir}:/home/node/.claude`);
+  }
 
   // Add environment variables as separate arguments
   Object.entries(envVars)

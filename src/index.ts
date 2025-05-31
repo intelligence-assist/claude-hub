@@ -9,12 +9,19 @@ import claudeRoutes from './routes/claude';
 import type {
   WebhookRequest,
   HealthCheckResponse,
-  TestTunnelResponse,
   ErrorResponse
 } from './types/express';
 import { execSync } from 'child_process';
 
 const app = express();
+
+// Configure trust proxy setting based on environment
+// Set TRUST_PROXY=true when running behind reverse proxies (nginx, cloudflare, etc.)
+const trustProxy = process.env['TRUST_PROXY'] === 'true';
+if (trustProxy) {
+  app.set('trust proxy', true);
+}
+
 const PORT = parseInt(process.env['PORT'] ?? '3003', 10);
 const appLogger = createLogger('app');
 const startupMetrics = new StartupMetrics();
@@ -144,17 +151,6 @@ app.get('/health', (req: WebhookRequest, res: express.Response<HealthCheckRespon
   res.status(200).json(checks);
 });
 
-// Test endpoint for CF tunnel
-app.get('/api/test-tunnel', (req, res: express.Response<TestTunnelResponse>) => {
-  appLogger.info('Test tunnel endpoint hit');
-  res.status(200).json({
-    status: 'success',
-    message: 'CF tunnel is working!',
-    timestamp: new Date().toISOString(),
-    headers: req.headers,
-    ip: req.ip ?? (req.connection as { remoteAddress?: string }).remoteAddress
-  });
-});
 
 // Error handling middleware
 app.use(
@@ -185,8 +181,13 @@ app.use(
   }
 );
 
-app.listen(PORT, () => {
-  startupMetrics.recordMilestone('server_listening', `Server listening on port ${PORT}`);
-  const totalStartupTime = startupMetrics.markReady();
-  appLogger.info(`Server running on port ${PORT} (startup took ${totalStartupTime}ms)`);
-});
+// Only start the server if this is the main module (not being imported for testing)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    startupMetrics.recordMilestone('server_listening', `Server listening on port ${PORT}`);
+    const totalStartupTime = startupMetrics.markReady();
+    appLogger.info(`Server running on port ${PORT} (startup took ${totalStartupTime}ms)`);
+  });
+}
+
+export default app;

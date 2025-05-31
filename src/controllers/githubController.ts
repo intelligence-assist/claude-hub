@@ -114,6 +114,14 @@ export const handleWebhook: WebhookHandler = async (req, res) => {
     const event = req.headers['x-github-event'] as string;
     const delivery = req.headers['x-github-delivery'] as string;
 
+    // Validate request body structure for webhook processing
+    // Use Object.prototype.toString for secure type checking to prevent bypass
+    const bodyType = Object.prototype.toString.call(req.body);
+    if (bodyType !== '[object Object]') {
+      logger.error('Webhook request missing or invalid body structure');
+      return res.status(400).json({ error: 'Missing or invalid request body' });
+    }
+
     // Log webhook receipt with key details (sanitize user input to prevent log injection)
     logger.info(
       {

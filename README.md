@@ -124,7 +124,16 @@ BOT_USERNAME=YourBotName              # GitHub bot account username (create your
 GITHUB_WEBHOOK_SECRET=<generated>     # Webhook validation
 GITHUB_TOKEN=<fine-grained-pat>       # Repository access (from your bot account)
 
-# AWS Bedrock (recommended)
+# Claude Authentication - Choose ONE method:
+
+# Option 1: Setup Container (Personal/Development)
+# Use existing Claude Max subscription (5x or 20x plans)
+# See docs/setup-container-guide.md for setup
+
+# Option 2: Direct API Key (Production/Team)
+ANTHROPIC_API_KEY=sk-ant-your-api-key
+
+# Option 3: AWS Bedrock (Enterprise)
 AWS_REGION=us-east-1
 ANTHROPIC_MODEL=anthropic.claude-3-sonnet-20240229-v1:0
 CLAUDE_CODE_USE_BEDROCK=1
@@ -133,6 +142,44 @@ CLAUDE_CODE_USE_BEDROCK=1
 AUTHORIZED_USERS=user1,user2,user3    # Allowed GitHub usernames
 CLAUDE_API_AUTH_REQUIRED=1            # Enable API authentication
 ```
+
+## Authentication Methods
+
+### Setup Container (Personal/Development)
+Use your existing Claude Max subscription for automation instead of pay-per-use API fees:
+
+```bash
+# 1. Run interactive authentication setup
+./scripts/setup/setup-claude-interactive.sh
+
+# 2. In container: authenticate with your subscription
+claude login  # Follow browser flow
+exit          # Save authentication
+
+# 3. Use captured authentication  
+cp -r ${CLAUDE_HUB_DIR:-~/.claude-hub}/* ~/.claude/
+```
+
+**Prerequisites**: Claude Max subscription (5x or 20x plans). Claude Pro does not include Claude Code access.  
+**Details**: [Setup Container Guide](./docs/setup-container-guide.md)
+
+### Direct API Key (Production/Team)
+```bash
+ANTHROPIC_API_KEY=sk-ant-your-api-key-here
+```
+
+**Best for**: Production environments, team usage, guaranteed stability.  
+**Details**: [Authentication Guide](./docs/claude-authentication-guide.md)
+
+### AWS Bedrock (Enterprise)
+```bash
+AWS_REGION=us-east-1
+ANTHROPIC_MODEL=anthropic.claude-3-sonnet-20240229-v1:0
+CLAUDE_CODE_USE_BEDROCK=1
+```
+
+**Best for**: Enterprise deployments, AWS integration, compliance requirements.  
+**Details**: [Authentication Guide](./docs/claude-authentication-guide.md)
 
 ### 2. GitHub Webhook Setup
 
@@ -283,11 +330,17 @@ DEBUG=claude:* npm run dev
 
 ## Documentation
 
+### Deep Dive Guides
+- [Setup Container Authentication](./docs/setup-container-guide.md) - Technical details for subscription-based auth
+- [Authentication Guide](./docs/claude-authentication-guide.md) - All authentication methods and troubleshooting
 - [Complete Workflow](./docs/complete-workflow.md) - End-to-end technical guide
 - [Container Setup](./docs/container-setup.md) - Docker configuration details
 - [AWS Best Practices](./docs/aws-authentication-best-practices.md) - IAM and credential management
 - [GitHub Integration](./docs/github-workflow.md) - Webhook events and permissions
-- [Scripts Reference](./SCRIPTS.md) - Utility scripts documentation
+
+### Reference
+- [Scripts Documentation](./docs/SCRIPTS.md) - Utility scripts and commands
+- [Command Reference](./CLAUDE.md) - Build and run commands
 
 ## Contributing
 

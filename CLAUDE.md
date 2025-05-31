@@ -89,6 +89,34 @@ Use the demo repository for testing auto-tagging and webhook functionality:
 - Advanced usage: `node cli/webhook-cli.js --repo myrepo --command "Your command" --verbose`
 - Secure mode: `node cli/webhook-cli-secure.js` (uses AWS profile authentication)
 
+### Claude Authentication Options
+
+This service supports three authentication methods:
+
+- **Setup Container**: Personal subscription authentication - [Setup Container Guide](./docs/setup-container-guide.md)
+- **ANTHROPIC_API_KEY**: Direct API key authentication - [Authentication Guide](./docs/claude-authentication-guide.md)
+- **AWS Bedrock**: Enterprise AWS integration - [Authentication Guide](./docs/claude-authentication-guide.md)
+
+#### Quick Start: Setup Container
+For personal subscription users:
+
+```bash
+# 1. Run interactive authentication setup
+./scripts/setup/setup-claude-interactive.sh
+
+# 2. In container: authenticate with your subscription
+claude --dangerously-skip-permissions  # Follow authentication flow
+exit                                    # Save authentication
+
+# 3. Test captured authentication
+./scripts/setup/test-claude-auth.sh
+
+# 4. Use in production
+cp -r ${CLAUDE_HUB_DIR:-~/.claude-hub}/* ~/.claude/
+```
+
+📖 **See [Complete Authentication Guide](./docs/claude-authentication-guide.md) for all methods**
+
 ## Features
 
 ### Auto-Tagging

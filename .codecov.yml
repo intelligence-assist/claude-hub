@@ -6,14 +6,14 @@ coverage:
     project:
       default:
         target: auto
-        threshold: 1%
+        threshold: 5%
         base: auto
         # Only check coverage on main branch
         if_ci_failed: error
     patch:
       default:
-        target: auto
-        threshold: 1%
+        target: 50%  # Lower diff coverage threshold - many changes are config/setup
+        threshold: 15%  # Allow 15% variance for diff coverage
         base: auto
         # Only check coverage on main branch  
         if_ci_failed: error

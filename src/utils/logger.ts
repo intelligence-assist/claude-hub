@@ -365,7 +365,7 @@ const logger = pino({
       '*.*.*.*.connectionString',
       '*.*.*.*.DATABASE_URL'
     ],
-    censor: '[REDACTED]'
+    censor: process.env.DISABLE_LOG_REDACTION ? undefined : '[REDACTED]'
   }
 });
 

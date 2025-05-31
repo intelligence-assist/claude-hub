@@ -24,7 +24,8 @@ let octokit: Octokit | null = null;
 function getOctokit(): Octokit | null {
   if (!octokit) {
     const githubToken = secureCredentials.get('GITHUB_TOKEN');
-    if (githubToken?.includes('ghp_')) {
+    // Support both classic (ghp_) and fine-grained (github_pat_) GitHub tokens
+    if (githubToken && (githubToken.includes('ghp_') || githubToken.includes('github_pat_'))) {
       octokit = new Octokit({
         auth: githubToken,
         userAgent: 'Claude-GitHub-Webhook'

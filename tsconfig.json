@@ -28,6 +28,7 @@
     "allowUnreachableCode": false,
     "noFallthroughCasesInSwitch": true,
     "noErrorTruncation": true,
+    "isolatedModules": true,
     "types": ["node", "jest"]
   },
   "include": [

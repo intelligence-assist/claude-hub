@@ -105,9 +105,31 @@ module.exports = [
       '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }]
     }
   },
-  // Test files (JavaScript and TypeScript)
+  // Test files (JavaScript)
   {
-    files: ['test/**/*.js', '**/*.test.js', 'test/**/*.ts', '**/*.test.ts'],
+    files: ['test/**/*.js', '**/*.test.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'commonjs',
+      globals: {
+        jest: 'readonly',
+        describe: 'readonly',
+        test: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly'
+      }
+    },
+    rules: {
+      'no-console': 'off'
+    }
+  },
+  // Test files (TypeScript)
+  {
+    files: ['test/**/*.ts', '**/*.test.ts'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -126,6 +148,9 @@ module.exports = [
         beforeAll: 'readonly',
         afterAll: 'readonly'
       }
+    },
+    plugins: {
+      '@typescript-eslint': tseslint
     },
     rules: {
       'no-console': 'off',

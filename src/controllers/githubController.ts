@@ -117,7 +117,7 @@ export const handleWebhook: WebhookHandler = async (req, res) => {
     // Validate request body structure for webhook processing
     // Use Object.prototype.toString for secure type checking to prevent bypass
     const bodyType = Object.prototype.toString.call(req.body);
-    if (bodyType !== '[object Object]' || req.body === null || req.body === undefined) {
+    if (bodyType !== '[object Object]') {
       logger.error('Webhook request missing or invalid body structure');
       return res.status(400).json({ error: 'Missing or invalid request body' });
     }

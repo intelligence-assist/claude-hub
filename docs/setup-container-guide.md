@@ -6,6 +6,8 @@ The setup container method allows Claude Max subscribers to use their existing s
 
 Traditional Claude CLI usage requires interactive sessions. This setup container captures the complete authentication state, including OAuth tokens and session data, making it portable to non-interactive environments.
 
+**Note**: Claude Code access is only available with Claude Max subscriptions (5x at $100/month or 20x at $200/month). Claude Pro ($20/month) does not include Claude Code access.
+
 ## How It Works
 
 ```mermaid
@@ -34,10 +36,10 @@ graph TD
 
 ## Architecture Benefits
 
-### For Claude Max/20x Subscribers
+### For Claude Max Subscribers (5x or 20x Plans)
 - **Massive Cost Savings**: Use subscription instead of pay-per-token
-- **Full Feature Access**: All subscription benefits (speed, priority)
-- **No Usage Anxiety**: Use existing subscription limits
+- **Full Feature Access**: All subscription benefits including Claude Code access
+- **High Usage Limits**: 5x or 20x more usage than Claude Pro
 
 ### Technical Advantages
 - **OAuth Security**: No API keys in environment variables

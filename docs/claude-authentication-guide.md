@@ -14,7 +14,7 @@ This guide covers three authentication methods for using Claude with the webhook
 
 ## 🐳 Option 1: Setup Container (Development/Personal)
 
-**Best for:** Developers with Claude Max subscriptions who want to use their existing subscription for automation. Note: Claude Code is not included with Claude Pro plans.
+**Best for:** Developers with Claude Max subscriptions (5x or 20x plans) who want to use their existing subscription for automation. Note: Claude Code is not included with Claude Pro plans.
 
 ### Advantages
 - ✅ **Cost-effective**: Use your existing Claude subscription
@@ -220,8 +220,12 @@ AWS_PROFILE=your-profile-name
 ## 📊 Cost Comparison
 
 ### Setup Container (Personal/Development)
-- **Claude Max**: Fixed monthly subscription cost
-- **Claude 20x**: Fixed monthly subscription cost (higher performance)
+- **Claude Max 5x**: $100/month (5x Pro usage limits, includes Claude Code)
+  - ~225 messages every 5 hours for short conversations
+  - ~50-200 Claude Code prompts every 5 hours
+- **Claude Max 20x**: $200/month (20x Pro usage limits, includes Claude Code)
+  - ~900 messages every 5 hours for short conversations
+  - ~200-800 Claude Code prompts every 5 hours
 - **Perfect for**: Individual developers, hobbyists, development workflows
 
 ### ANTHROPIC_API_KEY (Production)
@@ -292,7 +296,7 @@ AWS_PROFILE=production-claude
 ## 🎯 Recommendations by Use Case
 
 ### Individual Developer
-- **Start with**: Setup Container (use your Claude Max subscription)
+- **Start with**: Setup Container (use your Claude Max 5x or 20x subscription)
 - **Upgrade to**: API Key if you need higher stability
 
 ### Small Team

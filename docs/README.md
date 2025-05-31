@@ -7,7 +7,7 @@ Welcome to the Claude GitHub Webhook service documentation! This service enables
 ### For Developers with Claude Subscriptions
 **💡 Recommended for personal projects and development**
 
-You can use your existing Claude Max or Claude 20x subscription instead of paying API fees:
+You can use your existing Claude Max subscription (5x or 20x plans) instead of paying API fees:
 
 1. **[Setup Container Authentication](./setup-container-guide.md)** - Use your subscription for automation
 2. **[Complete Authentication Guide](./claude-authentication-guide.md)** - All authentication methods
@@ -27,7 +27,7 @@ You can use your existing Claude Max or Claude 20x subscription instead of payin
 - **CLI Access**: Direct command-line interface for testing
 
 ### Authentication Flexibility
-- **Personal**: Use Claude Max/20x subscriptions via setup container
+- **Personal**: Use Claude Max subscriptions (5x or 20x plans) via setup container
 - **Production**: ANTHROPIC_API_KEY for stable production usage
 - **Enterprise**: AWS Bedrock integration for compliance and scale
 
@@ -69,11 +69,11 @@ You can use your existing Claude Max or Claude 20x subscription instead of payin
 
 | Usage Level | Setup Container | API Key | AWS Bedrock |
 |-------------|-----------------|---------|-------------|
-| **Light** (< 1M tokens/month) | Fixed subscription cost | ~$15/month | ~$20/month |
-| **Medium** (1-10M tokens/month) | Fixed subscription cost | $150-1500/month | $150-1500/month |
-| **Heavy** (10M+ tokens/month) | Fixed subscription cost | $1500+/month | $1500+/month |
+| **Light** (< 1M tokens/month) | $100-200/month (Max 5x/20x) | ~$15/month | ~$20/month |
+| **Medium** (1-10M tokens/month) | $100-200/month (Max 5x/20x) | $150-1500/month | $150-1500/month |
+| **Heavy** (10M+ tokens/month) | $100-200/month (Max 5x/20x) | $1500+/month | $1500+/month |
 
-**💡 Pro Tip**: If you're already paying for Claude Max or Claude 20x subscriptions, the setup container method lets you use your existing subscription for automation at no additional cost!
+**💡 Pro Tip**: If you're already paying for Claude Max subscriptions (5x or 20x plans), the setup container method lets you use your existing subscription for automation at no additional cost!
 
 ## 🎯 Use Case Recommendations
 

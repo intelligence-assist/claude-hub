@@ -100,7 +100,7 @@ This service supports three authentication methods for different use cases:
 | **AWS Bedrock** | Enterprise | Enterprise pricing | [Authentication Guide](./docs/claude-authentication-guide.md) |
 
 #### Quick Start: Setup Container (Personal/Development)
-For Claude Max/20x subscribers wanting to use their subscription for automation:
+For Claude Max subscribers (5x or 20x plans) wanting to use their subscription for automation:
 
 ```bash
 # 1. Run interactive authentication setup

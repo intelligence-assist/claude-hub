@@ -14,7 +14,7 @@ This guide covers three authentication methods for using Claude with the webhook
 
 ## 🐳 Option 1: Setup Container (Development/Personal)
 
-**Best for:** Developers with Claude Max subscriptions (5x or 20x plans) who want to use their existing subscription for automation. Note: Claude Code is not included with Claude Pro plans.
+**Best for:** Developers with Claude Max subscriptions (10x or 20x plans) who want to use their existing subscription for automation. Note: Claude Code is not included with Claude Pro plans.
 
 ### Advantages
 - ✅ **Cost-effective**: Use your existing Claude subscription

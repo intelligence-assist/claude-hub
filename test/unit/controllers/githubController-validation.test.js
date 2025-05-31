@@ -58,7 +58,8 @@ describe('GitHub Controller - Webhook Validation', () => {
       mockReq = {
         headers: {
           'x-github-event': 'issues',
-          'x-github-delivery': 'test-delivery'
+          'x-github-delivery': 'test-delivery',
+          'x-hub-signature-256': 'sha256=test-signature'
         },
         body: null
       };
@@ -75,7 +76,8 @@ describe('GitHub Controller - Webhook Validation', () => {
       mockReq = {
         headers: {
           'x-github-event': 'issues',
-          'x-github-delivery': 'test-delivery'
+          'x-github-delivery': 'test-delivery',
+          'x-hub-signature-256': 'sha256=test-signature'
         },
         body: 'invalid-string-body'
       };
@@ -92,7 +94,8 @@ describe('GitHub Controller - Webhook Validation', () => {
       mockReq = {
         headers: {
           'x-github-event': 'ping',
-          'x-github-delivery': 'test-delivery'
+          'x-github-delivery': 'test-delivery',
+          'x-hub-signature-256': 'sha256=test-signature'
         },
         body: {
           zen: 'Non-blocking is better than blocking.',
@@ -116,7 +119,8 @@ describe('GitHub Controller - Webhook Validation', () => {
       mockReq = {
         headers: {
           'x-github-event': 'issues',
-          'x-github-delivery': 'test-delivery'
+          'x-github-delivery': 'test-delivery',
+          'x-hub-signature-256': 'sha256=test-signature'
         },
         body: {
           action: 'opened',
@@ -163,7 +167,8 @@ describe('GitHub Controller - Webhook Validation', () => {
       mockReq = {
         headers: {
           'x-github-event': 'issues',
-          'x-github-delivery': 'test-delivery'
+          'x-github-delivery': 'test-delivery',
+          'x-hub-signature-256': 'sha256=test-signature'
         },
         body: {
           action: 'opened',
@@ -192,7 +197,8 @@ describe('GitHub Controller - Webhook Validation', () => {
       mockReq = {
         headers: {
           'x-github-event': 'issue_comment',
-          'x-github-delivery': 'test-delivery'
+          'x-github-delivery': 'test-delivery',
+          'x-hub-signature-256': 'sha256=test-signature'
         },
         body: {
           action: 'created',
@@ -223,7 +229,8 @@ describe('GitHub Controller - Webhook Validation', () => {
       mockReq = {
         headers: {
           'x-github-event': 'issue_comment',
-          'x-github-delivery': 'test-delivery'
+          'x-github-delivery': 'test-delivery',
+          'x-hub-signature-256': 'sha256=test-signature'
         },
         body: {
           action: 'created',
@@ -265,7 +272,8 @@ describe('GitHub Controller - Webhook Validation', () => {
       mockReq = {
         headers: {
           'x-github-event': 'issue_comment',
-          'x-github-delivery': 'test-delivery'
+          'x-github-delivery': 'test-delivery',
+          'x-hub-signature-256': 'sha256=test-signature'
         },
         body: {
           action: 'created',
@@ -306,7 +314,8 @@ describe('GitHub Controller - Webhook Validation', () => {
       mockReq = {
         headers: {
           'x-github-event': 'pull_request',
-          'x-github-delivery': 'test-delivery'
+          'x-github-delivery': 'test-delivery',
+          'x-hub-signature-256': 'sha256=test-signature'
         },
         body: {
           action: 'created',
@@ -340,7 +349,8 @@ describe('GitHub Controller - Webhook Validation', () => {
       mockReq = {
         headers: {
           'x-github-event': 'pull_request',
-          'x-github-delivery': 'test-delivery'
+          'x-github-delivery': 'test-delivery',
+          'x-hub-signature-256': 'sha256=test-signature'
         },
         body: {
           action: 'created',

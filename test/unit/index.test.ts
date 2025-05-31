@@ -292,26 +292,6 @@ describe('Express Application', () => {
     });
   });
 
-  describe('Test Tunnel Endpoint', () => {
-    it('should return tunnel test response', async () => {
-      app = getApp();
-      const response = await request(app)
-        .get('/api/test-tunnel')
-        .set('X-Test-Header', 'test-value');
-      
-      expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({
-        status: 'success',
-        message: 'CF tunnel is working!',
-        timestamp: expect.any(String),
-        headers: expect.objectContaining({
-          'x-test-header': 'test-value'
-        })
-      });
-      
-      expect(mockLogger.info).toHaveBeenCalledWith('Test tunnel endpoint hit');
-    });
-  });
 
   describe('Error Handling', () => {
     it('should handle 404 errors', async () => {

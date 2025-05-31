@@ -14,23 +14,23 @@ mkdir -p /workspace
 chown -R node:node /workspace
 
 # Set up Claude authentication by syncing from captured auth directory
-if [ -d "/claude-auth-source" ]; then
-  echo "Setting up Claude authentication from captured auth directory..." >&2
+if [ -d "/home/node/.claude" ]; then
+  echo "Setting up Claude authentication from mounted auth directory..." >&2
   
   # Create a writable copy of Claude configuration in workspace
   CLAUDE_WORK_DIR="/workspace/.claude"
   mkdir -p "$CLAUDE_WORK_DIR"
   
   echo "DEBUG: Source auth directory contents:" >&2
-  ls -la /claude-auth-source/ >&2 || echo "DEBUG: Source auth directory not accessible" >&2
+  ls -la /home/node/.claude/ >&2 || echo "DEBUG: Source auth directory not accessible" >&2
   
   # Sync entire auth directory to writable location (including database files, project state, etc.)
   if command -v rsync >/dev/null 2>&1; then
-    rsync -av /claude-auth-source/ "$CLAUDE_WORK_DIR/" 2>/dev/null || echo "rsync failed, trying cp" >&2
+    rsync -av /home/node/.claude/ "$CLAUDE_WORK_DIR/" 2>/dev/null || echo "rsync failed, trying cp" >&2
   else
     # Fallback to cp with comprehensive copying
-    cp -r /claude-auth-source/* "$CLAUDE_WORK_DIR/" 2>/dev/null || true
-    cp -r /claude-auth-source/.* "$CLAUDE_WORK_DIR/" 2>/dev/null || true
+    cp -r /home/node/.claude/* "$CLAUDE_WORK_DIR/" 2>/dev/null || true
+    cp -r /home/node/.claude/.* "$CLAUDE_WORK_DIR/" 2>/dev/null || true
   fi
   
   echo "DEBUG: Working directory contents after sync:" >&2
@@ -45,10 +45,8 @@ if [ -d "/claude-auth-source" ]; then
   ls -la "$CLAUDE_WORK_DIR/.credentials.json" >&2 || echo "DEBUG: .credentials.json not found" >&2
   
   echo "Claude authentication directory synced to $CLAUDE_WORK_DIR" >&2
-elif [ -d "/home/node/.claude" ]; then
-  echo "WARNING: Found /home/node/.claude but no /claude-auth-source. This might use your personal auth." >&2
 else
-  echo "WARNING: No Claude authentication source found." >&2
+  echo "WARNING: No Claude authentication source found at /home/node/.claude." >&2
 fi
 
 # Configure GitHub authentication

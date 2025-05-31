@@ -389,7 +389,7 @@ function buildDockerArgs({
     const absoluteAuthDir = path.isAbsolute(hostAuthDir) 
       ? hostAuthDir 
       : path.resolve(process.cwd(), hostAuthDir);
-    dockerArgs.push('-v', `${absoluteAuthDir}:/claude-auth-source:ro`);
+    dockerArgs.push('-v', `${absoluteAuthDir}:/home/node/.claude`);
   }
 
   // Add environment variables as separate arguments

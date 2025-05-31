@@ -97,6 +97,12 @@ jobs:
     needs: [test-unit]
     
     steps:
+    - name: Clean workspace
+      run: |
+        # Fix any existing coverage file permissions before checkout
+        sudo find . -name "coverage" -type d -exec chmod -R 755 {} \; 2>/dev/null || true
+        sudo rm -rf coverage 2>/dev/null || true
+        
     - name: Checkout code
       uses: actions/checkout@v4
       with:

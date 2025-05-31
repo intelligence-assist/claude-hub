@@ -13,6 +13,44 @@ set -e
 mkdir -p /workspace
 chown -R node:node /workspace
 
+# Set up Claude authentication by syncing from captured auth directory
+if [ -d "/claude-auth-source" ]; then
+  echo "Setting up Claude authentication from captured auth directory..." >&2
+  
+  # Create a writable copy of Claude configuration in workspace
+  CLAUDE_WORK_DIR="/workspace/.claude"
+  mkdir -p "$CLAUDE_WORK_DIR"
+  
+  echo "DEBUG: Source auth directory contents:" >&2
+  ls -la /claude-auth-source/ >&2 || echo "DEBUG: Source auth directory not accessible" >&2
+  
+  # Sync entire auth directory to writable location (including database files, project state, etc.)
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -av /claude-auth-source/ "$CLAUDE_WORK_DIR/" 2>/dev/null || echo "rsync failed, trying cp" >&2
+  else
+    # Fallback to cp with comprehensive copying
+    cp -r /claude-auth-source/* "$CLAUDE_WORK_DIR/" 2>/dev/null || true
+    cp -r /claude-auth-source/.* "$CLAUDE_WORK_DIR/" 2>/dev/null || true
+  fi
+  
+  echo "DEBUG: Working directory contents after sync:" >&2
+  ls -la "$CLAUDE_WORK_DIR/" >&2 || echo "DEBUG: Working directory not accessible" >&2
+  
+  # Set proper ownership and permissions for the node user
+  chown -R node:node "$CLAUDE_WORK_DIR"
+  chmod 600 "$CLAUDE_WORK_DIR"/.credentials.json 2>/dev/null || true
+  chmod 755 "$CLAUDE_WORK_DIR" 2>/dev/null || true
+  
+  echo "DEBUG: Final permissions check:" >&2
+  ls -la "$CLAUDE_WORK_DIR/.credentials.json" >&2 || echo "DEBUG: .credentials.json not found" >&2
+  
+  echo "Claude authentication directory synced to $CLAUDE_WORK_DIR" >&2
+elif [ -d "/home/node/.claude" ]; then
+  echo "WARNING: Found /home/node/.claude but no /claude-auth-source. This might use your personal auth." >&2
+else
+  echo "WARNING: No Claude authentication source found." >&2
+fi
+
 # Configure GitHub authentication
 if [ -n "${GITHUB_TOKEN}" ]; then
   export GH_TOKEN="${GITHUB_TOKEN}"
@@ -45,8 +83,26 @@ fi
 sudo -u node git config --global user.email "${BOT_EMAIL:-claude@example.com}"
 sudo -u node git config --global user.name "${BOT_USERNAME:-ClaudeBot}"
 
-# Configure Anthropic API key
-export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"
+# Configure Claude authentication
+# Support both API key and interactive auth methods
+echo "DEBUG: Checking authentication options..." >&2
+echo "DEBUG: ANTHROPIC_API_KEY set: $([ -n "${ANTHROPIC_API_KEY}" ] && echo 'YES' || echo 'NO')" >&2
+echo "DEBUG: /workspace/.claude/.credentials.json exists: $([ -f "/workspace/.claude/.credentials.json" ] && echo 'YES' || echo 'NO')" >&2
+echo "DEBUG: /workspace/.claude contents:" >&2
+ls -la /workspace/.claude/ >&2 || echo "DEBUG: /workspace/.claude directory not found" >&2
+
+if [ -n "${ANTHROPIC_API_KEY}" ]; then
+  echo "Using Anthropic API key for authentication..." >&2
+  export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"
+elif [ -f "/workspace/.claude/.credentials.json" ]; then
+  echo "Using Claude interactive authentication from working directory..." >&2
+  # No need to set ANTHROPIC_API_KEY - Claude CLI will use the credentials file
+  # Set HOME to point to our working directory for Claude CLI
+  export CLAUDE_HOME="/workspace/.claude"
+  echo "DEBUG: Set CLAUDE_HOME to $CLAUDE_HOME" >&2
+else
+  echo "WARNING: No Claude authentication found. Please set ANTHROPIC_API_KEY or ensure ~/.claude is mounted." >&2
+fi
 
 # Create response file with proper permissions
 RESPONSE_FILE="/workspace/response.txt"
@@ -65,9 +121,18 @@ fi
 # Log the command length for debugging
 echo "Command length: ${#COMMAND}" >&2
 
-# Run Claude Code
+# Run Claude Code with proper HOME environment
+# If we synced Claude auth to workspace, use workspace as HOME
+if [ -f "/workspace/.claude/.credentials.json" ]; then
+  CLAUDE_USER_HOME="/workspace"
+  echo "DEBUG: Using /workspace as HOME for Claude CLI (synced auth)" >&2
+else
+  CLAUDE_USER_HOME="${CLAUDE_HOME:-/home/node}"
+  echo "DEBUG: Using $CLAUDE_USER_HOME as HOME for Claude CLI (fallback)" >&2
+fi
+
 sudo -u node -E env \
-    HOME="/home/node" \
+    HOME="$CLAUDE_USER_HOME" \
     PATH="/usr/local/bin:/usr/local/share/npm-global/bin:$PATH" \
     ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
     GH_TOKEN="${GITHUB_TOKEN}" \

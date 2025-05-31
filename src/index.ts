@@ -15,6 +15,14 @@ import type {
 import { execSync } from 'child_process';
 
 const app = express();
+
+// Configure trust proxy setting based on environment
+// Set TRUST_PROXY=true when running behind reverse proxies (nginx, cloudflare, etc.)
+const trustProxy = process.env['TRUST_PROXY'] === 'true';
+if (trustProxy) {
+  app.set('trust proxy', true);
+}
+
 const PORT = parseInt(process.env['PORT'] ?? '3003', 10);
 const appLogger = createLogger('app');
 const startupMetrics = new StartupMetrics();

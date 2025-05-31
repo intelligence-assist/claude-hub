@@ -91,25 +91,22 @@ Use the demo repository for testing auto-tagging and webhook functionality:
 
 ### Claude Authentication Options
 
-This service supports three authentication methods for different use cases:
+This service supports three authentication methods:
 
-| Method | Best For | Cost | Documentation |
-|--------|----------|------|---------------|
-| **Setup Container** | Development/Personal (subscription users) | Fixed subscription cost | [Setup Container Guide](./docs/setup-container-guide.md) |
-| **ANTHROPIC_API_KEY** | Production/Team | Pay-per-use (high cost) | [Authentication Guide](./docs/claude-authentication-guide.md) |
-| **AWS Bedrock** | Enterprise | Enterprise pricing | [Authentication Guide](./docs/claude-authentication-guide.md) |
+- **Setup Container**: Personal subscription authentication - [Setup Container Guide](./docs/setup-container-guide.md)
+- **ANTHROPIC_API_KEY**: Direct API key authentication - [Authentication Guide](./docs/claude-authentication-guide.md)
+- **AWS Bedrock**: Enterprise AWS integration - [Authentication Guide](./docs/claude-authentication-guide.md)
 
-#### Quick Start: Setup Container (Personal/Development)
-For Claude Max subscribers (5x or 20x plans) wanting to use their subscription for automation:
+#### Quick Start: Setup Container
+For personal subscription users:
 
 ```bash
 # 1. Run interactive authentication setup
 ./scripts/setup/setup-claude-interactive.sh
 
 # 2. In container: authenticate with your subscription
-claude login  # Follow browser flow
-claude status # Verify
-exit          # Save authentication
+claude --dangerously-skip-permissions  # Follow authentication flow
+exit                                    # Save authentication
 
 # 3. Test captured authentication
 ./scripts/setup/test-claude-auth.sh

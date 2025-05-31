@@ -6,7 +6,7 @@ The setup container method captures Claude CLI authentication state for use in a
 
 Claude CLI requires interactive authentication. This container approach captures the authentication state from an interactive session and makes it available for automated use.
 
-**Prerequisites**: Claude Code access requires Claude Max subscriptions. Claude Pro plans do not include Claude Code access.
+**Prerequisites**: Requires active Claude Code subscription.
 
 ## How It Works
 
@@ -21,7 +21,7 @@ graph TD
 
 ### 1. Interactive Authentication
 - Clean container environment with Claude CLI installed
-- User runs `claude login` and completes browser authentication
+- User runs `claude --dangerously-skip-permissions` and completes authentication
 - OAuth tokens and session data stored in `~/.claude`
 
 ### 2. State Capture
@@ -30,7 +30,7 @@ graph TD
 - Preserves all authentication context
 
 ### 3. Production Mount
-- Captured authentication mounted read-only in production containers
+- Captured authentication mounted in production containers
 - Working copy created for each execution to avoid state conflicts
 - OAuth tokens used automatically by Claude CLI
 
@@ -83,7 +83,7 @@ The setup container captures all essential Claude authentication files:
 ## Token Lifecycle and Management
 
 ### Token Expiration Timeline
-Based on testing, Claude OAuth tokens typically expire within **8-12 hours**:
+Claude OAuth tokens typically expire within **8-12 hours**:
 - **Access tokens**: Short-lived (8-12 hours)
 - **Refresh tokens**: Longer-lived but also expire
 - **Automatic refresh**: Claude CLI attempts to refresh when needed
@@ -115,8 +115,7 @@ However, refresh tokens themselves eventually expire, requiring **full re-authen
 - Monitor for expired token errors in logs
 
 **Re-authentication**
-- Required when OAuth tokens expire (typically every few days to weeks)
-- Refresh tokens also expire and require full re-authentication
+- Required when OAuth tokens expire
 - Test authentication validity after updates
 
 ### Current Limitations
@@ -139,17 +138,6 @@ However, refresh tokens themselves eventually expire, requiring **full re-authen
 ./claude-auth-test → test container
 ```
 
-### Team Sharing
-```bash
-# Capture authentication
-./scripts/setup/setup-claude-interactive.sh
-
-# Share auth directory (be cautious with tokens)
-tar -czf claude-auth.tar.gz ${CLAUDE_HUB_DIR:-~/.claude-hub}/
-
-# Deploy to team environments
-```
-
 ## Security Considerations
 
 ### Token Protection
@@ -158,7 +146,7 @@ tar -czf claude-auth.tar.gz ${CLAUDE_HUB_DIR:-~/.claude-hub}/
 - Rotate regularly by re-authenticating
 
 ### Container Security
-- Mount authentication read-only
+- Mount authentication with appropriate permissions
 - Use minimal container privileges
 - Avoid logging sensitive data
 
@@ -176,7 +164,7 @@ tar -czf claude-auth.tar.gz ${CLAUDE_HUB_DIR:-~/.claude-hub}/
 
 # Verify token validity
 docker run --rm -v "./${CLAUDE_HUB_DIR:-~/.claude-hub}:/home/node/.claude:ro" \
-  claude-setup:latest claude status
+  claude-setup:latest claude --dangerously-skip-permissions
 ```
 
 ### Refresh Workflow
@@ -196,7 +184,7 @@ docker compose restart webhook
 #### 1. Empty .credentials.json
 **Symptom**: Authentication fails, file exists but is 0 bytes
 **Cause**: Interactive authentication wasn't completed
-**Solution**: Re-run setup container and complete browser flow
+**Solution**: Re-run setup container and complete authentication flow
 
 #### 2. Permission Errors
 **Symptom**: "Permission denied" accessing .credentials.json
@@ -224,53 +212,12 @@ docker run --rm -v "$(pwd)/${CLAUDE_HUB_DIR:-~/.claude-hub}:/tmp/auth:ro" \
   --entrypoint="" claude-setup:latest \
   bash -c "cp -r /tmp/auth /home/node/.claude && 
            sudo -u node env HOME=/home/node \
-           /usr/local/share/npm-global/bin/claude --print 'test'"
+           /usr/local/share/npm-global/bin/claude --dangerously-skip-permissions --print 'test'"
 
 # Verify OAuth tokens
 cat ${CLAUDE_HUB_DIR:-~/.claude-hub}/.credentials.json | jq '.claudeAiOauth'
 ```
 
-
-### Community Contributions
-- **Authentication sharing**: Secure team auth distribution
-- **Cloud storage**: Store auth in encrypted cloud storage
-- **CI/CD integration**: Automated auth setup in pipelines
-
-## Cost Analysis for $200/month Users
-
-### Traditional API Approach
-- **Claude 3.5 Sonnet**: ~$15 per million tokens
-- **Heavy usage**: Easily $500+ per month
-- **Usage anxiety**: Every request costs money
-
-### Setup Container Approach
-- **Fixed cost**: $200/month for Claude 20x
-- **Unlimited usage**: Within subscription limits
-- **Peace of mind**: No per-request charging
-
-### Break-even Analysis
-If you would use more than ~13 million tokens per month, the setup container approach with Claude 20x subscription becomes cost-effective while providing better performance and unlimited usage.
-
-## Real-world Applications
-
-### Development Workflows
-- **Code review automation**: PR reviews without API costs
-- **Issue auto-tagging**: Unlimited issue processing
-- **Documentation generation**: Bulk doc creation
-- **Test case generation**: Comprehensive test coverage
-
-### Personal Projects
-- **GitHub automation**: Personal repository management
-- **Content creation**: Blog posts, documentation
-- **Learning projects**: Educational coding assistance
-- **Prototyping**: Rapid development iteration
-
-### Small Business
-- **Customer support**: Automated responses
-- **Content moderation**: Community management
-- **Documentation**: Internal knowledge base
-- **Training**: Employee onboarding assistance
-
 ---
 
-*The setup container approach democratizes Claude automation for subscription users, making enterprise-level AI automation accessible at subscription pricing.*
+*The setup container approach provides a technical solution for capturing and reusing Claude CLI authentication in automated environments.*

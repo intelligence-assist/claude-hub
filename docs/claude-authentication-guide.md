@@ -1,31 +1,20 @@
 # Claude Authentication Guide
 
-This guide covers three authentication methods for using Claude with the webhook service, each designed for different use cases and requirements.
+This guide covers three authentication methods for using Claude with the webhook service.
 
 ## Authentication Methods Overview
 
-| Method | Best For | Cost | Stability | Setup Complexity |
-|--------|----------|------|-----------|------------------|
-| **Setup Container** | Development/Personal | Fixed subscription | Good | Medium |
-| **ANTHROPIC_API_KEY** | Production/Team | High usage costs | Excellent | Low |
-| **AWS Bedrock** | Enterprise | Moderate | Excellent | High |
+| Method | Use Case | Setup Complexity |
+|--------|----------|------------------|
+| **Setup Container** | Personal development | Medium |
+| **ANTHROPIC_API_KEY** | Production environments | Low |
+| **AWS Bedrock** | Enterprise integration | High |
 
 ---
 
-## 🐳 Option 1: Setup Container (Development/Personal)
+## 🐳 Option 1: Setup Container (Personal Development)
 
-**Best for:** Developers with Claude Max subscriptions (10x or 20x plans) who want to use their existing subscription for automation. Note: Claude Code is not included with Claude Pro plans.
-
-### Advantages
-- ✅ **Cost-effective**: Use your existing Claude subscription
-- ✅ **Full feature access**: Access to latest models included in subscription
-- ✅ **No API key management**: Uses OAuth tokens
-- ✅ **Reusable authentication**: Capture once, use everywhere
-
-### Limitations
-- ⚠️ **Less stable**: OAuth tokens may expire
-- ⚠️ **Development-focused**: Not recommended for high-volume production
-- ⚠️ **Setup required**: Requires interactive authentication
+Uses personal Claude Code subscription for authentication.
 
 ### Setup Process
 
@@ -38,10 +27,8 @@ This guide covers three authentication methods for using Claude with the webhook
 When the container starts:
 ```bash
 # In the container shell:
-claude login
-# Follow browser authentication flow
-claude status  # Verify authentication
-exit          # Save authentication state
+claude --dangerously-skip-permissions  # Follow authentication flow
+exit                                   # Save authentication state
 ```
 
 #### 3. Test Captured Authentication
@@ -56,35 +43,24 @@ cp -r ${CLAUDE_HUB_DIR:-~/.claude-hub}/* ~/.claude/
 
 # Option B: Mount in docker-compose
 # Update docker-compose.yml:
-# - ./${CLAUDE_HUB_DIR:-~/.claude-hub}:/home/node/.claude:ro
+# - ./${CLAUDE_HUB_DIR:-~/.claude-hub}:/home/node/.claude
 ```
 
 #### 5. Verify Setup
 ```bash
-# Test webhook with your subscription
-node cli/webhook-cli.js --repo "owner/repo" --command "Test my Claude subscription" --url "http://localhost:8082"
+node cli/webhook-cli.js --repo "owner/repo" --command "Test authentication" --url "http://localhost:8082"
 ```
 
 ### Troubleshooting
-- **OAuth tokens expire**: Re-run authentication setup when needed
+- **Tokens expire**: Re-run authentication setup when needed
 - **File permissions**: Ensure `.credentials.json` is readable by container user
 - **Mount issues**: Verify correct path in docker-compose volume mounts
 
 ---
 
-## 🔑 Option 2: ANTHROPIC_API_KEY (Production/Team)
+## 🔑 Option 2: ANTHROPIC_API_KEY (Production)
 
-**Best for:** Production environments, team usage, or when you need guaranteed stability and higher rate limits.
-
-### Advantages
-- ✅ **Highly stable**: Direct API key authentication
-- ✅ **Higher limits**: Production-grade rate limits
-- ✅ **Simple setup**: Just set environment variable
-- ✅ **Team-friendly**: Multiple developers can use same key
-
-### Limitations
-- 💰 **High costs**: Pay-per-use pricing can be expensive
-- 🔒 **Requires API access**: Need Anthropic Console access
+Direct API key authentication for production environments.
 
 ### Setup Process
 
@@ -112,26 +88,13 @@ node cli/webhook-cli.js --repo "owner/repo" --command "Test API key authenticati
 ### Best Practices
 - **Key rotation**: Regularly rotate API keys
 - **Environment security**: Never commit keys to version control
-- **Usage monitoring**: Monitor API usage and costs
-- **Rate limiting**: Implement appropriate rate limiting for your use case
+- **Usage monitoring**: Monitor API usage through Anthropic Console
 
 ---
 
 ## ☁️ Option 3: AWS Bedrock (Enterprise)
 
-**Best for:** Enterprise deployments, AWS-integrated environments, or when you need the highest stability and compliance.
-
-### Advantages
-- ✅ **Enterprise-grade**: Highest stability and reliability
-- ✅ **AWS integration**: Works with existing AWS infrastructure
-- ✅ **Compliance**: Meets enterprise security requirements
-- ✅ **Cost predictable**: More predictable pricing models
-- ✅ **Regional deployment**: Data residency control
-
-### Limitations
-- 🔧 **Complex setup**: Requires AWS configuration
-- 📋 **AWS knowledge**: Requires familiarity with AWS services
-- 🏢 **Enterprise-focused**: May be overkill for individual developers
+AWS-integrated Claude access for enterprise deployments.
 
 ### Setup Process
 
@@ -160,7 +123,6 @@ AWS_PROFILE=claude-webhook
 
 #### 3. Verify Bedrock Access
 ```bash
-# Test AWS Bedrock access
 aws bedrock list-foundation-models --region us-east-1
 ```
 
@@ -174,15 +136,9 @@ docker compose restart webhook
 node cli/webhook-cli.js --repo "owner/repo" --command "Test Bedrock authentication" --url "http://localhost:8082"
 ```
 
-### Available Models
-- `us.anthropic.claude-3-7-sonnet-20250219-v1:0` - Latest Claude 3.5 Sonnet
-- `us.anthropic.claude-3-5-haiku-20241022-v1:0` - Claude 3.5 Haiku (faster/cheaper)
-- `us.anthropic.claude-3-opus-20240229-v1:0` - Claude 3 Opus (most capable)
-
 ### Best Practices
 - **IAM policies**: Use minimal required permissions
-- **Regional selection**: Choose region closest to your users
-- **Cost monitoring**: Set up CloudWatch billing alerts
+- **Regional selection**: Choose appropriate AWS region
 - **Access logging**: Enable CloudTrail for audit compliance
 
 ---
@@ -217,40 +173,15 @@ AWS_PROFILE=your-profile-name
 
 ---
 
-## 📊 Cost Comparison
-
-### Setup Container (Personal/Development)
-- **Claude Max 5x**: $100/month (5x Pro usage limits, includes Claude Code)
-  - ~225 messages every 5 hours for short conversations
-  - ~50-200 Claude Code prompts every 5 hours
-- **Claude Max 20x**: $200/month (20x Pro usage limits, includes Claude Code)
-  - ~900 messages every 5 hours for short conversations
-  - ~200-800 Claude Code prompts every 5 hours
-- **Perfect for**: Individual developers, hobbyists, development workflows
-
-### ANTHROPIC_API_KEY (Production)
-- **Pricing**: Pay-per-token usage
-- **Claude 3.5 Sonnet**: ~$15 per million tokens
-- **High volume**: Can easily exceed $100s/month
-- **Perfect for**: Production applications, team environments
-
-### AWS Bedrock (Enterprise)
-- **Pricing**: Pay-per-token with enterprise features
-- **Claude 3.5 Sonnet**: Similar to API pricing
-- **Additional costs**: AWS infrastructure, data transfer
-- **Perfect for**: Enterprise deployments, compliance requirements
-
----
-
 ## 🛠️ Switching Between Methods
 
-You can easily switch between authentication methods by updating your `.env` file:
+You can switch between authentication methods by updating your `.env` file:
 
 ```bash
 # Development with personal subscription
 # Comment out API key, ensure ~/.claude is mounted
 # ANTHROPIC_API_KEY=
-# Mount: ~/.claude:/home/node/.claude:ro
+# Mount: ~/.claude:/home/node/.claude
 
 # Production with API key
 ANTHROPIC_API_KEY=sk-ant-your-production-key
@@ -270,17 +201,12 @@ AWS_PROFILE=production-claude
 1. Check environment variables are set correctly
 2. Verify API keys are valid and not expired
 3. For Bedrock: Ensure AWS credentials have correct permissions
-4. For setup container: Re-run authentication if OAuth tokens expired
+4. For setup container: Re-run authentication if tokens expired
 
 ### Rate Limiting
-- **API Key**: Contact Anthropic for rate limit increases
+- **API Key**: Contact Anthropic for rate limit information
 - **Bedrock**: Configure AWS throttling settings
 - **Setup Container**: Limited by subscription tier
-
-### Cost Monitoring
-- **API Key**: Monitor usage in Anthropic Console
-- **Bedrock**: Set up AWS billing alerts
-- **Setup Container**: Covered by subscription
 
 ---
 
@@ -293,20 +219,4 @@ AWS_PROFILE=production-claude
 
 ---
 
-## 🎯 Recommendations by Use Case
-
-### Individual Developer
-- **Start with**: Setup Container (use your Claude Max 5x or 20x subscription)
-- **Upgrade to**: API Key if you need higher stability
-
-### Small Team
-- **Recommended**: ANTHROPIC_API_KEY with cost monitoring
-- **Alternative**: Multiple setup containers for development
-
-### Enterprise
-- **Recommended**: AWS Bedrock with full compliance setup
-- **Alternative**: ANTHROPIC_API_KEY with enterprise support contract
-
----
-
-*This guide covers all authentication methods for the Claude GitHub Webhook service. Choose the method that best fits your needs, budget, and technical requirements.*
+*This guide covers all authentication methods for the Claude GitHub Webhook service. Choose the method that best fits your technical requirements.*

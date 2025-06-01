@@ -37,8 +37,9 @@ jobs:
     - uses: trufflesecurity/trufflehog@main
       with:
         path: ./
-        base: main
-        head: HEAD
+        base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        extra_args: --debug --only-verified
 
   build:
     runs-on: [self-hosted, docker]

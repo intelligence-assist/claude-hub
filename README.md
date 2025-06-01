@@ -1,6 +1,6 @@
 # Claude GitHub Webhook
 
-[![Discord](https://img.shields.io/discord/1377708770209304676?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/yb7hwQjTFg)
+[![Discord](https://img.shields.io/discord/1377708770209304676?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.com/widget?id=1377708770209304676&theme=dark)
 [![Main Pipeline](https://github.com/claude-did-this/claude-hub/actions/workflows/main.yml/badge.svg)](https://github.com/claude-did-this/claude-hub/actions/workflows/main.yml)
 [![Security Scans](https://github.com/claude-did-this/claude-hub/actions/workflows/security.yml/badge.svg)](https://github.com/claude-did-this/claude-hub/actions/workflows/security.yml)
 [![Jest Tests](https://img.shields.io/badge/tests-jest-green)](test/README.md)
@@ -10,7 +10,7 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-🚀 **[Quick Start Guide](./QUICKSTART.md)** | 💬 **[Discord](https://discord.gg/yb7hwQjTFg)** | 📚 **[Documentation](https://claude-did-this.com/claude-hub/overview)** | 📖 **[Complete Setup](./docs/complete-workflow.md)** | 🔐 **[Authentication](./docs/claude-authentication-guide.md)**
+🚀 **[Quick Start Guide](./QUICKSTART.md)** | 💬 **[Discord](https://discord.com/widget?id=1377708770209304676&theme=dark)** | 📚 **[Documentation](https://claude-did-this.com/claude-hub/overview)** | 📖 **[Complete Setup](./docs/complete-workflow.md)** | 🔐 **[Authentication](./docs/claude-authentication-guide.md)**
 
 ![Claude GitHub Webhook brain factory - AI brain connected to GitHub octocat via assembly line of Docker containers](./assets/brain_factory.png)
 

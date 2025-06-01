@@ -426,7 +426,10 @@ describe('GitHub Controller - Check Suite Events', () => {
     });
   });
 
-  it.skip('should skip PR review when combined status is not success', async () => {
+  it('should skip PR review when not all check suites are complete', async () => {
+    // Use wait for all checks mode for this test
+    process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS = 'true';
+
     // Setup successful check suite with pull requests
     mockReq.body = {
       action: 'completed',
@@ -459,45 +462,43 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
-    // Mock combined status to return pending
-    githubService.getCombinedStatus.mockResolvedValue({
-      state: 'pending',
-      total_count: 5,
-      statuses: [
-        { context: 'build', state: 'success', description: 'Build passed' },
-        { context: 'tests', state: 'pending', description: 'Tests running' }
+    // Mock that some check suites are still in progress
+    githubService.getCheckSuitesForRef.mockResolvedValue({
+      check_suites: [
+        {
+          id: 12345,
+          app: { name: 'GitHub Actions' },
+          status: 'completed',
+          conclusion: 'success'
+        },
+        {
+          id: 12346,
+          app: { name: 'CodeQL' },
+          status: 'in_progress',
+          conclusion: null
+        }
       ]
     });
 
     await githubController.handleWebhook(mockReq, mockRes);
 
-    // Verify combined status was checked
-    expect(githubService.getCombinedStatus).toHaveBeenCalled();
+    // Verify check suites were queried
+    expect(githubService.getCheckSuitesForRef).toHaveBeenCalled();
 
-    // Verify Claude was NOT called
+    // Verify Claude was NOT called because not all checks are complete
     expect(claudeService.processCommand).not.toHaveBeenCalled();
 
-    // Verify response indicates PR was skipped
+    // Verify simple success response
+    expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
-      success: true,
-      message: 'Check suite processed: 0 reviewed, 0 failed, 1 skipped',
-      context: {
-        repo: 'owner/repo',
-        checkSuite: 12345,
-        conclusion: 'success',
-        results: [
-          {
-            prNumber: 42,
-            success: false,
-            error: null,
-            skippedReason: 'Combined status is pending'
-          }
-        ]
-      }
+      message: 'Webhook processed successfully'
     });
   });
 
-  it.skip('should handle combined status API errors', async () => {
+  it('should handle check suites API errors gracefully', async () => {
+    // Use wait for all checks mode for this test
+    process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS = 'true';
+
     // Setup successful check suite with pull requests
     mockReq.body = {
       action: 'completed',
@@ -530,35 +531,25 @@ describe('GitHub Controller - Check Suite Events', () => {
       }
     };
 
-    // Mock combined status to throw error
-    githubService.getCombinedStatus.mockRejectedValue(new Error('GitHub API error'));
+    // Mock getCheckSuitesForRef to throw error
+    githubService.getCheckSuitesForRef.mockRejectedValue(new Error('GitHub API error'));
 
     await githubController.handleWebhook(mockReq, mockRes);
 
-    // Verify Claude was NOT called
+    // Verify Claude was NOT called due to API error
     expect(claudeService.processCommand).not.toHaveBeenCalled();
 
-    // Verify response indicates failure
+    // Verify simple success response (webhook processing succeeded even if check suites query failed)
+    expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.json).toHaveBeenCalledWith({
-      success: true,
-      message: 'Check suite processed: 0 reviewed, 0 failed, 1 skipped',
-      context: {
-        repo: 'owner/repo',
-        checkSuite: 12345,
-        conclusion: 'success',
-        results: [
-          {
-            prNumber: 42,
-            success: false,
-            error: 'Failed to check status: GitHub API error',
-            skippedReason: 'Status check failed'
-          }
-        ]
-      }
+      message: 'Webhook processed successfully'
     });
   });
 
   it('should skip PR review when already reviewed at same commit', async () => {
+    // Use specific workflow trigger for this test
+    process.env.PR_REVIEW_WAIT_FOR_ALL_CHECKS = 'false';
+
     // Setup successful check suite with pull request
     mockReq.body = {
       action: 'completed',
@@ -590,6 +581,11 @@ describe('GitHub Controller - Check Suite Events', () => {
         name: 'repo'
       }
     };
+
+    // Mock workflow name extraction to match PR_REVIEW_TRIGGER_WORKFLOW
+    githubService.getCheckSuitesForRef.mockResolvedValue({
+      check_runs: [{ name: 'Pull Request CI' }]
+    });
 
     // Mock that PR has already been reviewed at this commit
     githubService.hasReviewedPRAtCommit.mockResolvedValue(true);

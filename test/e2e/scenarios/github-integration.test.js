@@ -70,7 +70,7 @@ conditionalDescribe(
         `,
           env: {
             GITHUB_TOKEN: process.env.GITHUB_TOKEN || 'test-token',
-            REPO_FULL_NAME: 'intelligence-assist/claude-hub'
+            REPO_FULL_NAME: 'claude-did-this/claude-hub'
           },
           timeout: 15000
         });
@@ -117,7 +117,7 @@ conditionalDescribe(
         `,
           env: {
             GITHUB_TOKEN: process.env.GITHUB_TOKEN || 'test-token',
-            REPO_FULL_NAME: 'intelligence-assist/claude-hub',
+            REPO_FULL_NAME: 'claude-did-this/claude-hub',
             ISSUE_NUMBER: '1'
           },
           timeout: 15000
@@ -166,7 +166,7 @@ conditionalDescribe(
         `,
           env: {
             GITHUB_TOKEN: process.env.GITHUB_TOKEN || 'test-token',
-            REPO_FULL_NAME: 'intelligence-assist/claude-hub',
+            REPO_FULL_NAME: 'claude-did-this/claude-hub',
             ISSUE_NUMBER: '1',
             IS_PULL_REQUEST: 'false'
           },

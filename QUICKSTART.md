@@ -18,7 +18,7 @@ Get Claude responding to your GitHub issues in minutes using Cloudflare Tunnel.
 
 ```bash
 # Clone the repository
-git clone https://github.com/intelligence-assist/claude-hub.git
+git clone https://github.com/claude-did-this/claude-hub.git
 cd claude-hub
 
 # Copy the quickstart environment file
@@ -123,7 +123,7 @@ Test it in your own repository by creating an issue and mentioning your bot:
 ## Community & Support
 
 [![Discord](https://img.shields.io/discord/1377708770209304676?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/yb7hwQjTFg)
-[![Documentation](https://img.shields.io/badge/docs-intelligence--assist.com-blue?logo=readthedocs&logoColor=white)](https://docs.intelligence-assist.com/claude-hub/overview)
+[![Documentation](https://img.shields.io/badge/docs-claude--did--this.com-blue?logo=readthedocs&logoColor=white)](https://claude-did-this.com/claude-hub/overview)
 
 Join our Discord server for help, updates, and to share your experience!
 
@@ -138,4 +138,4 @@ Join our Discord server for help, updates, and to share your experience!
 - Re-run: `./scripts/setup/setup-claude-interactive.sh`
 - Ensure you have an active Claude.ai Max plan (5x or 20x)
 
-**Need help?** Ask in our [Discord server](https://discord.gg/yb7hwQjTFg) or check the [full documentation](https://docs.intelligence-assist.com/claude-hub/overview)!
+**Need help?** Ask in our [Discord server](https://discord.gg/yb7hwQjTFg) or check the [full documentation](https://claude-did-this.com/claude-hub/overview)!

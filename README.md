@@ -1,5 +1,6 @@
 # Claude GitHub Webhook
 
+[![Discord](https://img.shields.io/discord/1377708770209304676?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/yb7hwQjTFg)
 [![Main Pipeline](https://github.com/intelligence-assist/claude-hub/actions/workflows/main.yml/badge.svg)](https://github.com/intelligence-assist/claude-hub/actions/workflows/main.yml)
 [![Security Scans](https://github.com/intelligence-assist/claude-hub/actions/workflows/security.yml/badge.svg)](https://github.com/intelligence-assist/claude-hub/actions/workflows/security.yml)
 [![Jest Tests](https://img.shields.io/badge/tests-jest-green)](test/README.md)
@@ -8,6 +9,8 @@
 [![Docker Hub](https://img.shields.io/docker/v/intelligenceassist/claude-hub?label=docker)](https://hub.docker.com/r/intelligenceassist/claude-hub)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+🚀 **[Quick Start Guide](./QUICKSTART.md)** | 💬 **[Discord](https://discord.gg/yb7hwQjTFg)** | 📚 **[Documentation](https://docs.intelligence-assist.com/claude-hub/overview)** | 📖 **[Complete Setup](./docs/complete-workflow.md)** | 🔐 **[Authentication](./docs/claude-authentication-guide.md)**
 
 ![Claude GitHub Webhook brain factory - AI brain connected to GitHub octocat via assembly line of Docker containers](./assets/brain_factory.png)
 
@@ -24,6 +27,47 @@ Deploy Claude Code as a fully autonomous GitHub bot. Create your own bot account
 ```
 
 Claude autonomously handles complete development workflows. It analyzes your entire repository, implements features from scratch, conducts thorough code reviews, manages pull requests, monitors CI/CD pipelines, and responds to automated feedback - all without human intervention. No context switching. No manual oversight required. Just seamless autonomous development where you work.
+
+## 🚀 Quick Start
+
+**New to Claude Hub?** Follow our **[10-minute Quick Start Guide](./QUICKSTART.md)** to get Claude responding to your GitHub issues using Cloudflare Tunnel - no domain or complex setup required!
+
+### Option 1: Docker Image (Recommended)
+
+```bash
+# Pull the latest image
+docker pull intelligenceassist/claude-hub:latest
+
+# Run with environment variables
+docker run -d \
+  --name claude-webhook \
+  -p 8082:3002 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e GITHUB_TOKEN=your_github_token \
+  -e GITHUB_WEBHOOK_SECRET=your_webhook_secret \
+  -e ANTHROPIC_API_KEY=your_anthropic_key \
+  -e BOT_USERNAME=@YourBotName \
+  -e AUTHORIZED_USERS=user1,user2 \
+  intelligenceassist/claude-hub:latest
+
+# Or use Docker Compose
+wget https://raw.githubusercontent.com/intelligence-assist/claude-hub/main/docker-compose.yml
+docker compose up -d
+```
+
+### Option 2: From Source
+
+```bash
+# Clone and setup
+git clone https://github.com/intelligence-assist/claude-hub.git
+cd claude-hub
+./scripts/setup/setup-secure-credentials.sh
+
+# Launch with Docker Compose
+docker compose up -d
+```
+
+Service runs on `http://localhost:8082` by default.
 
 ## Autonomous Workflow Capabilities
 
@@ -64,44 +108,6 @@ Claude autonomously handles complete development workflows. It analyzes your ent
 - Container isolation with minimal permissions
 - Fine-grained GitHub token scoping
 
-## Quick Start
-
-### Option 1: Docker Image (Recommended)
-
-```bash
-# Pull the latest image
-docker pull intelligenceassist/claude-hub:latest
-
-# Run with environment variables
-docker run -d \
-  --name claude-webhook \
-  -p 8082:3002 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -e GITHUB_TOKEN=your_github_token \
-  -e GITHUB_WEBHOOK_SECRET=your_webhook_secret \
-  -e ANTHROPIC_API_KEY=your_anthropic_key \
-  -e BOT_USERNAME=@YourBotName \
-  -e AUTHORIZED_USERS=user1,user2 \
-  intelligenceassist/claude-hub:latest
-
-# Or use Docker Compose
-wget https://raw.githubusercontent.com/intelligence-assist/claude-hub/main/docker-compose.yml
-docker compose up -d
-```
-
-### Option 2: From Source
-
-```bash
-# Clone and setup
-git clone https://github.com/intelligence-assist/claude-hub.git
-cd claude-hub
-./scripts/setup/setup-secure-credentials.sh
-
-# Launch with Docker Compose
-docker compose up -d
-```
-
-Service runs on `http://localhost:8082` by default.
 
 ## Bot Account Setup
 

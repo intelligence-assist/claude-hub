@@ -79,6 +79,8 @@ service-account.json
 
 # Claude authentication output
 .claude-hub/
+claude-config/
+claude-config*
 
 # Docker secrets
 secrets/

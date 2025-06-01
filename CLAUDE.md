@@ -46,7 +46,7 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - **View logs**: `docker compose logs -f webhook`
 - **Restart**: `docker compose restart webhook`
 - Build Claude container: `./build-claude-container.sh`
-- Build Claude Code container: `./scripts/build/build-claudecode.sh`
+- Build Claude Code container: `./scripts/build/build.sh claudecode`
 - Update production image: `./update-production-image.sh`
 
 ### AWS Credential Management

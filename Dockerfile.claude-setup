@@ -8,7 +8,8 @@ RUN apt update && apt install -y \
   curl \
   vim \
   nano \
-  gh
+  gh \
+  rsync
 
 # Set up npm global directory
 RUN mkdir -p /usr/local/share/npm-global && \
@@ -32,34 +33,31 @@ RUN mkdir -p /auth-setup && chown -R node:node /auth-setup
 ENV SHELL /bin/zsh
 WORKDIR /auth-setup
 
-# Create setup script that captures authentication state
-RUN cat > /setup-claude-auth.sh << 'EOF'
+# Create setup script
+COPY <<'EOF' /setup-claude-auth.sh
 #!/bin/bash
 set -e
 
-echo "🔧 Claude Authentication Setup Container"
-echo "========================================"
+echo "🔧 Claude Authentication Setup"
+echo "=============================="
 echo ""
-echo "This container allows you to authenticate with Claude interactively"
-echo "and capture the authentication state for use in other containers."
+echo "This will help you connect Claude to your account."
 echo ""
-echo "Instructions:"
-echo "1. Run: claude login"
-echo "2. Follow the authentication flow"
-echo "3. Test with: claude status"
-echo "4. Type 'exit' when authentication is working"
+echo "Quick setup - just run this command:"
 echo ""
-echo "The ~/.claude directory will be preserved in /auth-output"
+echo "  claude --dangerously-skip-permissions && exit"
+echo ""
+echo "This will authenticate Claude and save your setup automatically."
 echo ""
 
 # Function to copy authentication state
 copy_auth_state() {
   if [ -d "/home/node/.claude" ] && [ -d "/auth-output" ]; then
-    echo "💾 Copying authentication state..."
-    cp -r /home/node/.claude/* /auth-output/ 2>/dev/null || true
-    cp -r /home/node/.claude/.* /auth-output/ 2>/dev/null || true
-    chown -R node:node /auth-output
-    echo "✅ Authentication state copied to /auth-output"
+    echo "💾 Saving your authentication..."
+    # Copy authentication files, excluding todos
+    rsync -a --exclude='todos/' /home/node/.claude/ /auth-output/ 2>/dev/null || \
+      cp -r /home/node/.claude/. /auth-output/ 2>/dev/null || true
+    echo "✅ Authentication saved successfully!"
   fi
 }
 
@@ -70,21 +68,41 @@ trap copy_auth_state EXIT
 sudo -u node mkdir -p /home/node/.claude
 
 echo "🔐 Starting interactive shell as 'node' user..."
-echo "💡 Tip: Run 'claude --version' to verify Claude CLI is available"
+echo ""
 echo ""
 
-# Switch to node user and start interactive shell
-sudo -u node bash -c '
-  export HOME=/home/node
-  export PATH=/usr/local/share/npm-global/bin:$PATH
-  cd /home/node
-  echo "Environment ready! Claude CLI is available at: $(which claude || echo "/usr/local/share/npm-global/bin/claude")"
-  echo "Run: claude login"
-  exec bash -i
-'
+# Check if we should run automatically
+if [ "$1" = "--auto" ]; then
+  echo "Running authentication automatically..."
+  echo ""
+  sudo -u node bash -c '
+    export HOME=/home/node
+    export PATH=/usr/local/share/npm-global/bin:$PATH
+    cd /home/node
+    claude --dangerously-skip-permissions
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+      echo ""
+      echo "❌ Authentication command failed with exit code $exit_code"
+      exit $exit_code
+    fi
+  '
+else
+  # Switch to node user and start interactive shell
+  sudo -u node bash -c '
+    export HOME=/home/node
+    export PATH=/usr/local/share/npm-global/bin:$PATH
+    cd /home/node
+    echo "Ready! Run this command to authenticate and exit:"
+    echo ""
+    echo "  claude --dangerously-skip-permissions && exit"
+    echo ""
+    exec bash -i
+  '
+fi
 EOF
 
 RUN chmod +x /setup-claude-auth.sh
 
 # Set entrypoint to setup script
-ENTRYPOINT ["/setup-claude-auth.sh"]
+ENTRYPOINT ["/bin/bash", "/setup-claude-auth.sh"]

@@ -42,7 +42,7 @@ jobs:
         extra_args: --debug --only-verified
 
   build:
-    runs-on: [self-hosted, docker]
+    runs-on: ubuntu-latest
     needs: [test, security]
     permissions:
       contents: read

@@ -19,48 +19,76 @@ echo "📦 Building Claude setup container..."
 docker build -f "$PROJECT_ROOT/Dockerfile.claude-setup" -t claude-setup:latest "$PROJECT_ROOT"
 
 echo ""
-echo "🚀 Starting interactive Claude authentication container..."
+echo "🚀 Starting Claude authentication..."
 echo ""
-echo "IMPORTANT: This will open an interactive shell where you can:"
-echo "  1. Run 'claude --dangerously-skip-permissions' to authenticate"
-echo "  2. Follow the authentication flow"
-echo "  3. Type 'exit' when done to preserve authentication state"
+echo "What happens next:"
+echo "  1. Claude will open your browser for authentication"
+echo "  2. Complete the authentication in your browser"
+echo "  3. Return here when done - the container will exit automatically"
 echo ""
-echo "The authenticated ~/.claude directory will be saved to:"
-echo "  $AUTH_OUTPUT_DIR"
-echo ""
-read -p "Press Enter to continue or Ctrl+C to cancel..."
+read -p "Press Enter to start authentication..."
 
-# Run the interactive container
+# Run the container with automatic authentication
 docker run -it --rm \
   -v "$AUTH_OUTPUT_DIR:/auth-output" \
   -v "$HOME/.gitconfig:/home/node/.gitconfig:ro" \
   --name claude-auth-setup \
-  claude-setup:latest
+  claude-setup:latest --auto
+
+# Capture the exit code
+DOCKER_EXIT_CODE=$?
 
 echo ""
 echo "📋 Checking authentication output..."
 
-if [ -f "$AUTH_OUTPUT_DIR/.credentials.json" ] || [ -f "$AUTH_OUTPUT_DIR/settings.local.json" ]; then
-  echo "✅ Authentication files found in $AUTH_OUTPUT_DIR"
+# First check if docker command failed
+if [ $DOCKER_EXIT_CODE -ne 0 ]; then
+  echo "❌ Authentication process failed (exit code: $DOCKER_EXIT_CODE)"
   echo ""
-  echo "📁 Captured authentication files:"
-  find "$AUTH_OUTPUT_DIR" -type f -name "*.json" -o -name "*.db" | head -10
-  echo ""
-  echo "🔄 To use this authentication in your webhook service:"
-  echo "  1. Copy files to your ~/.claude directory:"
-  echo "     cp -r $AUTH_OUTPUT_DIR/* ~/.claude/"
-  echo "  2. Or update docker-compose.yml to mount the auth directory:"
-  echo "     - $AUTH_OUTPUT_DIR:/home/node/.claude:ro"
-  echo ""
-else
-  echo "⚠️  No authentication files found. You may need to:"
-  echo "  1. Run the container again and complete the authentication flow"
-  echo "  2. Ensure you ran 'claude --dangerously-skip-permissions' and completed authentication"
-  echo "  3. Check that you have an active Claude Code subscription"
+  echo "Please check the error messages above and try again."
+  exit 1
 fi
 
-echo ""
-echo "🧪 Testing authentication..."
-echo "You can test the captured authentication with:"
-echo "  docker run --rm -v \"$AUTH_OUTPUT_DIR:/home/node/.claude:ro\" claude-setup:latest claude --dangerously-skip-permissions --print 'test'"
+# Check if authentication was successful
+if [ -f "$AUTH_OUTPUT_DIR/.credentials.json" ]; then
+  # Get file size
+  FILE_SIZE=$(stat -f%z "$AUTH_OUTPUT_DIR/.credentials.json" 2>/dev/null || stat -c%s "$AUTH_OUTPUT_DIR/.credentials.json" 2>/dev/null || echo "0")
+  
+  # Check if file has reasonable content (at least 100 bytes for a valid JSON)
+  if [ "$FILE_SIZE" -gt 100 ]; then
+    # Check if file was written recently (within last 5 minutes)
+    if [ "$(find "$AUTH_OUTPUT_DIR/.credentials.json" -mmin -5 2>/dev/null)" ]; then
+      echo "✅ Success! Your Claude authentication is saved."
+      echo ""
+      echo "The webhook service will use this automatically when you run:"
+      echo "  docker compose up -d"
+      echo ""
+      exit 0
+    else
+      echo "⚠️  Found old authentication files. The authentication may not have completed."
+      echo "Please run the setup again to refresh your authentication."
+      exit 1
+    fi
+  else
+    echo "❌ Authentication file is too small (${FILE_SIZE} bytes). The authentication did not complete."
+    echo ""
+    echo "Common causes:"
+    echo "  - Browser authentication was cancelled"
+    echo "  - Network connection issues"
+    echo "  - Claude Code subscription not active"
+    echo ""
+    echo "Please run the setup again and complete the browser authentication."
+    exit 1
+  fi
+else
+  echo "❌ Authentication failed - no credentials were saved."
+  echo ""
+  echo "This can happen if:"
+  echo "  - The browser authentication was not completed"
+  echo "  - The container exited before authentication finished"
+  echo "  - There was an error during the authentication process"
+  echo ""
+  echo "Please run './scripts/setup/setup-claude-interactive.sh' again."
+  exit 1
+fi
+

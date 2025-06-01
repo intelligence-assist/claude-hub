@@ -44,10 +44,11 @@ RUN npm install -g @anthropic-ai/claude-code
 # Switch back to root
 USER root
 
-# Copy the pre-authenticated Claude config to BOTH root and node user
-COPY claude-config /root/.claude
-COPY claude-config /home/node/.claude
-RUN chown -R node:node /home/node/.claude
+# Copy the pre-authenticated Claude config to BOTH root and node user (only for production builds)
+# For regular builds, this will be empty directories that Claude can authenticate into
+# COPY claude-config /root/.claude
+# COPY claude-config /home/node/.claude
+# RUN chown -R node:node /home/node/.claude
 
 # Copy the rest of the setup
 WORKDIR /workspace

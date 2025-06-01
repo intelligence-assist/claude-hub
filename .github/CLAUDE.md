@@ -212,27 +212,17 @@ deploy:
 6. **No duplicate workflows**: Use reusable workflows for common tasks
 7. **No missing permissions**: Always specify required permissions
 
-## Workflow Types
+## Workflow Types (Simplified)
 
-### 1. CI Workflow (`ci.yml`)
-- Runs on every PR and push
-- Tests, linting, security scans
-- No deployments or publishing
+### 1. Pull Request (`pull-request.yml`)
+- Fast feedback loop
+- Lint, unit tests, basic security
+- Docker build only if relevant files changed
 
-### 2. Deploy Workflow (`deploy.yml`)
-- Runs on main branch and tags only
-- Builds and deploys applications
-- Includes staging and production environments
-
-### 3. Security Workflow (`security.yml`)
-- Runs on schedule and PRs
-- Comprehensive security scanning
-- Blocks merging on critical issues
-
-### 4. Release Workflow (`release.yml`)
-- Runs on version tags only
-- Creates GitHub releases
-- Publishes to package registries
+### 2. Main Pipeline (`main.yml`)
+- Complete testing and deployment
+- Coverage reporting, security scans
+- Docker builds and publishing
 
 ## Checklist for New Workflows
 

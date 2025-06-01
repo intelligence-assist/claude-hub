@@ -52,7 +52,7 @@ jest.mock('../../src/utils/secureCredentials', () => ({
 
 jest.mock('util', () => ({
   ...jest.requireActual('util'),
-  promisify: jest.fn((fn) => fn ? async (...args: any[]) => fn(...args) : fn)
+  promisify: jest.fn((fn) => fn ? (...args: any[]) => fn(...args) : fn)
 }));
 
 // Mock the entire claudeService to avoid complex dependency issues

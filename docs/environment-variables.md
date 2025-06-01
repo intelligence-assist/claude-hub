@@ -75,6 +75,13 @@ This document provides a comprehensive list of all environment variables used in
 | `REPO_CACHE_DIR` | Directory for repository cache | `/tmp/repo-cache` | No |
 | `REPO_CACHE_MAX_AGE_MS` | Max age for cached repos in milliseconds | `3600000` (1 hour) | No |
 
+## Claude Code Configuration
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `BASH_DEFAULT_TIMEOUT_MS` | Default timeout for bash commands in Claude Code | `600000` (10 minutes) | No |
+| `BASH_MAX_TIMEOUT_MS` | Maximum timeout Claude can set for bash commands | `1200000` (20 minutes) | No |
+
 ## AWS Configuration
 
 | Variable | Description | Default | Required |

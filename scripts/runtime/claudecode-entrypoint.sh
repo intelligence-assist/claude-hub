@@ -155,6 +155,8 @@ sudo -u node -E env \
     ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
     GH_TOKEN="${GITHUB_TOKEN}" \
     GITHUB_TOKEN="${GITHUB_TOKEN}" \
+    BASH_DEFAULT_TIMEOUT_MS="${BASH_DEFAULT_TIMEOUT_MS}" \
+    BASH_MAX_TIMEOUT_MS="${BASH_MAX_TIMEOUT_MS}" \
     /usr/local/share/npm-global/bin/claude \
     --allowedTools "${ALLOWED_TOOLS}" \
     --verbose \

@@ -21,6 +21,9 @@ services:
       - CLAUDE_CONTAINER_IMAGE=claudecode:latest
       - CLAUDE_AUTH_HOST_DIR=${CLAUDE_AUTH_HOST_DIR:-${HOME}/.claude-hub}
       - DISABLE_LOG_REDACTION=true
+      # Claude Code timeout settings for unattended mode
+      - BASH_DEFAULT_TIMEOUT_MS=${BASH_DEFAULT_TIMEOUT_MS:-600000}  # 10 minutes default
+      - BASH_MAX_TIMEOUT_MS=${BASH_MAX_TIMEOUT_MS:-1200000}  # 20 minutes max
       # Smart wait for all meaningful checks by default, or use specific workflow trigger
       - PR_REVIEW_WAIT_FOR_ALL_CHECKS=${PR_REVIEW_WAIT_FOR_ALL_CHECKS:-true}
       - PR_REVIEW_TRIGGER_WORKFLOW=${PR_REVIEW_TRIGGER_WORKFLOW:-}

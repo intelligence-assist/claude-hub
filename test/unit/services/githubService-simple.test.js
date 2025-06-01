@@ -393,7 +393,7 @@ describe('githubService - Simple Coverage Tests', () => {
     it('should handle container keywords for docker', async () => {
       const labels = await githubService.getFallbackLabels(
         'Container startup issue',
-        'The container won\'t start properly'
+        "The container won't start properly"
       );
 
       expect(labels).toContain('component:docker');

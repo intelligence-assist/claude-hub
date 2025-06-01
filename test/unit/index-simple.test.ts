@@ -37,7 +37,7 @@ describe('Express App Error Handling', () => {
           },
           'Request error'
         );
-        
+
         // Handle JSON parsing errors
         if (err instanceof SyntaxError && 'body' in err) {
           res.status(400).json({ error: 'Invalid JSON' });

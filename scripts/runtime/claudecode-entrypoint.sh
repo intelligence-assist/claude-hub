@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Unified entrypoint for Claude Code operations
+# Handles both auto-tagging (minimal tools) and general operations (full tools)
+# Operation type is controlled by OPERATION_TYPE environment variable
+
 # Initialize firewall - must be done as root
 # Temporarily disabled to test Claude Code
 # /usr/local/bin/init-firewall.sh
@@ -68,8 +72,12 @@ else
   cd /workspace
 fi
 
-# Checkout the correct branch
-if [ "${IS_PULL_REQUEST}" = "true" ] && [ -n "${BRANCH_NAME}" ]; then
+# Checkout the correct branch based on operation type
+if [ "${OPERATION_TYPE}" = "auto-tagging" ]; then
+    # Auto-tagging always uses main branch (doesn't need specific branches)
+    echo "Using main branch for auto-tagging" >&2
+    sudo -u node git checkout main >&2 || sudo -u node git checkout master >&2
+elif [ "${IS_PULL_REQUEST}" = "true" ] && [ -n "${BRANCH_NAME}" ]; then
     echo "Checking out PR branch: ${BRANCH_NAME}" >&2
     sudo -u node git checkout "${BRANCH_NAME}" >&2
 else
@@ -107,8 +115,14 @@ RESPONSE_FILE="/workspace/response.txt"
 touch "${RESPONSE_FILE}"
 chown node:node "${RESPONSE_FILE}"
 
-# Run Claude Code with full GitHub CLI access as node user
-echo "Running Claude Code..." >&2
+# Determine allowed tools based on operation type
+if [ "${OPERATION_TYPE}" = "auto-tagging" ]; then
+    ALLOWED_TOOLS="Read,GitHub,Bash(gh issue edit:*),Bash(gh issue view:*),Bash(gh label list:*)"  # Minimal tools for auto-tagging (security)
+    echo "Running Claude Code for auto-tagging with minimal tools..." >&2
+else
+    ALLOWED_TOOLS="Bash,Create,Edit,Read,Write,GitHub"  # Full tools for general operations
+    echo "Running Claude Code with full tool access..." >&2
+fi
 
 # Check if command exists
 if [ -z "${COMMAND}" ]; then
@@ -135,7 +149,7 @@ sudo -u node -E env \
     ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
     GH_TOKEN="${GITHUB_TOKEN}" \
     /usr/local/share/npm-global/bin/claude \
-    --allowedTools Bash,Create,Edit,Read,Write,GitHub \
+    --allowedTools "${ALLOWED_TOOLS}" \
     --print "${COMMAND}" \
     > "${RESPONSE_FILE}" 2>&1
 

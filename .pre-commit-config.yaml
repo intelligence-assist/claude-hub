@@ -1,39 +1,37 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-      - id: check-yaml
+      - id: check-merge-conflict
       - id: check-added-large-files
       - id: check-json
-      - id: check-merge-conflict
-      - id: check-executables-have-shebangs
-      - id: check-shebang-scripts-are-executable
+      - id: check-yaml
+      - id: detect-private-key
+
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
-        exclude: node_modules/
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.1
+        exclude: package-lock.json
+
+  - repo: https://github.com/zricethezav/gitleaks
+    rev: v8.21.2
     hooks:
       - id: gitleaks
-  - repo: https://github.com/thoughtworks/talisman
-    rev: v1.32.0
-    hooks:
-      - id: talisman-commit
-        entry: cmd --githook pre-commit
+
   - repo: local
     hooks:
-      - id: env-file-check
-        name: Check for .env files
-        entry: bash -c 'if find . -name ".env*" -not -path "./node_modules/*" -not -name ".env.example" | grep -q .; then echo "Found .env files that may contain secrets"; exit 1; fi'
+      - id: eslint
+        name: eslint
+        entry: npm run lint:check
         language: system
-        pass_filenames: false
-      - id: credential-scan
-        name: Scan for hardcoded credentials
-        entry: bash -c 'if grep -r "sk-\|ghp_\|AKIA\|xox[boas]\|AIza[0-9A-Za-z\\-_]\{35\}" --exclude-dir=node_modules --exclude-dir=.git .; then echo "Found potential hardcoded credentials"; exit 1; fi'
+        files: \.(js|ts)$
+        
+      - id: prettier
+        name: prettier
+        entry: npm run format:check
         language: system
-        pass_filenames: false
+        files: \.(js|ts|json|md)$

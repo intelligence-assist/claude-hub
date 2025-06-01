@@ -71,6 +71,14 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Fix security vulnerabilities: `npm run security:fix`
 - All CI tests: `npm run test:ci` (includes coverage)
 
+### Pre-commit Hooks
+The project uses Husky for Git pre-commit hooks to ensure code quality:
+- **ESLint**: Checks code for linting errors
+- **Prettier**: Validates code formatting
+- **TypeScript**: Runs type checking
+- **Setup**: Hooks are automatically installed via `npm run prepare`
+- **Manual run**: Execute `.husky/pre-commit` to test locally
+
 ### End-to-End Testing
 Use the demo repository for testing auto-tagging and webhook functionality:
 - Demo repository: `https://github.com/intelligence-assist/demo-repository`

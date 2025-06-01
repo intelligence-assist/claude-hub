@@ -56,7 +56,6 @@ export interface HealthCheckResponse {
   healthCheckDuration?: number;
 }
 
-
 export interface ErrorResponse {
   error: string;
   message?: string;

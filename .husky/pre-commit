@@ -1,0 +1,13 @@
+# Run formatting with auto-fix
+echo "🎨 Running Prettier..."
+npm run format
+
+# Run linting for code quality (not formatting)
+echo "🔍 Running ESLint..."
+npm run lint:check
+
+# Run TypeScript type checking
+echo "📝 Running TypeScript check..."
+npm run typecheck
+
+echo "✅ All pre-commit checks passed!"

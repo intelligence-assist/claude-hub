@@ -98,13 +98,15 @@ describe('Claude Service - Docker Container Integration', () => {
       const testError = new Error('Claude API rate limit exceeded');
       processCommand.mockRejectedValueOnce(testError);
 
-      await expect(processCommand({
-        repoFullName: 'owner/repo',
-        issueNumber: 123,
-        command: 'analyze repository',
-        isPullRequest: false,
-        branchName: null
-      })).rejects.toThrow('Claude API rate limit exceeded');
+      await expect(
+        processCommand({
+          repoFullName: 'owner/repo',
+          issueNumber: 123,
+          command: 'analyze repository',
+          isPullRequest: false,
+          branchName: null
+        })
+      ).rejects.toThrow('Claude API rate limit exceeded');
     });
 
     it('should handle network timeouts', async () => {
@@ -112,13 +114,15 @@ describe('Claude Service - Docker Container Integration', () => {
       timeoutError.code = 'TIMEOUT';
       processCommand.mockRejectedValueOnce(timeoutError);
 
-      await expect(processCommand({
-        repoFullName: 'owner/repo',
-        issueNumber: 123,
-        command: 'analyze large repository',
-        isPullRequest: false,
-        branchName: null
-      })).rejects.toThrow('Request timeout');
+      await expect(
+        processCommand({
+          repoFullName: 'owner/repo',
+          issueNumber: 123,
+          command: 'analyze large repository',
+          isPullRequest: false,
+          branchName: null
+        })
+      ).rejects.toThrow('Request timeout');
     });
   });
 

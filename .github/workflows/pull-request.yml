@@ -1,0 +1,40 @@
+name: Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: npm
+    - run: npm ci
+    - run: npm run lint:check
+    - run: npm run test:unit
+      env:
+        NODE_ENV: test
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - run: ./scripts/security/credential-audit.sh
+
+  docker:
+    runs-on: [self-hosted, docker]
+    if: contains(github.event.pull_request.changed_files, 'Dockerfile') || contains(github.event.pull_request.changed_files, 'src/')
+    steps:
+    - uses: actions/checkout@v4
+    - uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: false
+        tags: test:latest

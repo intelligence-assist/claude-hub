@@ -74,7 +74,7 @@ export function validateGitHubRef(ref: string): boolean {
   if (!ref || ref.includes('..') || ref.includes(' ') || ref.includes('@') || ref.includes('#')) {
     return false;
   }
-  
+
   // Must contain only allowed characters
   const refPattern = /^[a-zA-Z0-9._/-]+$/;
   return refPattern.test(ref);

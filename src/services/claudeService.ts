@@ -56,7 +56,8 @@ export async function processCommand({
 
     // In test mode, skip execution and return a mock response
     // Support both classic (ghp_) and fine-grained (github_pat_) GitHub tokens
-    const isValidGitHubToken = githubToken && (githubToken.includes('ghp_') || githubToken.includes('github_pat_'));
+    const isValidGitHubToken =
+      githubToken && (githubToken.includes('ghp_') || githubToken.includes('github_pat_'));
     if (process.env['NODE_ENV'] === 'test' || !isValidGitHubToken) {
       logger.info(
         {
@@ -380,8 +381,8 @@ function buildDockerArgs({
   if (hostAuthDir) {
     // Resolve relative paths to absolute paths for Docker volume mounting
     const path = require('path');
-    const absoluteAuthDir = path.isAbsolute(hostAuthDir) 
-      ? hostAuthDir 
+    const absoluteAuthDir = path.isAbsolute(hostAuthDir)
+      ? hostAuthDir
       : path.resolve(process.cwd(), hostAuthDir);
     dockerArgs.push('-v', `${absoluteAuthDir}:/home/node/.claude`);
   }

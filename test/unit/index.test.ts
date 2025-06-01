@@ -52,7 +52,7 @@ jest.mock('../../src/utils/secureCredentials', () => ({
 
 jest.mock('util', () => ({
   ...jest.requireActual('util'),
-  promisify: jest.fn((fn) => fn ? (...args: any[]) => fn(...args) : fn)
+  promisify: jest.fn(fn => (fn ? (...args: any[]) => fn(...args) : fn))
 }));
 
 // Mock the entire claudeService to avoid complex dependency issues
@@ -82,7 +82,7 @@ describe('Express Application', () => {
     jest.resetModules(); // Clear module cache to ensure fresh imports
     process.env = { ...originalEnv };
     process.env.NODE_ENV = 'test';
-    
+
     // Reset mockExecSync to default behavior
     mockExecSync.mockImplementation(() => Buffer.from(''));
   });
@@ -100,7 +100,7 @@ describe('Express Application', () => {
   describe('Application Structure', () => {
     it('should initialize Express app without starting server in test mode', () => {
       const app = getApp();
-      
+
       expect(app).toBeDefined();
       expect(typeof app).toBe('function'); // Express app is a function
       expect(mockStartupMetrics.recordMilestone).toHaveBeenCalledWith(
@@ -115,7 +115,7 @@ describe('Express Application', () => {
 
     it('should record startup milestones during initialization', () => {
       const app = getApp();
-      
+
       expect(app).toBeDefined();
       expect(mockStartupMetrics.recordMilestone).toHaveBeenCalledWith(
         'env_loaded',
@@ -138,7 +138,7 @@ describe('Express Application', () => {
     it('should use correct port default when PORT is not set', () => {
       delete process.env.PORT;
       const app = getApp();
-      
+
       expect(app).toBeDefined();
       // In test mode, the app is initialized but server doesn't start
       // so we can't directly test the port but we can verify app creation
@@ -147,7 +147,7 @@ describe('Express Application', () => {
     it('should configure trust proxy when TRUST_PROXY is true', () => {
       process.env.TRUST_PROXY = 'true';
       const app = getApp();
-      
+
       expect(app).toBeDefined();
       // Check that the trust proxy setting is configured
       expect(app.get('trust proxy')).toBe(true);
@@ -156,7 +156,7 @@ describe('Express Application', () => {
     it('should not configure trust proxy when TRUST_PROXY is not set', () => {
       delete process.env.TRUST_PROXY;
       const app = getApp();
-      
+
       expect(app).toBeDefined();
       // Trust proxy should not be set
       expect(app.get('trust proxy')).toBeFalsy();
@@ -267,10 +267,10 @@ describe('Express Application', () => {
         milestones: {},
         startTime: Date.now() - 1000
       });
-      
+
       const app = getApp();
       const response = await request(app).get('/health');
-      
+
       expect(response.status).toBe(200);
       // In CI, req.startupMetrics might be undefined due to middleware mocking
       // Just verify the response structure is correct
@@ -284,7 +284,7 @@ describe('Express Application', () => {
   describe('Error Handling Middleware', () => {
     it('should handle JSON parsing errors', async () => {
       const app = getApp();
-      
+
       const response = await request(app)
         .post('/api/webhooks/github')
         .set('Content-Type', 'application/json')
@@ -297,13 +297,13 @@ describe('Express Application', () => {
     it('should handle SyntaxError with body property', () => {
       const syntaxError = new SyntaxError('Unexpected token');
       (syntaxError as any).body = 'malformed';
-      
+
       const mockReq = { method: 'POST', url: '/test' };
       const mockRes = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       };
-      
+
       // Test the error handler logic directly
       const errorHandler = (err: Error, req: any, res: any) => {
         if (err instanceof SyntaxError && 'body' in err) {
@@ -312,9 +312,9 @@ describe('Express Application', () => {
           res.status(500).json({ error: 'Internal server error' });
         }
       };
-      
+
       errorHandler(syntaxError, mockReq, mockRes);
-      
+
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({ error: 'Invalid JSON' });
     });
@@ -324,7 +324,7 @@ describe('Express Application', () => {
     it('should skip rate limiting in test environment', () => {
       process.env.NODE_ENV = 'test';
       const app = getApp();
-      
+
       expect(app).toBeDefined();
       // Rate limiting is configured but should skip in test mode
     });
@@ -332,7 +332,7 @@ describe('Express Application', () => {
     it('should apply rate limiting in non-test environment', () => {
       process.env.NODE_ENV = 'production';
       const app = getApp();
-      
+
       expect(app).toBeDefined();
       // Rate limiting should be active in production
     });
@@ -341,7 +341,7 @@ describe('Express Application', () => {
   describe('Request Logging Middleware', () => {
     it('should log requests with response time', async () => {
       const app = getApp();
-      
+
       await request(app).get('/health');
 
       expect(mockLogger.info).toHaveBeenCalledWith(
@@ -357,7 +357,7 @@ describe('Express Application', () => {
 
     it('should sanitize method and url properly', async () => {
       const app = getApp();
-      
+
       // Test that the logging middleware handles requests correctly
       await request(app).get('/health');
 
@@ -376,21 +376,21 @@ describe('Express Application', () => {
   describe('Body Parser Configuration', () => {
     it('should store raw body for webhook signature verification', async () => {
       const app = getApp();
-      
+
       const testPayload = JSON.stringify({ test: 'data' });
-      
+
       // Mock the routes to capture the req object
       let capturedReq: any = null;
       app.use('/test-body', (req: any, res: any) => {
         capturedReq = req;
         res.status(200).json({ success: true });
       });
-      
+
       await request(app)
         .post('/test-body')
         .set('Content-Type', 'application/json')
         .send(testPayload);
-      
+
       expect(capturedReq?.rawBody).toBeDefined();
       expect(capturedReq?.rawBody.toString()).toBe(testPayload);
     });
@@ -402,12 +402,12 @@ describe('Express Application', () => {
       // (not as the main entry point), it doesn't start the server
       // The actual check is: if (require.main === module)
       const app = getApp();
-      
+
       // Verify app exists but server wasn't started in test
       expect(app).toBeDefined();
       // In test mode, markReady should not be called since server doesn't start
       expect(mockStartupMetrics.markReady).not.toHaveBeenCalled();
-      
+
       // Verify the app has the expected structure
       expect(typeof app).toBe('function'); // Express app is a function
     });

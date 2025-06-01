@@ -20,33 +20,33 @@ const logFileName = path.join(logsDir, 'app.log');
 // Configure different transports based on environment
 const transport = isProduction
   ? {
-    targets: [
-      // File transport for production
-      {
-        target: 'pino/file',
-        options: { destination: logFileName, mkdir: true }
-      },
-      // Console pretty transport
-      {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          levelFirst: true,
-          translateTime: 'SYS:standard'
+      targets: [
+        // File transport for production
+        {
+          target: 'pino/file',
+          options: { destination: logFileName, mkdir: true }
         },
-        level: 'info'
-      }
-    ]
-  }
-  : {
-    // Just use pretty logs in development
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      levelFirst: true,
-      translateTime: 'SYS:standard'
+        // Console pretty transport
+        {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            levelFirst: true,
+            translateTime: 'SYS:standard'
+          },
+          level: 'info'
+        }
+      ]
     }
-  };
+  : {
+      // Just use pretty logs in development
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        levelFirst: true,
+        translateTime: 'SYS:standard'
+      }
+    };
 
 // Configure the logger
 const logger = pino({

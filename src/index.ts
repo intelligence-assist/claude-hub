@@ -6,11 +6,7 @@ import { createLogger } from './utils/logger';
 import { StartupMetrics } from './utils/startup-metrics';
 import githubRoutes from './routes/github';
 import claudeRoutes from './routes/claude';
-import type {
-  WebhookRequest,
-  HealthCheckResponse,
-  ErrorResponse
-} from './types/express';
+import type { WebhookRequest, HealthCheckResponse, ErrorResponse } from './types/express';
 import { execSync } from 'child_process';
 
 const app = express();
@@ -150,7 +146,6 @@ app.get('/health', (req: WebhookRequest, res: express.Response<HealthCheckRespon
   checks.healthCheckDuration = Date.now() - healthCheckStart;
   res.status(200).json(checks);
 });
-
 
 // Error handling middleware
 app.use(

@@ -1,9 +1,11 @@
 const js = require('@eslint/js');
 const tseslint = require('@typescript-eslint/eslint-plugin');
 const tsparser = require('@typescript-eslint/parser');
+const prettierConfig = require('eslint-config-prettier');
 
 module.exports = [
   js.configs.recommended,
+  prettierConfig, // Disable all formatting rules that conflict with Prettier
   {
     languageOptions: {
       ecmaVersion: 'latest',
@@ -34,11 +36,7 @@ module.exports = [
       'no-console': 'warn',
       'no-debugger': 'error',
       
-      // Code style
-      'indent': ['error', 2],
-      'quotes': ['error', 'single'],
-      'semi': ['error', 'always'],
-      'comma-dangle': ['error', 'never'],
+      // Removed all formatting rules - let Prettier handle them
       
       // Best practices
       'eqeqeq': 'error',

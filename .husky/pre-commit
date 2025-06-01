@@ -1,13 +1,25 @@
-# Run formatting with auto-fix
-echo "🎨 Running Prettier..."
-npm run format
+#!/bin/sh
+set -e
 
-# Run linting for code quality (not formatting)
-echo "🔍 Running ESLint..."
-npm run lint:check
+echo "🎨 Running Prettier check..."
+if ! npm run format:check; then
+  echo "❌ Prettier formatting issues found!"
+  echo "💡 Run 'npm run format' to fix formatting issues, then commit again."
+  exit 1
+fi
 
-# Run TypeScript type checking
+echo "🔍 Running ESLint check..."
+if ! npm run lint:check; then
+  echo "❌ ESLint issues found!"
+  echo "💡 Run 'npm run lint' to fix linting issues, then commit again."
+  exit 1
+fi
+
 echo "📝 Running TypeScript check..."
-npm run typecheck
+if ! npm run typecheck; then
+  echo "❌ TypeScript errors found!"
+  echo "💡 Fix TypeScript errors, then commit again."
+  exit 1
+fi
 
 echo "✅ All pre-commit checks passed!"

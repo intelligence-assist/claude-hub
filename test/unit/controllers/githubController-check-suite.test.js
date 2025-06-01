@@ -154,7 +154,8 @@ describe('GitHub Controller - Check Suite Events', () => {
       issueNumber: 42,
       command: expect.stringContaining('# GitHub PR Review - Complete Automated Review'),
       isPullRequest: true,
-      branchName: 'feature-branch'
+      branchName: 'feature-branch',
+      operationType: 'pr-review'
     });
 
     // Verify simple success response

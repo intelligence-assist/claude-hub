@@ -119,6 +119,12 @@ chown node:node "${RESPONSE_FILE}"
 if [ "${OPERATION_TYPE}" = "auto-tagging" ]; then
     ALLOWED_TOOLS="Read,GitHub,Bash(gh issue edit:*),Bash(gh issue view:*),Bash(gh label list:*)"  # Minimal tools for auto-tagging (security)
     echo "Running Claude Code for auto-tagging with minimal tools..." >&2
+elif [ "${OPERATION_TYPE}" = "pr-review" ] || [ "${OPERATION_TYPE}" = "manual-pr-review" ]; then
+    # PR Review: Broad research access + controlled write access
+    # Read access: Full file system, git history, GitHub data
+    # Write access: GitHub comments/reviews, PR labels, but no file deletion/modification
+    ALLOWED_TOOLS="Read,GitHub,Bash(gh *),Bash(git log*),Bash(git show*),Bash(git diff*),Bash(git blame*),Bash(find*),Bash(grep*),Bash(rg*),Bash(cat*),Bash(head*),Bash(tail*),Bash(ls*),Bash(tree*)"
+    echo "Running Claude Code for PR review with broad research access..." >&2
 else
     ALLOWED_TOOLS="Bash,Create,Edit,Read,Write,GitHub"  # Full tools for general operations
     echo "Running Claude Code with full tool access..." >&2

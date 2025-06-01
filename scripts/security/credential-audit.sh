@@ -32,8 +32,8 @@ report_success() {
 
 # 1. Check for .env files that shouldn't be committed
 echo "🔍 Checking for exposed .env files..."
-if find . -name ".env*" -not -path "./node_modules/*" -not -name ".env.example" -not -name ".env.template" | grep -q .; then
-    find . -name ".env*" -not -path "./node_modules/*" -not -name ".env.example" -not -name ".env.template" | while read file; do
+if find . -name ".env*" -not -path "./node_modules/*" -not -name ".env.example" -not -name ".env.template" -not -name ".env.quickstart" | grep -q .; then
+    find . -name ".env*" -not -path "./node_modules/*" -not -name ".env.example" -not -name ".env.template" -not -name ".env.quickstart" | while read file; do
         report_issue "Found .env file that may contain secrets: $file"
     done
 else

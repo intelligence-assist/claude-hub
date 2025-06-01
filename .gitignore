@@ -6,6 +6,7 @@ node_modules/
 .env.*
 !.env.example
 !.env.template
+!.env.quickstart
 
 # Logs
 logs

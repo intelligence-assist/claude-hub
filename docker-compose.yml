@@ -4,7 +4,6 @@ services:
     ports:
       - "${PORT:-3002}:${PORT:-3002}"
     volumes:
-      - ./Dockerfile.claudecode:/app/Dockerfile.claudecode:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.aws:/root/.aws:ro
       - ${HOME}/.claude-hub:/home/node/.claude

@@ -2,7 +2,9 @@
 
 # Load environment variables from .env file if it exists
 if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
+  set -a
+  source .env
+  set +a
 fi
 
 # Get port from environment or default to 3002

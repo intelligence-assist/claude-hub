@@ -18,7 +18,7 @@ if (trustProxy) {
   app.set('trust proxy', true);
 }
 
-const PORT = parseInt(process.env['PORT'] ?? '3003', 10);
+const PORT = parseInt(process.env['PORT'] ?? '3002', 10);
 const appLogger = createLogger('app');
 const startupMetrics = new StartupMetrics();
 

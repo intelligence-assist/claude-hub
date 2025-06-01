@@ -281,7 +281,7 @@ ${command}
 
 Complete the auto-tagging task using only the minimal required tools.`;
   } else {
-    return `You are Claude, an AI assistant responding to a GitHub ${isPullRequest ? 'pull request' : 'issue'} via the ${BOT_USERNAME} webhook.
+    return `You are ${process.env.BOT_USERNAME}, an AI assistant responding to a GitHub ${isPullRequest ? 'pull request' : 'issue'}.
 
 **Context:**
 - Repository: ${repoFullName}

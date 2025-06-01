@@ -1,4 +1,4 @@
-export type OperationType = 'auto-tagging' | 'pr-review' | 'default';
+export type OperationType = 'auto-tagging' | 'pr-review' | 'manual-pr-review' | 'default';
 
 export interface ClaudeCommandOptions {
   repoFullName: string;

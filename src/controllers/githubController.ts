@@ -385,6 +385,11 @@ async function handlePullRequestComment(
     if (commandMatch?.[1]) {
       const command = commandMatch[1].trim();
 
+      // Check for manual review command
+      if (command.toLowerCase() === 'review') {
+        return await handleManualPRReview(pr, repo, payload.sender, res);
+      }
+
       try {
         // Process the command with Claude
         logger.info('Sending command to Claude service');
@@ -490,6 +495,11 @@ async function processBotMention(
   if (commandMatch?.[1]) {
     const command = commandMatch[1].trim();
 
+    // Check if this is a PR and the command is "review"
+    if (command.toLowerCase() === 'review' && 'pull_request' in issue) {
+      return await handleManualPRReview(issue as GitHubPullRequest, repo, comment.user, res);
+    }
+
     try {
       // Process the command with Claude
       logger.info('Sending command to Claude service');
@@ -528,6 +538,211 @@ async function processBotMention(
   }
 
   return res.status(200).json({ message: 'Webhook processed successfully' });
+}
+
+/**
+ * Handle manual PR review requests via @botaccount review command
+ */
+async function handleManualPRReview(
+  pr: GitHubPullRequest,
+  repo: GitHubRepository,
+  sender: { login: string },
+  res: Response<WebhookResponse | ErrorResponse>
+): Promise<Response<WebhookResponse | ErrorResponse>> {
+  try {
+    // Check if the sender is authorized to trigger reviews
+    const authorizedUsers = process.env.AUTHORIZED_USERS
+      ? process.env.AUTHORIZED_USERS.split(',').map(user => user.trim())
+      : [process.env.DEFAULT_AUTHORIZED_USER ?? 'admin'];
+    
+    if (!authorizedUsers.includes(sender.login)) {
+      logger.info(
+        {
+          repo: repo.full_name,
+          pr: pr.number,
+          sender: sender.login
+        },
+        'Unauthorized user attempted to trigger manual PR review'
+      );
+
+      try {
+        const errorMessage = sanitizeBotMentions(
+          `❌ Sorry @${sender.login}, only authorized users can trigger PR reviews.`
+        );
+
+        await postComment({
+          repoOwner: repo.owner.login,
+          repoName: repo.name,
+          issueNumber: pr.number,
+          body: errorMessage
+        });
+      } catch (commentError) {
+        logger.error({ err: commentError }, 'Failed to post unauthorized review attempt comment');
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Unauthorized user - review request ignored',
+        context: {
+          repo: repo.full_name,
+          pr: pr.number,
+          sender: sender.login
+        }
+      });
+    }
+
+    logger.info(
+      {
+        repo: repo.full_name,
+        pr: pr.number,
+        sender: sender.login,
+        branch: pr.head.ref,
+        commitSha: pr.head.sha
+      },
+      'Processing manual PR review request'
+    );
+
+    // Add "review-in-progress" label
+    try {
+      await managePRLabels({
+        repoOwner: repo.owner.login,
+        repoName: repo.name,
+        prNumber: pr.number,
+        labelsToAdd: ['claude-review-in-progress'],
+        labelsToRemove: ['claude-review-needed', 'claude-review-complete']
+      });
+    } catch (labelError) {
+      logger.error(
+        {
+          err: (labelError as Error).message,
+          repo: repo.full_name,
+          pr: pr.number
+        },
+        'Failed to add review-in-progress label for manual review'
+      );
+      // Continue with review even if label fails
+    }
+
+    // Create the PR review prompt
+    const prReviewPrompt = createPRReviewPrompt(pr.number, repo.full_name, pr.head.sha);
+
+    // Process the PR review with Claude
+    logger.info('Sending PR for manual Claude review');
+    const claudeResponse = await processCommand({
+      repoFullName: repo.full_name,
+      issueNumber: pr.number,
+      command: prReviewPrompt,
+      isPullRequest: true,
+      branchName: pr.head.ref,
+      operationType: 'manual-pr-review'
+    });
+
+    logger.info(
+      {
+        repo: repo.full_name,
+        pr: pr.number,
+        sender: sender.login,
+        responseLength: claudeResponse ? claudeResponse.length : 0
+      },
+      'Manual PR review completed successfully'
+    );
+
+    // Update label to show review is complete
+    try {
+      await managePRLabels({
+        repoOwner: repo.owner.login,
+        repoName: repo.name,
+        prNumber: pr.number,
+        labelsToAdd: ['claude-review-complete'],
+        labelsToRemove: ['claude-review-in-progress', 'claude-review-needed']
+      });
+    } catch (labelError) {
+      logger.error(
+        {
+          err: (labelError as Error).message,
+          repo: repo.full_name,
+          pr: pr.number
+        },
+        'Failed to update review-complete label after manual review'
+      );
+      // Don't fail the review if label update fails
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Manual PR review completed successfully',
+      context: {
+        repo: repo.full_name,
+        pr: pr.number,
+        type: 'manual_pr_review',
+        sender: sender.login,
+        branch: pr.head.ref
+      }
+    });
+  } catch (error) {
+    const err = error as Error;
+    logger.error(
+      {
+        err: err.message,
+        repo: repo.full_name,
+        pr: pr.number,
+        sender: sender.login
+      },
+      'Error processing manual PR review'
+    );
+
+    // Remove in-progress label on error
+    try {
+      await managePRLabels({
+        repoOwner: repo.owner.login,
+        repoName: repo.name,
+        prNumber: pr.number,
+        labelsToRemove: ['claude-review-in-progress']
+      });
+    } catch (labelError) {
+      logger.error(
+        {
+          err: (labelError as Error).message,
+          repo: repo.full_name,
+          pr: pr.number
+        },
+        'Failed to remove review-in-progress label after manual review error'
+      );
+    }
+
+    // Post error comment
+    try {
+      const timestamp = new Date().toISOString();
+      const errorId = `err-${Math.random().toString(36).substring(2, 10)}`;
+
+      const errorMessage = sanitizeBotMentions(
+        `❌ An error occurred while processing the manual review request. (Reference: ${errorId}, Time: ${timestamp})
+        
+Please check with an administrator to review the logs for more details.`
+      );
+
+      await postComment({
+        repoOwner: repo.owner.login,
+        repoName: repo.name,
+        issueNumber: pr.number,
+        body: errorMessage
+      });
+    } catch (commentError) {
+      logger.error({ err: commentError }, 'Failed to post manual review error comment');
+    }
+
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to process manual PR review',
+      message: err.message,
+      context: {
+        repo: repo.full_name,
+        pr: pr.number,
+        type: 'manual_pr_review_error',
+        sender: sender.login
+      }
+    });
+  }
 }
 
 /**
@@ -822,7 +1037,8 @@ async function processAutomatedPRReviews(
           issueNumber: pr.number,
           command: prReviewPrompt,
           isPullRequest: true,
-          branchName: pr.head.ref
+          branchName: pr.head.ref,
+          operationType: 'pr-review'
         });
 
         logger.info(

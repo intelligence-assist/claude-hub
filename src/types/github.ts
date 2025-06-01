@@ -18,6 +18,15 @@ export interface GitHubIssue {
   created_at: string;
   updated_at: string;
   html_url: string;
+  pull_request?: {
+    head?: {
+      ref: string;
+      sha: string;
+    };
+    base?: {
+      ref: string;
+    };
+  };
 }
 
 export interface GitHubPullRequest {

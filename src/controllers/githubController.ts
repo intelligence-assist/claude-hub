@@ -496,8 +496,27 @@ async function processBotMention(
     const command = commandMatch[1].trim();
 
     // Check if this is a PR and the command is "review"
-    if (command.toLowerCase() === 'review' && 'pull_request' in issue) {
-      return await handleManualPRReview(issue as GitHubPullRequest, repo, comment.user, res);
+    if (command.toLowerCase() === 'review') {
+      // Check if this is already a PR object
+      if ('head' in issue && 'base' in issue) {
+        return await handleManualPRReview(issue, repo, comment.user, res);
+      }
+      
+      // Check if this issue is actually a PR (GitHub includes pull_request property for PR comments)
+      const issueWithPR = issue;
+      if (issueWithPR.pull_request) {
+        // Create a mock PR object from the issue data for the review
+        const mockPR: GitHubPullRequest = {
+          ...issue,
+          head: {
+            ref: issueWithPR.pull_request.head?.ref ?? 'unknown',
+            sha: issueWithPR.pull_request.head?.sha ?? 'unknown'
+          },
+          base: issueWithPR.pull_request.base ?? { ref: 'main' }
+        } as GitHubPullRequest;
+        
+        return await handleManualPRReview(mockPR, repo, comment.user, res);
+      }
     }
 
     try {

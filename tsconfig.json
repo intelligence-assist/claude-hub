@@ -29,7 +29,7 @@
     "noFallthroughCasesInSwitch": true,
     "noErrorTruncation": true,
     "isolatedModules": true,
-    "types": ["node", "jest"]
+    "types": ["node"]
   },
   "include": [
     "src/**/*"

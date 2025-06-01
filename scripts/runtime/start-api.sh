@@ -1,7 +1,12 @@
 #!/bin/bash
 
-# Get port from environment or default to 3003
-DEFAULT_PORT=${PORT:-3003}
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
+
+# Get port from environment or default to 3002
+DEFAULT_PORT=${PORT:-3002}
 
 # Kill any processes using the port
 echo "Checking for existing processes on port $DEFAULT_PORT..."

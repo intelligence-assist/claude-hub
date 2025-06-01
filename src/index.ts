@@ -136,8 +136,9 @@ app.get('/health', (req: WebhookRequest, res: express.Response<HealthCheckRespon
 
   // Check Claude Code runner image
   const imageCheckStart = Date.now();
+  const dockerImageName = process.env['CLAUDE_CONTAINER_IMAGE'] ?? 'claudecode:latest';
   try {
-    execSync('docker image inspect claude-code-runner:latest', { stdio: 'ignore' });
+    execSync(`docker image inspect ${dockerImageName}`, { stdio: 'ignore' });
     checks.claudeCodeImage.available = true;
   } catch {
     checks.claudeCodeImage.error = 'Image not found';

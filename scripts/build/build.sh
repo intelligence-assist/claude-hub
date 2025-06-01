@@ -14,7 +14,7 @@ case "$BUILD_TYPE" in
   
   claudecode)
     echo "Building Claude Code runner Docker image..."
-    docker build -f Dockerfile.claudecode -t claude-code-runner:latest .
+    docker build -f Dockerfile.claudecode -t claudecode:latest .
     ;;
   
   production)
@@ -121,7 +121,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 EOF
     
     # Build the production image
-    docker build -f Dockerfile.claudecode.prod -t claude-code-runner:production .
+    docker build -f Dockerfile.claudecode.prod -t claudecode:production .
     
     # Clean up temporary file
     rm -f Dockerfile.claudecode.prod

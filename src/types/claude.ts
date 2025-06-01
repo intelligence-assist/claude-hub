@@ -41,6 +41,8 @@ export interface ClaudeEnvironmentVars {
   COMMAND: string;
   GITHUB_TOKEN: string;
   ANTHROPIC_API_KEY: string;
+  BOT_USERNAME?: string;
+  BOT_EMAIL?: string;
 }
 
 export interface DockerExecutionOptions {

@@ -348,7 +348,9 @@ function createEnvironmentVars({
     OPERATION_TYPE: operationType,
     COMMAND: fullPrompt,
     GITHUB_TOKEN: githubToken,
-    ANTHROPIC_API_KEY: secureCredentials.get('ANTHROPIC_API_KEY') ?? ''
+    ANTHROPIC_API_KEY: secureCredentials.get('ANTHROPIC_API_KEY') ?? '',
+    BOT_USERNAME: process.env.BOT_USERNAME,
+    BOT_EMAIL: process.env.BOT_EMAIL
   };
 }
 

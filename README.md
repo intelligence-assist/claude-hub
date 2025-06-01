@@ -30,44 +30,26 @@ Claude autonomously handles complete development workflows. It analyzes your ent
 
 ## 🚀 Quick Start
 
-**New to Claude Hub?** Follow our **[10-minute Quick Start Guide](./QUICKSTART.md)** to get Claude responding to your GitHub issues using Cloudflare Tunnel - no domain or complex setup required!
-
-### Option 1: Docker Image (Recommended)
+**Follow our [10-minute Quick Start Guide](./QUICKSTART.md)** to get Claude responding to your GitHub issues using Cloudflare Tunnel - no domain or complex setup required!
 
 ```bash
-# Pull the latest image
-docker pull intelligenceassist/claude-hub:latest
-
-# Run with environment variables
-docker run -d \
-  --name claude-webhook \
-  -p 8082:3002 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -e GITHUB_TOKEN=your_github_token \
-  -e GITHUB_WEBHOOK_SECRET=your_webhook_secret \
-  -e ANTHROPIC_API_KEY=your_anthropic_key \
-  -e BOT_USERNAME=@YourBotName \
-  -e AUTHORIZED_USERS=user1,user2 \
-  intelligenceassist/claude-hub:latest
-
-# Or use Docker Compose
-wget https://raw.githubusercontent.com/intelligence-assist/claude-hub/main/docker-compose.yml
-docker compose up -d
-```
-
-### Option 2: From Source
-
-```bash
-# Clone and setup
+# 1. Clone and configure
 git clone https://github.com/intelligence-assist/claude-hub.git
 cd claude-hub
-./scripts/setup/setup-secure-credentials.sh
+cp .env.quickstart .env
+nano .env  # Add your GitHub token and bot details
 
-# Launch with Docker Compose
+# 2. Authenticate Claude (uses your Claude.ai Max subscription)
+./scripts/setup/setup-claude-interactive.sh
+
+# 3. Start the service
 docker compose up -d
+
+# 4. Create a tunnel (see quickstart guide for details)
+cloudflared tunnel --url http://localhost:3002
 ```
 
-Service runs on `http://localhost:8082` by default.
+That's it! Your bot is ready to use. See the **[complete quickstart guide](./QUICKSTART.md)** for detailed instructions and webhook setup.
 
 ## Autonomous Workflow Capabilities
 
@@ -220,7 +202,7 @@ AWS_SECRET_ACCESS_KEY=xxx
 Integrate Claude without GitHub webhooks:
 
 ```bash
-curl -X POST http://localhost:8082/api/claude \
+curl -X POST http://localhost:3002/api/claude \
   -H "Content-Type: application/json" \
   -d '{
     "repoFullName": "owner/repo",
@@ -313,7 +295,7 @@ CLAUDE_CONTAINER_IMAGE=claudecode:latest
 
 ### Health Check
 ```bash
-curl http://localhost:8082/health
+curl http://localhost:3002/health
 ```
 
 ### Logs

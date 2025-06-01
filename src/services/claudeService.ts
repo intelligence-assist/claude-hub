@@ -94,8 +94,8 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
       });
     }
 
-    // Select appropriate entrypoint script based on operation type
-    const entrypointScript = getEntrypointScript(operationType);
+    // Use unified entrypoint script for all operation types
+    const entrypointScript = getEntrypointScript();
     logger.info(
       { operationType },
       `Using ${operationType === 'auto-tagging' ? 'minimal tools for auto-tagging operation' : 'full tool set for standard operation'}`
@@ -225,17 +225,11 @@ For real functionality, please configure valid GitHub and Claude API tokens.`;
 }
 
 /**
- * Get appropriate entrypoint script based on operation type
+ * Get entrypoint script for Claude Code execution
+ * Uses unified entrypoint that handles all operation types based on OPERATION_TYPE env var
  */
-function getEntrypointScript(operationType: OperationType): string {
-  switch (operationType) {
-  case 'auto-tagging':
-    return '/scripts/runtime/claudecode-tagging-entrypoint.sh';
-  case 'pr-review':
-  case 'default':
-  default:
-    return '/scripts/runtime/claudecode-entrypoint.sh';
-  }
+function getEntrypointScript(): string {
+  return '/scripts/runtime/claudecode-entrypoint.sh';
 }
 
 /**

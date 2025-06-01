@@ -18,7 +18,7 @@ if (trustProxy) {
   app.set('trust proxy', true);
 }
 
-const PORT = parseInt(process.env['PORT'] ?? '3003', 10);
+const PORT = parseInt(process.env['PORT'] ?? '3002', 10);
 const appLogger = createLogger('app');
 const startupMetrics = new StartupMetrics();
 
@@ -27,26 +27,32 @@ startupMetrics.recordMilestone('env_loaded', 'Environment variables loaded');
 startupMetrics.recordMilestone('express_initialized', 'Express app initialized');
 
 // Rate limiting configuration
-const generalRateLimit = rateLimit({
+// When behind a proxy, we need to properly handle client IP detection
+const rateLimitConfig = {
   windowMs: 15 * 60 * 1000, // 15 minutes
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Skip validation when behind proxy to avoid startup errors
+  validate: trustProxy ? false : undefined
+};
+
+const generalRateLimit = rateLimit({
+  ...rateLimitConfig,
   max: 100, // Limit each IP to 100 requests per windowMs
   message: {
     error: 'Too many requests',
     message: 'Too many requests from this IP, please try again later.'
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false // Disable the `X-RateLimit-*` headers
+  }
 });
 
 const webhookRateLimit = rateLimit({
+  ...rateLimitConfig,
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 50, // Limit each IP to 50 webhook requests per 5 minutes
   message: {
     error: 'Too many webhook requests',
     message: 'Too many webhook requests from this IP, please try again later.'
   },
-  standardHeaders: true,
-  legacyHeaders: false,
   skip: _req => {
     // Skip rate limiting in test environment
     return process.env['NODE_ENV'] === 'test';

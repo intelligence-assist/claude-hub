@@ -2,16 +2,14 @@ services:
   webhook:
     build: .
     ports:
-      - "8082:3003"
+      - "${PORT:-3002}:${PORT:-3002}"
     volumes:
-      - .:/app
-      - /app/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.aws:/root/.aws:ro
       - ${HOME}/.claude-hub:/home/node/.claude
     environment:
       - NODE_ENV=production
-      - PORT=3003
+      - PORT=${PORT:-3002}
       - TRUST_PROXY=${TRUST_PROXY:-true}
       - AUTHORIZED_USERS=${AUTHORIZED_USERS:-Cheffromspace}
       - BOT_USERNAME=${BOT_USERNAME:-@MCPClaude}
@@ -34,7 +32,7 @@ services:
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-3002}/health"]
       interval: 30s
       timeout: 10s
       retries: 3

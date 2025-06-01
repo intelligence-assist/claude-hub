@@ -1,16 +1,16 @@
 # Claude GitHub Webhook
 
 [![Discord](https://img.shields.io/discord/1377708770209304676?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/yb7hwQjTFg)
-[![Main Pipeline](https://github.com/intelligence-assist/claude-hub/actions/workflows/main.yml/badge.svg)](https://github.com/intelligence-assist/claude-hub/actions/workflows/main.yml)
-[![Security Scans](https://github.com/intelligence-assist/claude-hub/actions/workflows/security.yml/badge.svg)](https://github.com/intelligence-assist/claude-hub/actions/workflows/security.yml)
+[![Main Pipeline](https://github.com/claude-did-this/claude-hub/actions/workflows/main.yml/badge.svg)](https://github.com/claude-did-this/claude-hub/actions/workflows/main.yml)
+[![Security Scans](https://github.com/claude-did-this/claude-hub/actions/workflows/security.yml/badge.svg)](https://github.com/claude-did-this/claude-hub/actions/workflows/security.yml)
 [![Jest Tests](https://img.shields.io/badge/tests-jest-green)](test/README.md)
-[![codecov](https://codecov.io/gh/intelligence-assist/claude-hub/branch/main/graph/badge.svg)](https://codecov.io/gh/intelligence-assist/claude-hub)
-[![Version](https://img.shields.io/github/v/release/intelligence-assist/claude-hub?label=version)](https://github.com/intelligence-assist/claude-hub/releases)
+[![codecov](https://codecov.io/gh/claude-did-this/claude-hub/branch/main/graph/badge.svg)](https://codecov.io/gh/claude-did-this/claude-hub)
+[![Version](https://img.shields.io/github/v/release/claude-did-this/claude-hub?label=version)](https://github.com/claude-did-this/claude-hub/releases)
 [![Docker Hub](https://img.shields.io/docker/v/intelligenceassist/claude-hub?label=docker)](https://hub.docker.com/r/intelligenceassist/claude-hub)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-🚀 **[Quick Start Guide](./QUICKSTART.md)** | 💬 **[Discord](https://discord.gg/yb7hwQjTFg)** | 📚 **[Documentation](https://docs.intelligence-assist.com/claude-hub/overview)** | 📖 **[Complete Setup](./docs/complete-workflow.md)** | 🔐 **[Authentication](./docs/claude-authentication-guide.md)**
+🚀 **[Quick Start Guide](./QUICKSTART.md)** | 💬 **[Discord](https://discord.gg/yb7hwQjTFg)** | 📚 **[Documentation](https://claude-did-this.com/claude-hub/overview)** | 📖 **[Complete Setup](./docs/complete-workflow.md)** | 🔐 **[Authentication](./docs/claude-authentication-guide.md)**
 
 ![Claude GitHub Webhook brain factory - AI brain connected to GitHub octocat via assembly line of Docker containers](./assets/brain_factory.png)
 
@@ -34,7 +34,7 @@ Claude autonomously handles complete development workflows. It analyzes your ent
 
 ```bash
 # 1. Clone and configure
-git clone https://github.com/intelligence-assist/claude-hub.git
+git clone https://github.com/claude-did-this/claude-hub.git
 cd claude-hub
 cp .env.quickstart .env
 nano .env  # Add your GitHub token and bot details
@@ -381,7 +381,7 @@ npm run dev
 
 ### Support
 
-- Report issues: [GitHub Issues](https://github.com/intelligence-assist/claude-hub/issues)
+- Report issues: [GitHub Issues](https://github.com/claude-did-this/claude-hub/issues)
 - Detailed troubleshooting: [Complete Workflow Guide](./docs/complete-workflow.md#troubleshooting)
 
 ## License

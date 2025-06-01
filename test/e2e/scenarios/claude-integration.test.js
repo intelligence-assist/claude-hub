@@ -107,7 +107,7 @@ conditionalDescribe(
         const result = await containerExecutor.exec({
           entrypoint: '/bin/bash',
           command: 'echo "Repository configuration test"',
-          repo: 'intelligence-assist/test-repo',
+          repo: 'claude-did-this/test-repo',
           env: {
             ISSUE_NUMBER: '42',
             IS_PULL_REQUEST: 'true'

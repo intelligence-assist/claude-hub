@@ -81,8 +81,8 @@ The project uses Husky for Git pre-commit hooks to ensure code quality:
 
 ### End-to-End Testing
 Use the demo repository for testing auto-tagging and webhook functionality:
-- Demo repository: `https://github.com/intelligence-assist/demo-repository`
-- Test auto-tagging: `./cli/webhook-cli.js --repo "intelligence-assist/demo-repository" --command "Auto-tag this issue" --issue 1 --url "http://localhost:8082"`
+- Demo repository: `https://github.com/claude-did-this/demo-repository`
+- Test auto-tagging: `./cli/webhook-cli.js --repo "claude-did-this/demo-repository" --command "Auto-tag this issue" --issue 1 --url "http://localhost:8082"`
 - Test with specific issue content: Create a new issue in the demo repository to trigger auto-tagging webhook
 - Verify labels are applied based on issue content analysis
 

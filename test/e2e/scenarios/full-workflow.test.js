@@ -19,7 +19,7 @@ conditionalDescribe(
       test('should handle complete environment setup', async () => {
         const result = await containerExecutor.execFullFlow({
           env: {
-            TEST_REPO_FULL_NAME: 'intelligence-assist/test-repo',
+            TEST_REPO_FULL_NAME: 'claude-did-this/test-repo',
             COMMAND: 'echo "Full workflow test"'
           }
         });
@@ -34,7 +34,7 @@ conditionalDescribe(
         const result = await containerExecutor.exec({
           interactive: true,
           env: {
-            REPO_FULL_NAME: 'intelligence-assist/claude-hub',
+            REPO_FULL_NAME: 'claude-did-this/claude-hub',
             ISSUE_NUMBER: '1',
             IS_PULL_REQUEST: 'false',
             COMMAND: 'echo "Claude Code Docker test"',
@@ -60,7 +60,7 @@ conditionalDescribe(
           echo "Environment validation complete"
         `,
           env: {
-            REPO_FULL_NAME: 'intelligence-assist/claude-hub',
+            REPO_FULL_NAME: 'claude-did-this/claude-hub',
             ISSUE_NUMBER: '42',
             COMMAND: 'validate environment'
           }
@@ -76,7 +76,7 @@ conditionalDescribe(
         const result = await containerExecutor.exec({
           interactive: true,
           env: {
-            REPO_FULL_NAME: 'intelligence-assist/claude-hub',
+            REPO_FULL_NAME: 'claude-did-this/claude-hub',
             ISSUE_NUMBER: '1',
             IS_PULL_REQUEST: 'false',
             COMMAND: 'echo "Integration test complete"',
@@ -96,7 +96,7 @@ conditionalDescribe(
           interactive: true,
           volumes: [`${homeDir}/.aws:/home/node/.aws:ro`],
           env: {
-            REPO_FULL_NAME: 'intelligence-assist/test-bedrock',
+            REPO_FULL_NAME: 'claude-did-this/test-bedrock',
             ISSUE_NUMBER: '1',
             IS_PULL_REQUEST: 'false',
             COMMAND: 'echo "Bedrock integration test"',

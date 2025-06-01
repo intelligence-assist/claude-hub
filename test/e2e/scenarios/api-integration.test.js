@@ -17,14 +17,14 @@ conditionalDescribe(
           echo "Claude API test complete"
         `,
           env: {
-            REPO_FULL_NAME: 'intelligence-assist/claude-hub',
+            REPO_FULL_NAME: 'claude-did-this/claude-hub',
             ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || 'test-key'
           }
         });
 
         assertCommandSuccess(result);
         expect(result.stdout).toContain('Claude API test complete');
-        expect(result.stdout).toContain('Repository: intelligence-assist/claude-hub');
+        expect(result.stdout).toContain('Repository: claude-did-this/claude-hub');
       });
 
       test('should validate Claude API environment setup', async () => {
@@ -53,7 +53,7 @@ conditionalDescribe(
         const result = await containerExecutor.exec({
           entrypoint: '/bin/bash',
           command: 'echo "Container API test"',
-          repo: 'intelligence-assist/test-repo',
+          repo: 'claude-did-this/test-repo',
           env: {
             CONTAINER_MODE: 'api-test',
             API_ENDPOINT: 'test-endpoint'

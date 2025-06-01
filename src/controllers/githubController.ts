@@ -554,7 +554,7 @@ async function handleManualPRReview(
     const authorizedUsers = process.env.AUTHORIZED_USERS
       ? process.env.AUTHORIZED_USERS.split(',').map(user => user.trim())
       : [process.env.DEFAULT_AUTHORIZED_USER ?? 'admin'];
-    
+
     if (!authorizedUsers.includes(sender.login)) {
       logger.info(
         {

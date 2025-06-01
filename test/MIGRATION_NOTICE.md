@@ -2,36 +2,33 @@
 
 ## Shell Scripts Migrated to Jest E2E Tests
 
-The following shell test scripts have been migrated to the Jest E2E test suite and can be safely removed:
+The following shell test scripts have been migrated to the Jest E2E test suite and have been removed:
 
-### AWS Tests
+### Migrated Shell Scripts (✅ Completed)
 
-- `test/aws/test-aws-mount.sh` → Replaced by `test/e2e/scenarios/aws-authentication.test.js`
-- `test/aws/test-aws-profile.sh` → Replaced by `test/e2e/scenarios/aws-authentication.test.js`
+**AWS Tests** (Directory: `test/aws/` - removed)
+- `test-aws-mount.sh` → `test/e2e/scenarios/aws-authentication.test.js`
+- `test-aws-profile.sh` → `test/e2e/scenarios/aws-authentication.test.js`
 
-### Claude Tests
+**Claude Tests** (Directory: `test/claude/` - removed)
+- `test-claude-direct.sh` → `test/e2e/scenarios/claude-integration.test.js`
+- `test-claude-installation.sh` → `test/e2e/scenarios/claude-integration.test.js`
+- `test-claude-no-firewall.sh` → `test/e2e/scenarios/claude-integration.test.js`
+- `test-claude-response.sh` → `test/e2e/scenarios/claude-integration.test.js`
 
-- `test/claude/test-claude-direct.sh` → Replaced by `test/e2e/scenarios/claude-integration.test.js`
-- `test/claude/test-claude-installation.sh` → Replaced by `test/e2e/scenarios/claude-integration.test.js`
-- `test/claude/test-claude-no-firewall.sh` → Replaced by `test/e2e/scenarios/claude-integration.test.js`
-- `test/claude/test-claude-response.sh` → Replaced by `test/e2e/scenarios/claude-integration.test.js`
+**Container Tests** (Directory: `test/container/` - removed)
+- `test-basic-container.sh` → `test/e2e/scenarios/container-execution.test.js`
+- `test-container-cleanup.sh` → `test/e2e/scenarios/container-execution.test.js`
+- `test-container-privileged.sh` → `test/e2e/scenarios/container-execution.test.js`
 
-### Container Tests
+**Security Tests** (Directory: `test/security/` - removed)
+- `test-firewall.sh` → `test/e2e/scenarios/security-firewall.test.js`
+- `test-github-token.sh` → `test/e2e/scenarios/github-integration.test.js`
+- `test-with-auth.sh` → `test/e2e/scenarios/security-firewall.test.js`
 
-- `test/container/test-basic-container.sh` → Replaced by `test/e2e/scenarios/container-execution.test.js`
-- `test/container/test-container-cleanup.sh` → Replaced by `test/e2e/scenarios/container-execution.test.js`
-- `test/container/test-container-privileged.sh` → Replaced by `test/e2e/scenarios/container-execution.test.js`
-
-### Security Tests
-
-- `test/security/test-firewall.sh` → Replaced by `test/e2e/scenarios/security-firewall.test.js`
-- `test/security/test-github-token.sh` → Replaced by `test/e2e/scenarios/github-integration.test.js`
-- `test/security/test-with-auth.sh` → Replaced by `test/e2e/scenarios/security-firewall.test.js`
-
-### Integration Tests
-
-- `test/integration/test-full-flow.sh` → Replaced by `test/e2e/scenarios/full-workflow.test.js`
-- `test/integration/test-claudecode-docker.sh` → Replaced by `test/e2e/scenarios/docker-execution.test.js` and `full-workflow.test.js`
+**Integration Tests** (Directory: `test/integration/` - removed)
+- `test-full-flow.sh` → `test/e2e/scenarios/full-workflow.test.js`
+- `test-claudecode-docker.sh` → `test/e2e/scenarios/docker-execution.test.js` and `full-workflow.test.js`
 
 ### Retained Shell Scripts
 

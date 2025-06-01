@@ -122,7 +122,7 @@ Test it in your own repository by creating an issue and mentioning your bot:
 
 ## Community & Support
 
-[![Discord](https://img.shields.io/discord/1234567890?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/yb7hwQjTFg)
+[![Discord](https://img.shields.io/discord/1313320949214814228?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/yb7hwQjTFg)
 [![Documentation](https://img.shields.io/badge/docs-intelligence--assist.com-blue?logo=readthedocs&logoColor=white)](https://docs.intelligence-assist.com/claude-hub/overview)
 
 Join our Discord server for help, updates, and to share your experience!

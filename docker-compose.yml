@@ -13,6 +13,7 @@ services:
       - TRUST_PROXY=${TRUST_PROXY:-true}
       - AUTHORIZED_USERS=${AUTHORIZED_USERS:-Cheffromspace}
       - BOT_USERNAME=${BOT_USERNAME:-@MCPClaude}
+      - BOT_EMAIL=${BOT_EMAIL:-claude@example.com}
       - DEFAULT_GITHUB_OWNER=${DEFAULT_GITHUB_OWNER:-Cheffromspace}
       - DEFAULT_GITHUB_USER=${DEFAULT_GITHUB_USER:-Cheffromspace}
       - DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}

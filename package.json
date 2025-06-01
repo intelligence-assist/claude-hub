@@ -31,7 +31,7 @@
     "security:fix": "npm audit fix",
     "setup:dev": "husky install",
     "setup:hooks": "husky",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "@octokit/rest": "^22.0.0",

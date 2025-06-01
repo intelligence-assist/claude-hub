@@ -156,6 +156,8 @@ sudo -u node -E env \
     GH_TOKEN="${GITHUB_TOKEN}" \
     /usr/local/share/npm-global/bin/claude \
     --allowedTools "${ALLOWED_TOOLS}" \
+    --verbose \
+    --output-format stream-json \
     --print "${COMMAND}" \
     > "${RESPONSE_FILE}" 2>&1
 

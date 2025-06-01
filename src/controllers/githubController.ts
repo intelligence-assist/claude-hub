@@ -501,7 +501,7 @@ async function processBotMention(
       if ('head' in issue && 'base' in issue) {
         return await handleManualPRReview(issue, repo, comment.user, res);
       }
-      
+
       // Check if this issue is actually a PR (GitHub includes pull_request property for PR comments)
       const issueWithPR = issue;
       if (issueWithPR.pull_request) {
@@ -514,7 +514,7 @@ async function processBotMention(
           },
           base: issueWithPR.pull_request.base ?? { ref: 'main' }
         } as GitHubPullRequest;
-        
+
         return await handleManualPRReview(mockPR, repo, comment.user, res);
       }
     }

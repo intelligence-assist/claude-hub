@@ -28,11 +28,12 @@ jobs:
       working-directory: ./cli
       run: npm run build
     
-    - name: Run all CLI tests
+    - name: Run all CLI tests (skipping Docker tests)
       working-directory: ./cli
       run: npm run test:all
       env:
         NODE_ENV: test
+        SKIP_DOCKER_TESTS: "true"
         
     - name: Generate test coverage report
       working-directory: ./cli

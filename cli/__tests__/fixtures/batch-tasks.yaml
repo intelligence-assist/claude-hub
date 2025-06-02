@@ -1,0 +1,40 @@
+# Sample batch tasks file for testing the start-batch command
+# Each item in this list represents a task to be executed by Claude
+
+# Task with issue context
+- repo: claude-did-this/demo-repository
+  command: >
+    Analyze issue #42 and suggest possible solutions.
+    Check if there are any similar patterns in the codebase.
+  issue: 42
+
+# Task with PR context and branch
+- repo: claude-did-this/demo-repository
+  command: >
+    Review this PR and provide detailed feedback.
+    Focus on code quality, performance, and security.
+  pr: 123
+  branch: feature/new-api
+
+# Simple repository task
+- repo: claude-did-this/demo-repository
+  command: >
+    Generate a new utility function for string formatting
+    that handles multi-line text with proper indentation.
+
+# Task with resource limits
+- repo: claude-did-this/large-repo
+  command: >
+    Perform a comprehensive security audit of the authentication module.
+    Look for potential vulnerabilities in the token handling code.
+  resourceLimits:
+    memory: 4g
+    cpuShares: 2048
+    pidsLimit: 512
+
+# Boolean PR flag
+- repo: claude-did-this/demo-repository
+  command: >
+    Create a new feature branch and implement a dark mode toggle
+    for the application settings page.
+  pr: true

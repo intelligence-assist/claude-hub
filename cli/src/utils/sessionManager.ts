@@ -136,7 +136,8 @@ export class SessionManager {
       }
       
       if (options.repo) {
-        sessions = sessions.filter(session => session.repoFullName.includes(options.repo));
+        const repoFilter = options.repo;
+        sessions = sessions.filter(session => session.repoFullName.includes(repoFilter));
       }
       
       // Verify status of running sessions

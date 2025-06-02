@@ -36,7 +36,7 @@ export class DockerUtils {
    */
   async doesImageExist(): Promise<boolean> {
     try {
-      await execFileAsync('docker', ['inspect', this.dockerImageName], { stdio: 'ignore' });
+      await execFileAsync('docker', ['inspect', this.dockerImageName]);
       return true;
     } catch {
       return false;

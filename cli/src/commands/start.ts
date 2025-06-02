@@ -22,7 +22,7 @@ export function registerStartCommand(program: Command): void {
     });
 }
 
-async function startSession(
+export async function startSession(
   repo: string, 
   command: string, 
   options: {

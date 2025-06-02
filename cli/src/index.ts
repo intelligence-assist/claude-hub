@@ -7,10 +7,12 @@
 
 import { Command } from 'commander';
 import { registerStartCommand } from './commands/start';
+import { registerStartBatchCommand } from './commands/start-batch';
 import { registerListCommand } from './commands/list';
 import { registerLogsCommand } from './commands/logs';
 import { registerContinueCommand } from './commands/continue';
 import { registerStopCommand } from './commands/stop';
+import { registerRecoverCommand } from './commands/recover';
 import dotenv from 'dotenv';
 import chalk from 'chalk';
 import path from 'path';
@@ -41,10 +43,12 @@ program
 
 // Register commands
 registerStartCommand(program);
+registerStartBatchCommand(program);
 registerListCommand(program);
 registerLogsCommand(program);
 registerContinueCommand(program);
 registerStopCommand(program);
+registerRecoverCommand(program);
 
 // Add a help command that displays examples
 program
@@ -53,9 +57,11 @@ program
   .action(() => {
     console.log(chalk.blue('Claude Hub CLI Examples:'));
     console.log();
-    console.log(chalk.yellow('Starting a new session:'));
+    console.log(chalk.yellow('Starting sessions:'));
     console.log(`  claude-hub start myorg/myrepo "Implement feature X"`);
     console.log(`  claude-hub start myrepo "Fix bug in authentication" --pr 42`);
+    console.log(`  claude-hub start myrepo "Investigate issue" --issue 123`);
+    console.log(`  claude-hub start-batch tasks.yaml --parallel --concurrent 3`);
     console.log();
     console.log(chalk.yellow('Managing sessions:'));
     console.log(`  claude-hub list`);
@@ -65,6 +71,10 @@ program
     console.log(`  claude-hub continue abc123 "Also update the documentation"`);
     console.log(`  claude-hub stop abc123`);
     console.log(`  claude-hub stop all --force`);
+    console.log();
+    console.log(chalk.yellow('Session recovery:'));
+    console.log(`  claude-hub sync`);
+    console.log(`  claude-hub recover abc123`);
   });
 
 // Error on unknown commands

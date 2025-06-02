@@ -12,6 +12,7 @@ export function registerStartCommand(program: Command): void {
     .argument('<repo>', 'GitHub repository (format: owner/repo or repo)')
     .argument('<command>', 'Command to send to Claude')
     .option('-p, --pr [number]', 'Treat as pull request and optionally specify PR number')
+    .option('-i, --issue <number>', 'Treat as issue and specify issue number')
     .option('-b, --branch <branch>', 'Branch name for PR')
     .option('-m, --memory <limit>', 'Memory limit (e.g., "2g")')
     .option('-c, --cpu <shares>', 'CPU shares (e.g., "1024")')
@@ -26,6 +27,7 @@ async function startSession(
   command: string, 
   options: {
     pr?: string | boolean;
+    issue?: string;
     branch?: string;
     memory?: string;
     cpu?: string;
@@ -42,9 +44,24 @@ async function startSession(
       repoFullName = `${defaultOwner}/${repo}`;
     }
 
+    // Validate context: PR and issue cannot both be specified
+    if (options.pr !== undefined && options.issue !== undefined) {
+      spinner.fail('Error: Cannot specify both --pr and --issue. Choose one context type.');
+      return;
+    }
+
     // Process PR option
     const isPullRequest = options.pr !== undefined;
     const prNumber = typeof options.pr === 'string' ? parseInt(options.pr, 10) : undefined;
+
+    // Process Issue option
+    const isIssue = options.issue !== undefined;
+    const issueNumber = options.issue ? parseInt(options.issue, 10) : undefined;
+
+    // Branch is only valid with PR context
+    if (options.branch && !isPullRequest) {
+      spinner.warn('Note: --branch is only used with --pr option. It will be ignored for this session.');
+    }
 
     // Prepare resource limits if specified
     const resourceLimits = (options.memory || options.cpu || options.pids) ? {
@@ -58,6 +75,8 @@ async function startSession(
       repoFullName,
       command,
       isPullRequest,
+      isIssue,
+      issueNumber,
       prNumber,
       branchName: options.branch,
       resourceLimits
@@ -107,7 +126,9 @@ async function startSession(
       command: sessionOptions.command,
       status: 'running',
       isPullRequest: sessionOptions.isPullRequest,
+      isIssue: sessionOptions.isIssue,
       prNumber: sessionOptions.prNumber,
+      issueNumber: sessionOptions.issueNumber,
       branchName: sessionOptions.branchName,
       resourceLimits: sessionOptions.resourceLimits
     };
@@ -119,12 +140,16 @@ async function startSession(
     console.log(`${chalk.blue('Session details:')}`);
     console.log(`  ${chalk.yellow('Repository:')} ${savedSession.repoFullName}`);
     console.log(`  ${chalk.yellow('Command:')} ${savedSession.command}`);
+    
     if (savedSession.isPullRequest) {
       console.log(`  ${chalk.yellow('PR:')} #${savedSession.prNumber || 'N/A'}`);
       if (savedSession.branchName) {
         console.log(`  ${chalk.yellow('Branch:')} ${savedSession.branchName}`);
       }
+    } else if (savedSession.isIssue) {
+      console.log(`  ${chalk.yellow('Issue:')} #${savedSession.issueNumber}`);
     }
+    
     console.log();
     console.log(`To view logs: ${chalk.cyan(`claude-hub logs ${savedSession.id}`)}`);
     console.log(`To continue session: ${chalk.cyan(`claude-hub continue ${savedSession.id} "Additional command"`)}`);
@@ -151,10 +176,20 @@ function createEnvironmentVars(options: StartSessionOptions): Record<string, str
     console.warn('Warning: No Anthropic API key found. Set ANTHROPIC_API_KEY environment variable.');
   }
 
+  // Set the issue or PR number in the ISSUE_NUMBER env var
+  // The entrypoint script uses this variable for both issues and PRs
+  let issueNumber = '';
+  if (options.isPullRequest && options.prNumber) {
+    issueNumber = String(options.prNumber);
+  } else if (options.isIssue && options.issueNumber) {
+    issueNumber = String(options.issueNumber);
+  }
+
   return {
     REPO_FULL_NAME: options.repoFullName,
-    ISSUE_NUMBER: options.prNumber ? String(options.prNumber) : '',
+    ISSUE_NUMBER: issueNumber,
     IS_PULL_REQUEST: options.isPullRequest ? 'true' : 'false',
+    IS_ISSUE: options.isIssue ? 'true' : 'false',
     BRANCH_NAME: options.branchName || '',
     OPERATION_TYPE: 'default',
     COMMAND: createPrompt(options),
@@ -169,11 +204,20 @@ function createEnvironmentVars(options: StartSessionOptions): Record<string, str
  * Create prompt based on context
  */
 function createPrompt(options: StartSessionOptions): string {
-  return `You are ${process.env.BOT_USERNAME || 'ClaudeBot'}, an AI assistant working autonomously on a GitHub ${options.isPullRequest ? 'pull request' : 'repository'}.
+  // Determine the context type (repository, PR, or issue)
+  let contextType = 'repository';
+  if (options.isPullRequest) {
+    contextType = 'pull request';
+  } else if (options.isIssue) {
+    contextType = 'issue';
+  }
+
+  return `You are ${process.env.BOT_USERNAME || 'ClaudeBot'}, an AI assistant working autonomously on a GitHub ${contextType}.
 
 **Context:**
 - Repository: ${options.repoFullName}
 ${options.isPullRequest ? `- Pull Request Number: #${options.prNumber || 'N/A'}` : ''}
+${options.isIssue ? `- Issue Number: #${options.issueNumber}` : ''}
 ${options.branchName ? `- Branch: ${options.branchName}` : ''}
 - Running in: Autonomous mode
 

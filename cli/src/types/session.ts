@@ -11,6 +11,8 @@ export interface SessionConfig {
   createdAt: string;
   updatedAt: string;
   isPullRequest?: boolean;
+  isIssue?: boolean;
+  issueNumber?: number;
   prNumber?: number;
   branchName?: string;
   resourceLimits?: ResourceLimits;
@@ -28,6 +30,8 @@ export interface StartSessionOptions {
   repoFullName: string;
   command: string;
   isPullRequest?: boolean;
+  isIssue?: boolean;
+  issueNumber?: number;
   prNumber?: number;
   branchName?: string;
   resourceLimits?: ResourceLimits;
@@ -53,4 +57,19 @@ export interface SessionLogOptions {
 export interface StopSessionOptions {
   sessionId: string;
   force?: boolean;
+}
+
+export interface BatchTaskDefinition {
+  repo: string;
+  command: string;
+  issue?: number;
+  pr?: number | boolean;
+  branch?: string;
+  resourceLimits?: ResourceLimits;
+}
+
+export interface BatchOptions {
+  tasksFile: string;
+  parallel?: boolean;
+  maxConcurrent?: number;
 }

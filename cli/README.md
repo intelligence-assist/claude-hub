@@ -154,6 +154,9 @@ CLAUDE_CONTAINER_IMAGE=claudecode:latest
 # Start a new autonomous session
 ./claude-hub start owner/repo "Implement the new authentication system"
 
+# Start a batch of tasks from a YAML file
+./claude-hub start-batch tasks.yaml --parallel
+
 # List all sessions
 ./claude-hub list
 
@@ -171,6 +174,12 @@ CLAUDE_CONTAINER_IMAGE=claudecode:latest
 
 # Stop all running sessions
 ./claude-hub stop all
+
+# Recover a stopped session
+./claude-hub recover abc123
+
+# Synchronize session statuses with container states
+./claude-hub sync
 ```
 
 #### Command Reference
@@ -185,6 +194,7 @@ Start a new autonomous Claude Code session:
 
 Options:
 - `-p, --pr [number]`: Treat as pull request and optionally specify PR number
+- `-i, --issue <number>`: Treat as issue and specify issue number
 - `-b, --branch <branch>`: Branch name for PR
 - `-m, --memory <limit>`: Memory limit (e.g., "2g")
 - `-c, --cpu <shares>`: CPU shares (e.g., "1024")
@@ -198,8 +208,54 @@ Examples:
 # Work on a specific PR
 ./claude-hub start myrepo "Fix bug in authentication" --pr 42
 
+# Work on a specific issue
+./claude-hub start myrepo "Investigate the problem" --issue 123
+
 # Work on a specific branch with custom resource limits
 ./claude-hub start myrepo "Optimize performance" -b feature-branch -m 4g -c 2048
+```
+
+##### `start-batch`
+
+Start multiple autonomous Claude Code sessions from a YAML file:
+
+```bash
+./claude-hub start-batch <file> [options]
+```
+
+Options:
+- `-p, --parallel`: Run tasks in parallel (default: sequential)
+- `-c, --concurrent <number>`: Maximum number of concurrent tasks (default: 2)
+
+Example YAML file format (`tasks.yaml`):
+```yaml
+- repo: owner/repo1
+  command: "Implement feature X"
+  
+- repo: owner/repo2
+  command: "Fix bug in authentication"
+  pr: 42
+  branch: feature-branch
+  
+- repo: owner/repo3
+  command: "Investigate issue"
+  issue: 123
+  resourceLimits:
+    memory: "4g"
+    cpuShares: "2048"
+    pidsLimit: "512"
+```
+
+Examples:
+```bash
+# Run tasks sequentially
+./claude-hub start-batch tasks.yaml
+
+# Run tasks in parallel (max 2 concurrent)
+./claude-hub start-batch tasks.yaml --parallel
+
+# Run tasks in parallel with 4 concurrent tasks
+./claude-hub start-batch tasks.yaml --parallel --concurrent 4
 ```
 
 ##### `list`
@@ -296,13 +352,46 @@ Examples:
 ./claude-hub stop all
 ```
 
+##### `recover`
+
+Recover a stopped session by recreating its container:
+
+```bash
+./claude-hub recover <id>
+```
+
+Examples:
+```bash
+# Recover a stopped session
+./claude-hub recover abc123
+```
+
+##### `sync`
+
+Synchronize session statuses with container states:
+
+```bash
+./claude-hub sync
+```
+
+This command checks all sessions marked as "running" to verify if their containers are actually running, and updates the status accordingly.
+
 ### Session Lifecycle
 
 1. **Starting**: Creates a new container with the repository cloned and command executed
 2. **Running**: Container continues to run autonomously until task completion or manual stopping
 3. **Continuation**: Additional commands can be sent to running sessions
 4. **Stopping**: Sessions can be stopped manually, preserving their state
-5. **Removal**: Session records can be removed while preserving logs
+5. **Recovery**: Stopped sessions can be recovered by recreating their containers
+6. **Removal**: Session records can be removed while preserving logs
+
+### Batch Processing
+
+The CLI supports batch processing of multiple tasks from a YAML file. This is useful for:
+
+1. **Task queuing**: Set up multiple related tasks to run in sequence
+2. **Parallel execution**: Run multiple independent tasks concurrently
+3. **Standardized configuration**: Define consistent resource limits and repository contexts
 
 ### Storage
 
@@ -315,6 +404,8 @@ Session information is stored in `~/.claude-hub/sessions/` as JSON files.
 3. **Invalid signatures**: Check that the webhook secret matches the server configuration
 4. **Docker errors**: Verify Docker is running and you have sufficient permissions
 5. **Resource constraints**: If sessions are failing, try increasing memory limits
+6. **Stopped sessions**: Use the `recover` command to restart stopped sessions
+7. **Inconsistent statuses**: Use the `sync` command to update session statuses based on container states
 
 ## Security
 

@@ -7,17 +7,20 @@ import {
   SessionStatus,
   SessionListOptions
 } from '../types/session';
+import { DockerUtils } from './dockerUtils';
 
 /**
  * Session manager for storing and retrieving Claude session data
  */
 export class SessionManager {
   private sessionsDir: string;
+  private dockerUtils: DockerUtils;
 
   constructor() {
     // Store sessions in ~/.claude-hub/sessions
     this.sessionsDir = path.join(os.homedir(), '.claude-hub', 'sessions');
     this.ensureSessionsDirectory();
+    this.dockerUtils = new DockerUtils();
   }
 
   /**
@@ -116,7 +119,7 @@ export class SessionManager {
   /**
    * List sessions with optional filtering
    */
-  listSessions(options: SessionListOptions = {}): SessionConfig[] {
+  async listSessions(options: SessionListOptions = {}): Promise<SessionConfig[]> {
     try {
       const files = fs.readdirSync(this.sessionsDir)
         .filter(file => file.endsWith('.json'));
@@ -136,6 +139,16 @@ export class SessionManager {
         sessions = sessions.filter(session => session.repoFullName.includes(options.repo));
       }
       
+      // Verify status of running sessions
+      const runningSessionsToCheck = sessions.filter(session => session.status === 'running');
+      await Promise.all(runningSessionsToCheck.map(async (session) => {
+        const isRunning = await this.dockerUtils.isContainerRunning(session.containerId);
+        if (!isRunning) {
+          session.status = 'stopped';
+          this.updateSessionStatus(session.id, 'stopped');
+        }
+      }));
+      
       // Sort by creation date (newest first)
       sessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
@@ -148,6 +161,89 @@ export class SessionManager {
     } catch (error) {
       console.error('Error listing sessions:', error);
       return [];
+    }
+  }
+
+  /**
+   * Recover a session by recreating the container
+   */
+  async recoverSession(id: string): Promise<boolean> {
+    try {
+      const session = this.getSession(id);
+      if (!session) {
+        console.error(`Session ${id} not found`);
+        return false;
+      }
+      
+      if (session.status !== 'stopped') {
+        console.error(`Session ${id} is not stopped (status: ${session.status})`);
+        return false;
+      }
+      
+      // Generate a new container name
+      const containerName = `claude-hub-${session.id}-recovered`;
+      
+      // Prepare environment variables for the container
+      const envVars: Record<string, string> = {
+        REPO_FULL_NAME: session.repoFullName,
+        ISSUE_NUMBER: session.issueNumber ? String(session.issueNumber) : (session.prNumber ? String(session.prNumber) : ''),
+        IS_PULL_REQUEST: session.isPullRequest ? 'true' : 'false',
+        IS_ISSUE: session.isIssue ? 'true' : 'false',
+        BRANCH_NAME: session.branchName || '',
+        OPERATION_TYPE: 'default',
+        COMMAND: session.command,
+        GITHUB_TOKEN: process.env.GITHUB_TOKEN || '',
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+        BOT_USERNAME: process.env.BOT_USERNAME || 'ClaudeBot',
+        BOT_EMAIL: process.env.BOT_EMAIL || 'claude@example.com'
+      };
+      
+      // Start the container
+      const containerId = await this.dockerUtils.startContainer(
+        containerName,
+        envVars,
+        session.resourceLimits
+      );
+      
+      if (!containerId) {
+        console.error('Failed to start container for session recovery');
+        return false;
+      }
+      
+      // Update session with new container ID and status
+      session.containerId = containerId;
+      session.status = 'running';
+      session.updatedAt = new Date().toISOString();
+      this.saveSession(session);
+      
+      console.log(`Session ${id} recovered with new container ID: ${containerId}`);
+      return true;
+    } catch (error) {
+      console.error(`Error recovering session ${id}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Synchronize session status with container status
+   * Updates session statuses based on actual container states
+   */
+  async syncSessionStatuses(): Promise<void> {
+    try {
+      const sessions = await this.listSessions();
+      
+      for (const session of sessions) {
+        if (session.status === 'running') {
+          const isRunning = await this.dockerUtils.isContainerRunning(session.containerId);
+          if (!isRunning) {
+            session.status = 'stopped';
+            this.updateSessionStatus(session.id, 'stopped');
+            console.log(`Updated session ${session.id} status from running to stopped (container not found)`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing session statuses:', error);
     }
   }
 }

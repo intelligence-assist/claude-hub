@@ -1183,7 +1183,7 @@ async function processAutomatedPRReviews(
  * Create PR review prompt
  */
 function createPRReviewPrompt(prNumber: number, repoFullName: string, commitSha: string): string {
-  return `# Automated PR Review Request
+  return `# GitHub PR Review - Complete Automated Review
 
 **PR #${prNumber}** in **${repoFullName}** is ready for review.
 

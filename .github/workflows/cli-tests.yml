@@ -1,0 +1,40 @@
+name: CLI Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cli/**'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  cli-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: npm
+        cache-dependency-path: cli/package-lock.json
+    
+    - name: Install CLI dependencies
+      working-directory: ./cli
+      run: npm ci
+    
+    - name: TypeScript compilation check
+      working-directory: ./cli
+      run: npm run build
+    
+    - name: Run all CLI tests (skipping Docker tests)
+      working-directory: ./cli
+      run: npm run test:all
+      env:
+        NODE_ENV: test
+        SKIP_DOCKER_TESTS: "true"
+        
+    - name: Generate test coverage report
+      working-directory: ./cli
+      run: npm run test:coverage

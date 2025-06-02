@@ -1,0 +1,41 @@
+{
+  "name": "claude-hub-cli",
+  "version": "1.0.0",
+  "description": "CLI tool to manage autonomous Claude Code sessions",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "jest --testPathIgnorePatterns='__tests__/utils/dockerUtils.test.ts'",
+    "test:specific": "jest '__tests__/commands/start.test.ts' '__tests__/commands/start-batch.test.ts' '__tests__/utils/sessionManager.test.ts' '__tests__/utils/dockerUtils.simple.test.ts'",
+    "test:all": "jest --testPathIgnorePatterns='__tests__/utils/dockerUtils.test.ts'",
+    "test:coverage": "jest --testPathIgnorePatterns='__tests__/utils/dockerUtils.test.ts' --coverage",
+    "test:watch": "jest --testPathIgnorePatterns='__tests__/utils/dockerUtils.test.ts' --watch"
+  },
+  "bin": {
+    "claude-hub": "./claude-hub"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.3",
+    "commander": "^14.0.0",
+    "dotenv": "^16.3.1",
+    "ora": "^5.4.1",
+    "uuid": "^9.0.0",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/mock-fs": "^4.13.4",
+    "@types/node": "^20.10.0",
+    "@types/uuid": "^9.0.8",
+    "jest": "^29.5.0",
+    "mock-fs": "^5.5.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.2"
+  }
+}

@@ -9,9 +9,9 @@ updates:
       prefix: "chore"
       include: "scope"
     reviewers:
-      - "claude-did-this"
+      - "MCPClaude"
     assignees:
-      - "claude-did-this"
+      - "MCPClaude"
     open-pull-requests-limit: 10
     
   # Enable version updates for Docker
@@ -23,9 +23,9 @@ updates:
       prefix: "chore"
       include: "scope"
     reviewers:
-      - "claude-did-this"
+      - "MCPClaude"
     assignees:
-      - "claude-did-this"
+      - "MCPClaude"
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
@@ -36,6 +36,6 @@ updates:
       prefix: "chore"
       include: "scope"
     reviewers:
-      - "claude-did-this"
+      - "MCPClaude"
     assignees:
-      - "claude-did-this"
+      - "MCPClaude"

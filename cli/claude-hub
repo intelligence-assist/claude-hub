@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Claude Hub CLI Wrapper
+# Usage: ./claude-hub <command> [options]
+
+# Determine the script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Check if ts-node is available
+if command -v ts-node &> /dev/null; then
+  # Run with ts-node for development
+  ts-node "$SCRIPT_DIR/src/index.ts" "$@"
+else
+  # Check if compiled version exists
+  if [ -f "$SCRIPT_DIR/dist/index.js" ]; then
+    # Run compiled version
+    node "$SCRIPT_DIR/dist/index.js" "$@"
+  else
+    echo "Error: Neither ts-node nor compiled JavaScript is available."
+    echo "Please either install ts-node or compile the TypeScript files:"
+    echo "  npm install -g ts-node   # To install ts-node globally"
+    echo "  npm run build            # To compile TypeScript"
+    exit 1
+  fi
+fi

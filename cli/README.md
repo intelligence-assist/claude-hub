@@ -1,8 +1,15 @@
-# Claude Webhook CLI
+# Claude Hub CLI
+
+The Claude Hub CLI provides two main interfaces:
+
+1. **claude-webhook**: Interact with the Claude GitHub webhook service
+2. **claude-hub**: Manage autonomous Claude Code container sessions
+
+## Claude Webhook CLI
 
 A command-line interface to interact with the Claude GitHub webhook service.
 
-## Installation
+### Installation
 
 1. Ensure you have Node.js installed
 2. Install dependencies:
@@ -10,7 +17,7 @@ A command-line interface to interact with the Claude GitHub webhook service.
    npm install
    ```
 
-## Configuration
+### Configuration
 
 Create a `.env` file in the root directory with:
 
@@ -20,9 +27,9 @@ GITHUB_WEBHOOK_SECRET=your-webhook-secret
 GITHUB_TOKEN=your-github-token
 ```
 
-## Usage
+### Usage
 
-### Basic Usage
+#### Basic Usage
 
 ```bash
 # Using the wrapper script (defaults to the DEFAULT_GITHUB_OWNER env variable)
@@ -35,7 +42,7 @@ GITHUB_TOKEN=your-github-token
 node cli/webhook-cli.js --repo myrepo --command "Your command"
 ```
 
-### Options
+#### Options
 
 - `-r, --repo <repo>`: GitHub repository (format: owner/repo or repo) [required]
   - If only repo name is provided, defaults to `${DEFAULT_GITHUB_OWNER}/repo`
@@ -48,7 +55,7 @@ node cli/webhook-cli.js --repo myrepo --command "Your command"
 - `-t, --token <token>`: GitHub token (default: from .env)
 - `-v, --verbose`: Verbose output
 
-### Examples
+#### Examples
 
 ```bash
 # Basic issue comment (uses default owner)
@@ -70,7 +77,7 @@ node cli/webhook-cli.js --repo myrepo --command "Your command"
 ./claude-webhook myrepo "Test command" -u https://api.example.com
 ```
 
-## Response Format
+#### Response Format
 
 The CLI will display:
 - Success/failure status
@@ -99,14 +106,221 @@ Here's an analysis of the code structure...
 }
 ```
 
+## Claude Hub CLI
+
+A command-line interface to manage autonomous Claude Code container sessions.
+
+### Overview
+
+Claude Hub CLI allows you to run multiple autonomous Claude Code sessions in isolated Docker containers. Each session can work independently on different repositories or tasks, with full persistence and management capabilities.
+
+### Installation
+
+1. Ensure you have Node.js and Docker installed
+2. Install dependencies:
+   ```bash
+   cd cli
+   npm install
+   ```
+3. Build the TypeScript files:
+   ```bash
+   npm run build
+   ```
+
+### Configuration
+
+Create a `.env` file in the root directory with:
+
+```env
+# Required for GitHub operations
+GITHUB_TOKEN=your-github-token
+
+# Required for Claude operations (one of these)
+ANTHROPIC_API_KEY=your-anthropic-api-key
+CLAUDE_AUTH_HOST_DIR=~/.claude
+
+# Optional configurations
+DEFAULT_GITHUB_OWNER=your-github-username
+BOT_USERNAME=ClaudeBot
+BOT_EMAIL=claude@example.com
+CLAUDE_CONTAINER_IMAGE=claudecode:latest
+```
+
+### Usage
+
+#### Basic Commands
+
+```bash
+# Start a new autonomous session
+./claude-hub start owner/repo "Implement the new authentication system"
+
+# List all sessions
+./claude-hub list
+
+# View session logs
+./claude-hub logs abc123
+
+# Follow logs in real-time
+./claude-hub logs abc123 --follow
+
+# Continue a session with additional instructions
+./claude-hub continue abc123 "Also update the documentation"
+
+# Stop a session
+./claude-hub stop abc123
+
+# Stop all running sessions
+./claude-hub stop all
+```
+
+#### Command Reference
+
+##### `start`
+
+Start a new autonomous Claude Code session:
+
+```bash
+./claude-hub start <repo> "<command>" [options]
+```
+
+Options:
+- `-p, --pr [number]`: Treat as pull request and optionally specify PR number
+- `-b, --branch <branch>`: Branch name for PR
+- `-m, --memory <limit>`: Memory limit (e.g., "2g")
+- `-c, --cpu <shares>`: CPU shares (e.g., "1024")
+- `--pids <limit>`: Process ID limit (e.g., "256")
+
+Examples:
+```bash
+# Basic repository task
+./claude-hub start myorg/myrepo "Implement feature X"
+
+# Work on a specific PR
+./claude-hub start myrepo "Fix bug in authentication" --pr 42
+
+# Work on a specific branch with custom resource limits
+./claude-hub start myrepo "Optimize performance" -b feature-branch -m 4g -c 2048
+```
+
+##### `list`
+
+List autonomous Claude Code sessions:
+
+```bash
+./claude-hub list [options]
+```
+
+Options:
+- `-s, --status <status>`: Filter by status (running, completed, failed, stopped)
+- `-r, --repo <repo>`: Filter by repository name
+- `-l, --limit <number>`: Limit number of sessions shown
+- `--json`: Output as JSON
+
+Examples:
+```bash
+# List all sessions
+./claude-hub list
+
+# List only running sessions
+./claude-hub list --status running
+
+# List sessions for a specific repository
+./claude-hub list --repo myrepo
+
+# Get JSON output for automation
+./claude-hub list --json
+```
+
+##### `logs`
+
+View logs from a Claude Code session:
+
+```bash
+./claude-hub logs <id> [options]
+```
+
+Options:
+- `-f, --follow`: Follow log output
+- `-t, --tail <number>`: Number of lines to show from the end of the logs
+
+Examples:
+```bash
+# View logs for a session
+./claude-hub logs abc123
+
+# Follow logs in real-time
+./claude-hub logs abc123 --follow
+
+# Show only the last 10 lines
+./claude-hub logs abc123 --tail 10
+```
+
+##### `continue`
+
+Continue an autonomous Claude Code session with a new command:
+
+```bash
+./claude-hub continue <id> "<command>"
+```
+
+Examples:
+```bash
+# Add more instructions to a session
+./claude-hub continue abc123 "Also update the documentation"
+
+# Ask a follow-up question
+./claude-hub continue abc123 "Why did you choose this approach?"
+```
+
+##### `stop`
+
+Stop an autonomous Claude Code session:
+
+```bash
+./claude-hub stop <id|all> [options]
+```
+
+Options:
+- `-f, --force`: Force stop (kill) the container
+- `--remove`: Remove the session after stopping
+
+Examples:
+```bash
+# Stop a session
+./claude-hub stop abc123
+
+# Force stop a session and remove it
+./claude-hub stop abc123 --force --remove
+
+# Stop all running sessions
+./claude-hub stop all
+```
+
+### Session Lifecycle
+
+1. **Starting**: Creates a new container with the repository cloned and command executed
+2. **Running**: Container continues to run autonomously until task completion or manual stopping
+3. **Continuation**: Additional commands can be sent to running sessions
+4. **Stopping**: Sessions can be stopped manually, preserving their state
+5. **Removal**: Session records can be removed while preserving logs
+
+### Storage
+
+Session information is stored in `~/.claude-hub/sessions/` as JSON files.
+
 ## Troubleshooting
 
-1. **Authentication errors**: Ensure your webhook secret and GitHub token are correct
+1. **Authentication errors**: Ensure your GitHub token and Claude authentication are correct
 2. **Connection errors**: Verify the API URL is correct and the service is running
 3. **Invalid signatures**: Check that the webhook secret matches the server configuration
+4. **Docker errors**: Verify Docker is running and you have sufficient permissions
+5. **Resource constraints**: If sessions are failing, try increasing memory limits
 
 ## Security
 
-- The CLI uses the webhook secret to sign requests
+- The webhook CLI uses the webhook secret to sign requests
 - GitHub tokens are used for authentication with the GitHub API
+- All autonomous sessions run in isolated Docker containers
+- Resource limits prevent containers from consuming excessive resources
+- Claude authentication is securely mounted from your local Claude installation
 - Always store secrets in environment variables, never in code

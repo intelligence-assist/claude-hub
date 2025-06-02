@@ -8,11 +8,11 @@
     "typecheck": "tsc --noEmit",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "test": "jest '__tests__/!(utils/dockerUtils.test).ts'",
+    "test": "jest --testPathIgnorePatterns='__tests__/utils/dockerUtils.test.ts'",
     "test:specific": "jest '__tests__/commands/start.test.ts' '__tests__/commands/start-batch.test.ts' '__tests__/utils/sessionManager.test.ts' '__tests__/utils/dockerUtils.simple.test.ts'",
-    "test:all": "jest '__tests__/!(utils/dockerUtils.test).ts'",
-    "test:coverage": "jest '__tests__/!(utils/dockerUtils.test).ts' --coverage",
-    "test:watch": "jest '__tests__/!(utils/dockerUtils.test).ts' --watch"
+    "test:all": "jest --testPathIgnorePatterns='__tests__/utils/dockerUtils.test.ts'",
+    "test:coverage": "jest --testPathIgnorePatterns='__tests__/utils/dockerUtils.test.ts' --coverage",
+    "test:watch": "jest --testPathIgnorePatterns='__tests__/utils/dockerUtils.test.ts' --watch"
   },
   "bin": {
     "claude-hub": "./claude-hub"

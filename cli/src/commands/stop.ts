@@ -98,7 +98,7 @@ async function stopAllSessions(
     const dockerUtils = new DockerUtils();
     
     // Get all running sessions
-    const sessions = sessionManager.listSessions({ status: 'running' });
+    const sessions = await sessionManager.listSessions({ status: 'running' });
     
     if (sessions.length === 0) {
       spinner.info('No running sessions found.');

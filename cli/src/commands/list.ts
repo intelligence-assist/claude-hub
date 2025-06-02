@@ -48,7 +48,7 @@ async function listSessions(options: {
     }
     
     // Get sessions with filters
-    const sessions = sessionManager.listSessions({
+    const sessions = await sessionManager.listSessions({
       status,
       repo: options.repo,
       limit
@@ -69,18 +69,6 @@ async function listSessions(options: {
       return;
     }
     
-    // For each running session, verify it's actually running
-    for (const session of sessions) {
-      if (session.status === 'running') {
-        const isRunning = await dockerUtils.isContainerRunning(session.containerId);
-        if (!isRunning) {
-          // Update session status to stopped if container is not running
-          session.status = 'stopped';
-          sessionManager.updateSessionStatus(session.id, 'stopped');
-        }
-      }
-    }
-    
     // Create a table for nicer display
     const table = new Table({
       head: [
@@ -94,13 +82,13 @@ async function listSessions(options: {
     });
     
     // Format and add sessions to table
-    sessions.forEach(session => {
+    for (const session of sessions) {
       // Format the date to be more readable
       const createdDate = new Date(session.createdAt);
       const formattedDate = createdDate.toLocaleString();
       
       // Format status with color
-      let statusText = session.status;
+      let statusText: string = session.status;
       switch (session.status) {
         case 'running':
           statusText = chalk.green('running');
@@ -129,7 +117,7 @@ async function listSessions(options: {
         formattedDate,
         command
       ]);
-    });
+    }
     
     console.log(table.toString());
     console.log(`\nUse ${chalk.cyan('claude-hub logs <id>')} to view session logs`);

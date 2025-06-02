@@ -53,9 +53,11 @@ export class DockerUtils {
 
     console.log(`Building Docker image ${this.dockerImageName}...`);
     try {
+      // Try to build from the repository root directory
+      const repoRoot = path.resolve(process.cwd(), '..');
       await execFileAsync('docker', 
-        ['build', '-f', 'Dockerfile.claudecode', '-t', this.dockerImageName, '.'], 
-        { cwd: process.cwd() }
+        ['build', '-f', path.join(repoRoot, 'Dockerfile.claudecode'), '-t', this.dockerImageName, repoRoot], 
+        { cwd: repoRoot }
       );
       return true;
     } catch (error) {

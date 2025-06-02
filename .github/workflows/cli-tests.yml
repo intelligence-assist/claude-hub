@@ -24,8 +24,16 @@ jobs:
       working-directory: ./cli
       run: npm ci
     
-    - name: Run CLI tests
+    - name: TypeScript compilation check
       working-directory: ./cli
-      run: npm run test
+      run: npm run build
+    
+    - name: Run all CLI tests
+      working-directory: ./cli
+      run: npm run test:all
       env:
         NODE_ENV: test
+        
+    - name: Generate test coverage report
+      working-directory: ./cli
+      run: npm run test:coverage

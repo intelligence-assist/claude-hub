@@ -1183,54 +1183,42 @@ async function processAutomatedPRReviews(
  * Create PR review prompt
  */
 function createPRReviewPrompt(prNumber: number, repoFullName: string, commitSha: string): string {
-  return `# GitHub PR Review - Complete Automated Review
+  return `# Automated PR Review Request
 
-## Initial Setup & Data Collection
+**PR #${prNumber}** in **${repoFullName}** is ready for review.
 
-### 1. Get PR Overview and Commit Information
-\`\`\`bash
-# Get basic PR information including title, body, and comments
-gh pr view ${prNumber} --json title,body,additions,deletions,changedFiles,files,headRefOid,comments
+## Your Task
+Please perform a comprehensive code review of this pull request. Focus on:
+- Code quality and best practices
+- Potential bugs or logic errors
+- Security vulnerabilities
+- Performance concerns
+- Test coverage
+- Documentation completeness
 
-# Get detailed file information  
-gh pr view ${prNumber} --json files --jq '.files[] | {filename: .filename, additions: .additions, deletions: .deletions, status: .status}'
+## Getting Started
+1. First, get the PR metadata to understand what this PR is about:
+   \`gh pr view ${prNumber} --json title,body,author,additions,deletions,changedFiles\`
 
-# Get the latest commit ID (required for inline comments)
-COMMIT_ID=$(gh pr view ${prNumber} --json headRefOid --jq -r '.headRefOid')
-\`\`\`
+2. Check for any recent comments (especially since commit ${commitSha}):
+   \`gh pr view ${prNumber} --json comments --jq '.comments[] | select(.createdAt > "2024-01-01") | {author: .author.login, body: .body, createdAt: .createdAt}'\`
 
-### 2. Examine Changes
-\`\`\`bash
-# Get the full diff
-gh pr diff ${prNumber}
+3. Examine the changes intelligently:
+   - Start by getting file statistics: \`gh pr view ${prNumber} --json files --jq '.files[] | select(.filename | test("package-lock.json|yarn.lock|.snap$|.min.js$") | not) | {file: .filename, changes: (.additions + .deletions)}' | sort_by(.changes) | reverse\`
+   - For large PRs (>5000 lines), avoid loading the entire diff at once
+   - Skip generated files: package-lock.json, yarn.lock, snapshots, minified files
+   - Use targeted diffs for specific files: \`gh pr diff ${prNumber} -- path/to/file\`
+   - Focus on source code changes, configuration files, and tests
 
-# Get diff for specific files if needed
-# gh pr diff ${prNumber} -- path/to/specific/file.ext
-\`\`\`
+4. Review the code thoroughly and provide feedback using GitHub's review mechanisms
 
-### 3. Examine Individual Files
-\`\`\`bash
-# Get list of changed files
-CHANGED_FILES=$(gh pr view ${prNumber} --json files --jq -r '.files[].filename')
+## Important Notes
+- The current commit SHA is: ${commitSha}
+- Use this SHA when creating inline comments to ensure they attach correctly
+- Be constructive and specific in your feedback
+- If the PR is too large to review comprehensively, focus on the most critical changes and note any areas that need deeper review
 
-# Read specific files as needed
-for file in $CHANGED_FILES; do
-    echo "=== $file ==="
-    cat "$file"
-done
-\`\`\`
-
-## Automated Review Process
-
-### 4. Repository and Owner Detection
-\`\`\`bash
-# Get repository information
-REPO_INFO=$(gh repo view --json owner,name)
-OWNER=$(echo $REPO_INFO | jq -r '.owner.login')
-REPO_NAME=$(echo $REPO_INFO | jq -r '.name')
-\`\`\`
-
-## Comment Creation Methods
+Please proceed with the review autonomously.
 
 ### Method 1: General PR Comments (Use for overall assessment)
 \`\`\`bash

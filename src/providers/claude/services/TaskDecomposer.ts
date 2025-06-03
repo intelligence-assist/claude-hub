@@ -13,18 +13,22 @@ export interface TaskComponent {
 
 export interface TaskDecomposition {
   components: TaskComponent[];
-  strategy: string;
+  strategy: 'sequential' | 'parallel' | 'wait_for_core';
   estimatedSessions: number;
 }
 
+// Named constant for extra sessions
+const EXTRA_SESSIONS_COUNT = 3; // For analysis, testing, and review
+
 /**
  * Decomposes complex tasks into manageable components
+ * This is a simplified version - Claude will handle the actual intelligent decomposition
  */
 export class TaskDecomposer {
   /**
    * Decompose a project into individual components
    */
-  decompose(project: ProjectInfo): Promise<TaskDecomposition> {
+  decompose(project: ProjectInfo): TaskDecomposition {
     logger.info('Decomposing project', { repository: project.repository });
 
     // Analyze requirements to identify components
@@ -36,14 +40,15 @@ export class TaskDecomposer {
     const decomposition = {
       components,
       strategy,
-      estimatedSessions: components.length + 3 // +3 for analysis, testing, review
+      estimatedSessions: components.length + EXTRA_SESSIONS_COUNT
     };
 
-    return Promise.resolve(decomposition);
+    return decomposition;
   }
 
   /**
    * Analyze requirements and extract components
+   * This is a simplified version for testing - Claude will do the real analysis
    */
   private analyzeRequirements(requirements: string): TaskComponent[] {
     const components: TaskComponent[] = [];
@@ -163,7 +168,9 @@ export class TaskDecomposer {
   /**
    * Determine the best strategy based on components
    */
-  private determineStrategy(components: TaskComponent[]): string {
+  private determineStrategy(
+    components: TaskComponent[]
+  ): 'sequential' | 'parallel' | 'wait_for_core' {
     // If we have dependencies, use wait_for_core strategy
     const hasDependencies = components.some(c => c.dependencies && c.dependencies.length > 0);
 

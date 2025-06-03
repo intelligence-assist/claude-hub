@@ -59,7 +59,7 @@ export class SessionHandler implements WebhookEventHandler<ClaudeWebhookPayload>
    * Check if this handler can handle the request
    */
   canHandle(payload: ClaudeWebhookPayload): boolean {
-    return payload.data.type?.startsWith('session.');
+    return payload.data.type.startsWith('session.');
   }
 
   /**
@@ -119,7 +119,7 @@ export class SessionHandler implements WebhookEventHandler<ClaudeWebhookPayload>
       };
     }
 
-    if (!partialSession.project?.requirements) {
+    if (!partialSession.project.requirements) {
       return {
         success: false,
         error: 'Requirements are required for session creation'

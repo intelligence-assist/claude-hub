@@ -9,13 +9,13 @@ describe('TaskDecomposer', () => {
   });
 
   describe('decompose', () => {
-    it('should decompose API project into components', async () => {
+    it('should decompose API project into components', () => {
       const project: ProjectInfo = {
         repository: 'owner/repo',
         requirements: 'Build a REST API with authentication and database integration'
       };
 
-      const result = await decomposer.decompose(project);
+      const result = decomposer.decompose(project);
 
       expect(result.components).toBeDefined();
       expect(result.components.length).toBeGreaterThan(0);
@@ -27,26 +27,26 @@ describe('TaskDecomposer', () => {
       expect(componentNames).toContain('backend');
     });
 
-    it('should decompose frontend project', async () => {
+    it('should decompose frontend project', () => {
       const project: ProjectInfo = {
         repository: 'owner/repo',
         requirements: 'Create a React frontend with user interface for managing tasks'
       };
 
-      const result = await decomposer.decompose(project);
+      const result = decomposer.decompose(project);
 
       const componentNames = result.components.map(c => c.name);
       expect(componentNames).toContain('frontend');
     });
 
-    it('should handle full-stack project', async () => {
+    it('should handle full-stack project', () => {
       const project: ProjectInfo = {
         repository: 'owner/repo',
         requirements:
           'Build a full-stack application with React frontend, Express backend, PostgreSQL database, JWT authentication, and comprehensive testing'
       };
 
-      const result = await decomposer.decompose(project);
+      const result = decomposer.decompose(project);
 
       const componentNames = result.components.map(c => c.name);
       expect(componentNames).toContain('frontend');
@@ -55,13 +55,13 @@ describe('TaskDecomposer', () => {
       expect(componentNames).toContain('testing');
     });
 
-    it('should set proper dependencies', async () => {
+    it('should set proper dependencies', () => {
       const project: ProjectInfo = {
         repository: 'owner/repo',
         requirements: 'Build API server with database backend, frontend UI, and testing'
       };
 
-      const result = await decomposer.decompose(project);
+      const result = decomposer.decompose(project);
 
       // Find components
       const api = result.components.find(c => c.name === 'api');
@@ -85,39 +85,39 @@ describe('TaskDecomposer', () => {
       }
     });
 
-    it('should handle simple requirements', async () => {
+    it('should handle simple requirements', () => {
       const project: ProjectInfo = {
         repository: 'owner/repo',
         requirements: 'Fix a bug in the code'
       };
 
-      const result = await decomposer.decompose(project);
+      const result = decomposer.decompose(project);
 
       expect(result.components.length).toBe(1);
       expect(result.components[0].name).toBe('implementation');
       expect(result.components[0].requirements).toBe('Fix a bug in the code');
     });
 
-    it('should determine strategy based on components', async () => {
+    it('should determine strategy based on components', () => {
       const project: ProjectInfo = {
         repository: 'owner/repo',
         requirements: 'Build API with frontend, backend, auth, and deployment'
       };
 
-      const result = await decomposer.decompose(project);
+      const result = decomposer.decompose(project);
 
       // Should use wait_for_core strategy due to dependencies
       expect(result.strategy).toBe('wait_for_core');
     });
 
-    it('should extract component-specific requirements', async () => {
+    it('should extract component-specific requirements', () => {
       const project: ProjectInfo = {
         repository: 'owner/repo',
         requirements:
           'Build a REST API with endpoints for user management. Add JWT authentication for secure access. Create a React frontend with Material UI.'
       };
 
-      const result = await decomposer.decompose(project);
+      const result = decomposer.decompose(project);
 
       const api = result.components.find(c => c.name === 'api');
       const auth = result.components.find(c => c.name === 'auth');
@@ -129,14 +129,14 @@ describe('TaskDecomposer', () => {
       expect(frontend?.requirements).toContain('React frontend');
     });
 
-    it('should set appropriate priorities', async () => {
+    it('should set appropriate priorities', () => {
       const project: ProjectInfo = {
         repository: 'owner/repo',
         requirements:
           'Build backend with database, API endpoints, authentication, frontend UI, and deployment scripts'
       };
 
-      const result = await decomposer.decompose(project);
+      const result = decomposer.decompose(project);
 
       const backend = result.components.find(c => c.name === 'backend');
       const auth = result.components.find(c => c.name === 'auth');

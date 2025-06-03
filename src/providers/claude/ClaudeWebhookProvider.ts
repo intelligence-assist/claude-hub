@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import type { WebhookRequest } from '../../types/express';
 import type { WebhookProvider, BaseWebhookPayload } from '../../types/webhook';
 import type { ClaudeOrchestrationPayload } from '../../types/claude-orchestration';
@@ -66,7 +67,7 @@ export class ClaudeWebhookProvider implements WebhookProvider<ClaudeWebhookPaylo
 
     // Wrap in webhook payload format
     const payload: ClaudeWebhookPayload = {
-      id: `claude-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `claude-${randomUUID()}`,
       timestamp: new Date().toISOString(),
       event: body.type,
       source: 'claude',

@@ -15,6 +15,10 @@ if (process.env.NODE_ENV !== 'test') {
   import('../providers/github').catch(err => {
     logger.error({ err }, 'Failed to initialize GitHub provider');
   });
+
+  import('../providers/claude').catch(err => {
+    logger.error({ err }, 'Failed to initialize Claude provider');
+  });
 }
 
 /**

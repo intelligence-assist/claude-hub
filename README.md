@@ -77,6 +77,13 @@ That's it! Your bot is ready to use. See the **[complete quickstart guide](./QUI
 - **Context-aware**: Claude understands your entire repository structure and development patterns
 - **Stateless execution**: Each request runs in isolated Docker containers
 
+### Claude Orchestration (NEW) 🎭
+- **Parallel Claude Sessions**: Run multiple Claude containers concurrently for complex tasks
+- **Smart Task Decomposition**: Automatically breaks down projects into parallel workstreams
+- **Dependency Management**: Sessions wait for prerequisites before starting
+- **MCP Integration**: Built for the MCP hackathon to showcase super-charged Claude capabilities
+- **See [Claude Orchestration Documentation](./docs/claude-orchestration.md) for details**
+
 ### Performance Architecture ⚡
 - Parallel test execution with strategic runner distribution
 - Conditional Docker builds (only when code changes)

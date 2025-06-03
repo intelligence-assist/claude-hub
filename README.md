@@ -206,16 +206,31 @@ AWS_SECRET_ACCESS_KEY=xxx
 
 ### Direct API Access
 
-Integrate Claude without GitHub webhooks:
+Create async Claude sessions via the webhook API:
 
 ```bash
-curl -X POST http://localhost:3002/api/claude \
+# Create a new session
+curl -X POST http://localhost:3002/api/webhooks/claude \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-webhook-secret" \
   -d '{
-    "repoFullName": "owner/repo",
-    "command": "Analyze security vulnerabilities",
-    "authToken": "your-token",
-    "useContainer": true
+    "type": "session.create",
+    "session": {
+      "type": "implementation",
+      "project": {
+        "repository": "owner/repo",
+        "requirements": "Analyze security vulnerabilities"
+      }
+    }
+  }'
+
+# Check session status
+curl -X POST http://localhost:3002/api/webhooks/claude \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-webhook-secret" \
+  -d '{
+    "type": "session.get",
+    "sessionId": "session-id-from-create"
   }'
 ```
 

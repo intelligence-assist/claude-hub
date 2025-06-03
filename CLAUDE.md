@@ -56,8 +56,8 @@ This repository contains a webhook service that integrates Claude with GitHub, a
 - Setup Claude authentication: `./scripts/setup/setup-claude-auth.sh`
 
 ### Testing Utilities
-- Test Claude API directly: `node test/test-claude-api.js owner/repo`
-- Test with container execution: `node test/test-claude-api.js owner/repo container "Your command here"`
+- Test Claude webhook API (async): `node test/test-claude-api.js owner/repo async "Your command here"`
+- Check session status: `node test/test-claude-api.js status <sessionId>`
 - Test outgoing webhook: `node test/test-outgoing-webhook.js`
 - Test pre-commit hooks: `pre-commit run --all-files`
 - Test AWS credential provider: `node test/test-aws-credential-provider.js`

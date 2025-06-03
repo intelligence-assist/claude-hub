@@ -54,8 +54,8 @@ COPY --from=builder /app/dist ./dist
 # Set test environment
 ENV NODE_ENV=test
 
-# Run tests by default in this stage
-CMD ["npm", "test"]
+# Run only unit tests in Docker builds (skip integration tests that require Docker)
+CMD ["npm", "run", "test:unit"]
 
 # Production stage - minimal runtime image
 FROM node:24-slim AS production

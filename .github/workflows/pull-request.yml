@@ -17,16 +17,27 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         cache: npm
     - run: npm ci
+    - run: npm run format:check
     - run: npm run lint:check
-    - run: npm run test:unit
+    - run: npm run typecheck
+    - run: npm run test:ci
       env:
         NODE_ENV: test
+    - uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   security:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - run: ./scripts/security/credential-audit.sh
+    - uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: ${{ github.event.pull_request.base.sha }}
+        head: ${{ github.event.pull_request.head.sha }}
+        extra_args: --debug --only-verified
 
   docker:
     runs-on: ubuntu-latest

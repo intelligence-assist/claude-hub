@@ -12,28 +12,28 @@ jest.mock('../../../src/utils/logger', () => ({
 }));
 
 // Mock secure credentials
-jest.mock('../../../src/utils/secureCredentials', () => ({
-  default: {
-    get: jest.fn()
-  }
-}));
+jest.mock('../../../src/utils/secureCredentials', () => {
+  const mockGet = jest.fn();
+  return {
+    __esModule: true,
+    default: {
+      get: mockGet
+    }
+  };
+});
 
 // Mock the WebhookProcessor
-jest.mock('../../../src/core/webhook/WebhookProcessor', () => ({
-  WebhookProcessor: jest.fn().mockImplementation(() => ({
-    processWebhook: jest.fn().mockImplementation((_req, res, options) => {
-      // Simulate the actual route logic for production mode
-      if (
-        process.env.NODE_ENV === 'production' &&
-        (!options.secret || options.skipSignatureVerification)
-      ) {
-        res.status(401).json({ error: 'Unauthorized' });
-        return;
-      }
-      res.status(200).json({ message: 'Webhook processed', event: 'test.event' });
+jest.mock('../../../src/core/webhook/WebhookProcessor', () => {
+  return {
+    WebhookProcessor: jest.fn().mockImplementation(() => {
+      return {
+        processWebhook: jest.fn().mockImplementation((_req, res, _options) => {
+          res.status(200).json({ message: 'Webhook processed', event: 'test.event' });
+        })
+      };
     })
-  }))
-}));
+  };
+});
 
 import request from 'supertest';
 import express from 'express';

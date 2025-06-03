@@ -95,6 +95,39 @@ describe('ClaudeWebhookProvider', () => {
       expect(result.data.sessionId).toBe('test-session-123');
     });
 
+    it('should parse session.create payload', async () => {
+      const req = {
+        body: {
+          type: 'session.create',
+          session: {
+            project: {
+              repository: 'owner/repo',
+              requirements: 'Test requirements'
+            }
+          }
+        }
+      } as WebhookRequest;
+
+      const result = await provider.parsePayload(req);
+
+      expect(result.event).toBe('session.create');
+      expect(result.data.type).toBe('session.create');
+      expect(result.data.session).toBeDefined();
+    });
+
+    it('should throw on missing session field for session.create', async () => {
+      const req = {
+        body: {
+          type: 'session.create'
+          // Missing session
+        }
+      } as WebhookRequest;
+
+      await expect(provider.parsePayload(req)).rejects.toThrow(
+        'Invalid payload: missing session field'
+      );
+    });
+
     it('should throw on missing required fields', async () => {
       const req = {
         body: {
@@ -104,7 +137,7 @@ describe('ClaudeWebhookProvider', () => {
       } as WebhookRequest;
 
       await expect(provider.parsePayload(req)).rejects.toThrow(
-        'Invalid payload: missing required fields'
+        'Invalid payload: missing required project fields'
       );
     });
 
@@ -120,7 +153,7 @@ describe('ClaudeWebhookProvider', () => {
       } as WebhookRequest;
 
       await expect(provider.parsePayload(req)).rejects.toThrow(
-        'Invalid payload: missing required fields'
+        'Invalid payload: missing required project fields'
       );
     });
   });

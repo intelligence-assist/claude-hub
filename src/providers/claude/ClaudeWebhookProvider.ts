@@ -34,9 +34,21 @@ export class ClaudeWebhookProvider implements WebhookProvider<ClaudeWebhookPaylo
   parsePayload(req: WebhookRequest): Promise<ClaudeWebhookPayload> {
     const body = req.body as Partial<ClaudeOrchestrationPayload>;
 
-    // Validate required fields
-    if (!body.type || !body.project?.repository || !body.project.requirements) {
-      throw new Error('Invalid payload: missing required fields');
+    // Validate required fields based on type
+    if (!body.type) {
+      throw new Error('Invalid payload: missing type field');
+    }
+
+    // For orchestration-related types, project is required
+    if (['orchestrate', 'coordinate', 'session'].includes(body.type)) {
+      if (!body.project?.repository || !body.project.requirements) {
+        throw new Error('Invalid payload: missing required project fields');
+      }
+    }
+
+    // For session.create, check for session field
+    if (body.type === 'session.create' && !body.session) {
+      throw new Error('Invalid payload: missing session field');
     }
 
     // Create the orchestration payload
@@ -46,7 +58,10 @@ export class ClaudeWebhookProvider implements WebhookProvider<ClaudeWebhookPaylo
       strategy: body.strategy,
       sessionId: body.sessionId,
       parentSessionId: body.parentSessionId,
-      dependencies: body.dependencies
+      dependencies: body.dependencies,
+      sessionType: body.sessionType,
+      autoStart: body.autoStart,
+      session: body.session
     };
 
     // Wrap in webhook payload format

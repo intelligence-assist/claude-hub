@@ -1,3 +1,6 @@
+// Mock the WebhookProcessor
+jest.mock('../../../src/core/webhook/WebhookProcessor');
+
 // Mock the webhook registry to prevent any auto-initialization issues
 jest.mock('../../../src/core/webhook/WebhookRegistry', () => {
   const mockRegistry = {
@@ -45,21 +48,40 @@ jest.mock('../../../src/utils/secureCredentials', () => {
 import request from 'supertest';
 import express from 'express';
 import type { Express } from 'express';
-import webhookRoutes from '../../../src/routes/webhooks';
 import type { WebhookProvider } from '../../../src/types/webhook';
 
-// Get the mocked registry
+// Get the mocked modules
 const { webhookRegistry } = jest.requireMock('../../../src/core/webhook/WebhookRegistry');
+const { WebhookProcessor } = jest.requireMock('../../../src/core/webhook/WebhookProcessor');
+
+// Import routes after mocks are set up
+import webhookRoutes from '../../../src/routes/webhooks';
 
 describe('Webhook Routes', () => {
   let app: Express;
   let mockProvider: WebhookProvider;
   let mockSecureCredentialsGet: jest.Mock;
+  let mockProcessWebhook: jest.Mock;
 
   beforeEach(() => {
     // Get the mock from the module
     const secureCredentialsMock = require('../../../src/utils/secureCredentials');
     mockSecureCredentialsGet = secureCredentialsMock.default.get;
+
+    // Reset WebhookProcessor mock
+    WebhookProcessor.mockClear();
+    mockProcessWebhook = jest.fn().mockImplementation((_req, res, options) => {
+      // Check if we should return 401 based on options
+      if (options.provider === 'github' && !options.skipSignatureVerification && !options.secret) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+      res.status(200).json({ message: 'Webhook processed', event: 'test.event' });
+    });
+    WebhookProcessor.mockImplementation(() => ({
+      processWebhook: mockProcessWebhook
+    }));
+
     app = express();
     app.use(express.json());
     app.use('/api/webhooks', webhookRoutes);
@@ -113,6 +135,11 @@ describe('Webhook Routes', () => {
       mockSecureCredentialsGet.mockReturnValue('test-secret');
 
       const response = await request(app).post('/api/webhooks/github').send({ test: 'data' });
+
+      if (response.status === 500) {
+        console.error('Test failed with 500 error. Response body:', response.body);
+        console.error('Response text:', response.text);
+      }
 
       expect(response.status).toBe(200);
     });

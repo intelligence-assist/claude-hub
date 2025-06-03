@@ -1,9 +1,8 @@
-import request from 'supertest';
-import express from 'express';
-import type { Express } from 'express';
-import webhookRoutes from '../../../src/routes/webhooks';
-import { webhookRegistry } from '../../../src/core/webhook/WebhookRegistry';
-import type { WebhookProvider } from '../../../src/types/webhook';
+// Mock the providers import to prevent auto-initialization
+// This must be before any imports that might load the providers
+jest.mock('../../../src/providers/github', () => ({
+  initializeGitHubProvider: jest.fn()
+}));
 
 // Mock the logger
 jest.mock('../../../src/utils/logger', () => ({
@@ -25,10 +24,12 @@ jest.mock('../../../src/utils/secureCredentials', () => {
   };
 });
 
-// Mock the providers import to prevent auto-initialization
-jest.mock('../../../src/providers/github', () => ({
-  initializeGitHubProvider: jest.fn()
-}));
+import request from 'supertest';
+import express from 'express';
+import type { Express } from 'express';
+import webhookRoutes from '../../../src/routes/webhooks';
+import { webhookRegistry } from '../../../src/core/webhook/WebhookRegistry';
+import type { WebhookProvider } from '../../../src/types/webhook';
 
 describe('Webhook Routes', () => {
   let app: Express;

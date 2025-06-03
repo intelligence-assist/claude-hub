@@ -16,12 +16,14 @@ jest.mock('../../../src/utils/logger', () => ({
 }));
 
 // Mock secure credentials
-const mockSecureCredentialsGet = jest.fn();
-jest.mock('../../../src/utils/secureCredentials', () => ({
-  default: {
-    get: mockSecureCredentialsGet
-  }
-}));
+jest.mock('../../../src/utils/secureCredentials', () => {
+  const mock = jest.fn();
+  return {
+    default: {
+      get: mock
+    }
+  };
+});
 
 // Mock the providers import to prevent auto-initialization
 jest.mock('../../../src/providers/github', () => ({}));
@@ -29,8 +31,12 @@ jest.mock('../../../src/providers/github', () => ({}));
 describe('Webhook Routes', () => {
   let app: Express;
   let mockProvider: WebhookProvider;
+  let mockSecureCredentialsGet: jest.Mock;
 
   beforeEach(() => {
+    // Get the mock from the module
+    const secureCredentialsMock = require('../../../src/utils/secureCredentials');
+    mockSecureCredentialsGet = secureCredentialsMock.default.get;
     app = express();
     app.use(express.json());
     app.use('/api/webhooks', webhookRoutes);

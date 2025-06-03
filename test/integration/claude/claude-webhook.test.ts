@@ -36,20 +36,18 @@ jest.mock('../../../src/providers/claude/services/SessionManager', () => {
   };
 });
 
-// Now we can import the routes
-import webhookRoutes from '../../../src/routes/webhooks';
-
-// Set environment variables for testing
+// Set environment variables before importing anything
 process.env.CLAUDE_WEBHOOK_SECRET = 'test-claude-secret';
 process.env.SKIP_WEBHOOK_VERIFICATION = '1';
 
+// Import and register the Claude provider before importing routes
+import '../../../src/providers/claude';
+
+// Now we can import the routes
+import webhookRoutes from '../../../src/routes/webhooks';
+
 describe('Claude Webhook Integration', () => {
   let app: express.Application;
-
-  beforeAll(() => {
-    // Import provider to register handlers
-    require('../../../src/providers/claude');
-  });
 
   beforeEach(() => {
     app = express();

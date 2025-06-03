@@ -26,7 +26,9 @@ jest.mock('../../../src/utils/secureCredentials', () => {
 });
 
 // Mock the providers import to prevent auto-initialization
-jest.mock('../../../src/providers/github', () => ({}));
+jest.mock('../../../src/providers/github', () => ({
+  initializeGitHubProvider: jest.fn()
+}));
 
 describe('Webhook Routes', () => {
   let app: Express;

@@ -4,12 +4,18 @@ import { webhookRegistry } from '../core/webhook/WebhookRegistry';
 import { isAllowedProvider } from '../core/webhook/constants';
 import { createLogger } from '../utils/logger';
 import secureCredentials from '../utils/secureCredentials';
-// Import providers to trigger auto-initialization
-import '../providers/github';
 
 const logger = createLogger('webhookRoutes');
 const router = Router();
 const processor = new WebhookProcessor();
+
+// Initialize providers if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+  // Dynamically import to avoid side effects during testing
+  import('../providers/github').catch(err => {
+    logger.error({ err }, 'Failed to initialize GitHub provider');
+  });
+}
 
 /**
  * Generic webhook endpoint

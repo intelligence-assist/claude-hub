@@ -43,6 +43,7 @@ export class GitHubWebhookProvider implements WebhookProvider<GitHubWebhookEvent
    * Verify GitHub webhook signature
    */
   verifySignature(req: WebhookRequest, secret: string): Promise<boolean> {
+    // eslint-disable-next-line no-sync
     return Promise.resolve(this.verifySignatureSync(req, secret));
   }
 
@@ -79,6 +80,7 @@ export class GitHubWebhookProvider implements WebhookProvider<GitHubWebhookEvent
    * Parse GitHub webhook payload
    */
   parsePayload(req: WebhookRequest): Promise<GitHubWebhookEvent> {
+    // eslint-disable-next-line no-sync
     return Promise.resolve(this.parsePayloadSync(req));
   }
 
@@ -173,7 +175,9 @@ export class GitHubWebhookProvider implements WebhookProvider<GitHubWebhookEvent
       body: issue.body ?? '',
       state: issue.state,
       author: GitHubWebhookProvider.transformUser(issue.user),
-      labels: issue.labels?.map(label => (typeof label === 'string' ? label : label.name)) ?? [],
+      labels: issue.labels
+        ? issue.labels.map(label => (typeof label === 'string' ? label : label.name))
+        : [],
       createdAt: new Date(issue.created_at),
       updatedAt: new Date(issue.updated_at)
     };
@@ -190,7 +194,9 @@ export class GitHubWebhookProvider implements WebhookProvider<GitHubWebhookEvent
       body: pr.body ?? '',
       state: pr.state as 'open' | 'closed',
       author: GitHubWebhookProvider.transformUser(pr.user),
-      labels: pr.labels?.map(label => (typeof label === 'string' ? label : label.name)) ?? [],
+      labels: pr.labels
+        ? pr.labels.map(label => (typeof label === 'string' ? label : label.name))
+        : [],
       createdAt: new Date(pr.created_at),
       updatedAt: new Date(pr.updated_at),
       sourceBranch: pr.head.ref,

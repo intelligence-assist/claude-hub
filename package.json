@@ -43,7 +43,8 @@
     "express-rate-limit": "^7.5.0",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.27.3",
@@ -54,6 +55,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22.15.23",
     "@types/supertest": "^6.0.3",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.33.0",
     "@typescript-eslint/parser": "^8.33.0",
     "babel-jest": "^29.7.0",

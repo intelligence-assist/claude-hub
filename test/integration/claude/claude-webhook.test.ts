@@ -15,6 +15,27 @@ jest.mock('child_process', () => ({
   }))
 }));
 
+// Mock SessionManager to avoid Docker calls in CI
+jest.mock('../../../src/providers/claude/services/SessionManager', () => {
+  return {
+    SessionManager: jest.fn().mockImplementation(() => ({
+      createContainer: jest.fn().mockResolvedValue('mock-container-id'),
+      startSession: jest.fn().mockResolvedValue(undefined),
+      getSession: jest.fn().mockImplementation(id => ({
+        id,
+        status: 'running',
+        type: 'implementation',
+        project: { repository: 'test/repo', requirements: 'test' },
+        dependencies: []
+      })),
+      listSessions: jest.fn().mockResolvedValue([]),
+      getSessionOutput: jest.fn().mockResolvedValue({ output: 'test output' }),
+      canStartSession: jest.fn().mockResolvedValue(true),
+      updateSessionStatus: jest.fn().mockResolvedValue(undefined)
+    }))
+  };
+});
+
 // Now we can import the routes
 import webhookRoutes from '../../../src/routes/webhooks';
 

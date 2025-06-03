@@ -36,19 +36,19 @@ export class ClaudeWebhookProvider implements WebhookProvider<ClaudeWebhookPaylo
 
     // Validate required fields based on type
     if (!body.type) {
-      throw new Error('Invalid payload: missing type field');
+      return Promise.reject(new Error('Invalid payload: missing type field'));
     }
 
     // For orchestration-related types, project is required
     if (['orchestrate', 'coordinate', 'session'].includes(body.type)) {
       if (!body.project?.repository || !body.project.requirements) {
-        throw new Error('Invalid payload: missing required project fields');
+        return Promise.reject(new Error('Invalid payload: missing required project fields'));
       }
     }
 
     // For session.create, check for session field
     if (body.type === 'session.create' && !body.session) {
-      throw new Error('Invalid payload: missing session field');
+      return Promise.reject(new Error('Invalid payload: missing session field'));
     }
 
     // Create the orchestration payload

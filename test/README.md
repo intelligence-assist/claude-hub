@@ -107,13 +107,27 @@ Example:
 ```javascript
 // Test for Claude container execution
 describe('Container Execution E2E Tests', () => {
-  test('Should process a simple Claude request', async () => {
-    const response = await axios.post('/api/claude', {
-      command: 'Hello Claude',
-      repoFullName: 'test-org/test-repo'
-    });
+  test('Should create a Claude session', async () => {
+    const response = await axios.post(
+      '/api/webhooks/claude',
+      {
+        type: 'session.create',
+        session: {
+          type: 'implementation',
+          project: {
+            repository: 'test-org/test-repo',
+            requirements: 'Hello Claude'
+          }
+        }
+      },
+      {
+        headers: { Authorization: 'Bearer test-secret' }
+      }
+    );
 
     expect(response.status).toBe(200);
+    expect(response.data.success).toBe(true);
+    expect(response.data.session.id).toBeDefined();
   });
 });
 ```

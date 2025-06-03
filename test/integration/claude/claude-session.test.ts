@@ -2,6 +2,32 @@ import request from 'supertest';
 import express from 'express';
 import webhookRoutes from '../../../src/routes/webhooks';
 
+// Mock the SessionManager to avoid Docker operations in tests
+jest.mock('../../../src/providers/claude/services/SessionManager', () => {
+  const sessionStore = new Map();
+
+  return {
+    SessionManager: jest.fn().mockImplementation(() => ({
+      createContainer: jest.fn().mockImplementation(session => {
+        const containerId = `mock-container-${session.id}`;
+        sessionStore.set(session.id, { ...session, containerId });
+        return Promise.resolve(containerId);
+      }),
+      getSession: jest.fn().mockImplementation(sessionId => {
+        return sessionStore.get(sessionId);
+      }),
+      getAllSessions: jest.fn().mockImplementation(() => {
+        return Array.from(sessionStore.values());
+      }),
+      getOrchestrationSessions: jest.fn().mockImplementation(orchestrationId => {
+        return Array.from(sessionStore.values()).filter(s => s.id.startsWith(orchestrationId));
+      }),
+      startSession: jest.fn().mockResolvedValue(undefined),
+      queueSession: jest.fn().mockResolvedValue(undefined)
+    }))
+  };
+});
+
 // Mock environment variables
 process.env.CLAUDE_WEBHOOK_SECRET = 'test-secret';
 process.env.SKIP_WEBHOOK_VERIFICATION = '1';

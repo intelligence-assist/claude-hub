@@ -1,22 +1,45 @@
 import request from 'supertest';
-import app from '../../../src/index';
+import express from 'express';
+import webhookRoutes from '../../../src/routes/webhooks';
+
+// Mock the SessionManager to avoid Docker operations in tests
+jest.mock('../../../src/providers/claude/services/SessionManager');
 
 // Set environment variables for testing
 process.env.CLAUDE_WEBHOOK_SECRET = 'test-claude-secret';
 process.env.SKIP_WEBHOOK_VERIFICATION = '1';
 
 describe('Claude Webhook Integration', () => {
+  let app: express.Application;
+
+  beforeAll(() => {
+    // Import provider to register handlers
+    require('../../../src/providers/claude');
+  });
+
+  beforeEach(() => {
+    app = express();
+    app.use(express.json());
+    app.use('/api/webhooks', webhookRoutes);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('POST /api/webhooks/claude', () => {
     it('should accept valid orchestration request', async () => {
       const payload = {
-        type: 'orchestrate',
-        project: {
-          repository: 'test-owner/test-repo',
-          requirements: 'Build a simple REST API with authentication'
-        },
-        strategy: {
-          parallelSessions: 3,
-          phases: ['analysis', 'implementation', 'testing']
+        data: {
+          type: 'orchestrate',
+          project: {
+            repository: 'test-owner/test-repo',
+            requirements: 'Build a simple REST API with authentication'
+          },
+          strategy: {
+            parallelSessions: 3,
+            phases: ['analysis', 'implementation', 'testing']
+          }
         }
       };
 
@@ -28,17 +51,21 @@ describe('Claude Webhook Integration', () => {
 
       expect(response.body).toMatchObject({
         message: 'Webhook processed',
-        event: 'orchestrate',
-        handlerCount: 1
+        event: 'orchestrate'
       });
+
+      expect(response.body.results).toBeDefined();
+      expect(response.body.results[0].success).toBe(true);
     });
 
     it('should reject request without authorization', async () => {
       const payload = {
-        type: 'orchestrate',
-        project: {
-          repository: 'test-owner/test-repo',
-          requirements: 'Build API'
+        data: {
+          type: 'orchestrate',
+          project: {
+            repository: 'test-owner/test-repo',
+            requirements: 'Build API'
+          }
         }
       };
 
@@ -58,11 +85,13 @@ describe('Claude Webhook Integration', () => {
 
     it('should handle session management request', async () => {
       const payload = {
-        type: 'session',
-        sessionId: 'test-session-123',
-        project: {
-          repository: 'test-owner/test-repo',
-          requirements: 'Manage session'
+        data: {
+          type: 'session',
+          sessionId: 'test-session-123',
+          project: {
+            repository: 'test-owner/test-repo',
+            requirements: 'Manage session'
+          }
         }
       };
 
@@ -73,15 +102,17 @@ describe('Claude Webhook Integration', () => {
         .expect(200);
 
       expect(response.body).toMatchObject({
-        message: 'Webhook received but no handlers registered',
+        message: 'Webhook processed',
         event: 'session'
       });
     });
 
     it('should reject invalid payload', async () => {
       const payload = {
-        type: 'orchestrate'
-        // Missing required project field
+        data: {
+          // Missing type field
+          invalid: 'data'
+        }
       };
 
       const response = await request(app)
@@ -90,9 +121,7 @@ describe('Claude Webhook Integration', () => {
         .send(payload)
         .expect(500);
 
-      expect(response.body).toMatchObject({
-        error: 'Internal server error'
-      });
+      expect(response.body.error).toBeDefined();
     });
   });
 

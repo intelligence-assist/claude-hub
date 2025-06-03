@@ -19,6 +19,7 @@
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
     "test:ci": "jest --ci --coverage --testPathPattern='test/(unit|integration).*\\.test\\.(js|ts)$'",
+    "test:combined-coverage": "./scripts/combine-coverage.js",
     "test:docker": "docker-compose -f docker-compose.test.yml run --rm test",
     "test:docker:integration": "docker-compose -f docker-compose.test.yml run --rm integration-test",
     "test:docker:e2e": "docker-compose -f docker-compose.test.yml run --rm e2e-test",

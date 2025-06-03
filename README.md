@@ -374,14 +374,6 @@ npm run dev
 - ESLint + Prettier for code formatting
 - Conventional commits for version management
 
-### Security Checklist
-
-- [ ] No hardcoded credentials
-- [ ] All inputs sanitized
-- [ ] Webhook signatures verified
-- [ ] Container permissions minimal
-- [ ] Logs redact sensitive data
-
 ## Troubleshooting
 
 ### Common Issues

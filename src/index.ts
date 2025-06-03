@@ -6,6 +6,7 @@ import { createLogger } from './utils/logger';
 import { StartupMetrics } from './utils/startup-metrics';
 import githubRoutes from './routes/github';
 import claudeRoutes from './routes/claude';
+import webhookRoutes from './routes/webhooks';
 import type { WebhookRequest, HealthCheckResponse, ErrorResponse } from './types/express';
 import { execSync } from 'child_process';
 
@@ -99,7 +100,8 @@ app.use(
 startupMetrics.recordMilestone('middleware_configured', 'Express middleware configured');
 
 // Routes
-app.use('/api/webhooks/github', githubRoutes);
+app.use('/api/webhooks/github', githubRoutes); // Legacy endpoint
+app.use('/api/webhooks', webhookRoutes); // New modular webhook endpoint
 app.use('/api/claude', claudeRoutes);
 
 startupMetrics.recordMilestone('routes_configured', 'API routes configured');

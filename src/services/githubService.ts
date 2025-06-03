@@ -305,6 +305,81 @@ export async function createRepositoryLabels({
 }
 
 /**
+ * Gets pull request details from GitHub
+ */
+export async function getPullRequestDetails({
+  repoOwner,
+  repoName,
+  prNumber
+}: {
+  repoOwner: string;
+  repoName: string;
+  prNumber: number;
+}): Promise<{ head: { ref: string; sha: string }; base: { ref: string } } | null> {
+  try {
+    // Validate parameters
+    const repoPattern = /^[a-zA-Z0-9._-]+$/;
+    if (!repoPattern.test(repoOwner) || !repoPattern.test(repoName)) {
+      throw new Error('Invalid repository owner or name');
+    }
+
+    logger.info(
+      {
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber
+      },
+      'Fetching pull request details from GitHub'
+    );
+
+    const client = getOctokit();
+    if (process.env.NODE_ENV === 'test' || !client) {
+      logger.info('TEST MODE: Would fetch PR details from GitHub');
+      return {
+        head: { ref: 'feature-branch', sha: 'abc123' },
+        base: { ref: 'main' }
+      };
+    }
+
+    const { data } = await client.pulls.get({
+      owner: repoOwner,
+      repo: repoName,
+      pull_number: prNumber
+    });
+
+    logger.info(
+      {
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber,
+        headRef: data.head.ref,
+        baseRef: data.base.ref
+      },
+      'Pull request details fetched successfully'
+    );
+
+    return {
+      head: {
+        ref: data.head.ref,
+        sha: data.head.sha
+      },
+      base: {
+        ref: data.base.ref
+      }
+    };
+  } catch (error) {
+    const err = error as Error;
+    logger.error(
+      {
+        err: err,
+        repo: `${repoOwner}/${repoName}`,
+        pr: prNumber
+      },
+      'Error fetching pull request details'
+    );
+    return null;
+  }
+}
+
+/**
  * Provides fallback labels based on simple keyword matching
  */
 export function getFallbackLabels(title: string, body: string | null): string[] {

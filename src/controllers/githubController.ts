@@ -6,7 +6,8 @@ import {
   getFallbackLabels,
   hasReviewedPRAtCommit,
   getCheckSuitesForRef,
-  managePRLabels
+  managePRLabels,
+  getPullRequestDetails
 } from '../services/githubService';
 import { createLogger } from '../utils/logger';
 import { sanitizeBotMentions } from '../utils/sanitize';
@@ -505,14 +506,33 @@ async function processBotMention(
       // Check if this issue is actually a PR (GitHub includes pull_request property for PR comments)
       const issueWithPR = issue;
       if (issueWithPR.pull_request) {
-        // Create a mock PR object from the issue data for the review
+        // Fetch the actual PR details from GitHub
+        const prDetails = await getPullRequestDetails({
+          repoOwner: repo.owner.login,
+          repoName: repo.name,
+          prNumber: issue.number
+        });
+
+        if (!prDetails) {
+          logger.error(
+            {
+              repo: repo.full_name,
+              issue: issue.number
+            },
+            'Failed to fetch PR details for manual review'
+          );
+
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to fetch PR details'
+          });
+        }
+
+        // Create a proper PR object with the fetched data
         const mockPR: GitHubPullRequest = {
           ...issue,
-          head: {
-            ref: issueWithPR.pull_request.head?.ref ?? 'unknown',
-            sha: issueWithPR.pull_request.head?.sha ?? 'unknown'
-          },
-          base: issueWithPR.pull_request.base ?? { ref: 'main' }
+          head: prDetails.head,
+          base: prDetails.base
         } as GitHubPullRequest;
 
         return await handleManualPRReview(mockPR, repo, comment.user, res);

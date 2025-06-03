@@ -6,9 +6,14 @@ export interface GitHubWebhookPayload {
   check_suite?: GitHubCheckSuite;
   repository: GitHubRepository;
   sender: GitHubUser;
+  installation?: {
+    id: number;
+    account: GitHubUser;
+  };
 }
 
 export interface GitHubIssue {
+  id: number;
   number: number;
   title: string;
   body: string | null;
@@ -30,6 +35,7 @@ export interface GitHubIssue {
 }
 
 export interface GitHubPullRequest {
+  id: number;
   number: number;
   title: string;
   body: string | null;
@@ -44,6 +50,7 @@ export interface GitHubPullRequest {
   merged: boolean;
   mergeable: boolean | null;
   draft: boolean;
+  merged_at: string | null;
 }
 
 export interface GitHubPullRequestHead {
@@ -113,6 +120,8 @@ export interface GitHubUser {
   login: string;
   type: 'User' | 'Bot' | 'Organization';
   html_url: string;
+  email?: string;
+  name?: string;
 }
 
 export interface GitHubLabel {

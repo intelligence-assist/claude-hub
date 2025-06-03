@@ -1,3 +1,21 @@
+// Mock the webhook registry to prevent any auto-initialization issues
+jest.mock('../../../src/core/webhook/WebhookRegistry', () => {
+  const mockRegistry = {
+    registerProvider: jest.fn(),
+    registerHandler: jest.fn(),
+    getProvider: jest.fn(),
+    getAllProviders: jest.fn().mockReturnValue([]),
+    getHandlers: jest.fn().mockReturnValue([]),
+    getHandlerCount: jest.fn().mockReturnValue(0),
+    hasProvider: jest.fn().mockReturnValue(false),
+    clear: jest.fn()
+  };
+  return {
+    webhookRegistry: mockRegistry,
+    WebhookRegistry: jest.fn(() => mockRegistry)
+  };
+});
+
 // Mock the providers import to prevent auto-initialization
 // This must be before any imports that might load the providers
 jest.mock('../../../src/providers/github', () => ({
@@ -28,8 +46,10 @@ import request from 'supertest';
 import express from 'express';
 import type { Express } from 'express';
 import webhookRoutes from '../../../src/routes/webhooks';
-import { webhookRegistry } from '../../../src/core/webhook/WebhookRegistry';
 import type { WebhookProvider } from '../../../src/types/webhook';
+
+// Get the mocked registry
+const { webhookRegistry } = jest.requireMock('../../../src/core/webhook/WebhookRegistry');
 
 describe('Webhook Routes', () => {
   let app: Express;
@@ -58,9 +78,15 @@ describe('Webhook Routes', () => {
       getEventDescription: jest.fn().mockReturnValue('Test event')
     };
 
-    // Clear registry and mocks
-    webhookRegistry.clear();
+    // Clear mocks
     jest.clearAllMocks();
+
+    // Reset the mock implementation for getProvider
+    webhookRegistry.getProvider.mockImplementation((name: string) => {
+      return name === 'github' && webhookRegistry.registerProvider.mock.calls.length > 0
+        ? mockProvider
+        : undefined;
+    });
 
     // Set default environment
     process.env.NODE_ENV = 'development';
@@ -139,6 +165,8 @@ describe('Webhook Routes', () => {
   describe('GET /api/webhooks/health', () => {
     it('should return health status with provider info', async () => {
       webhookRegistry.registerProvider(mockProvider);
+      webhookRegistry.getAllProviders.mockReturnValue([mockProvider]);
+      webhookRegistry.getHandlerCount.mockReturnValue(0);
 
       const response = await request(app).get('/api/webhooks/health');
 

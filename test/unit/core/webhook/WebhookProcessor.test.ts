@@ -94,7 +94,7 @@ describe('WebhookProcessor', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(404);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: "Provider 'unknown-provider' not found"
+        error: 'Not found'
       });
     });
 
@@ -109,7 +109,7 @@ describe('WebhookProcessor', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Invalid webhook signature'
+        error: 'Unauthorized'
       });
     });
 
@@ -272,8 +272,7 @@ describe('WebhookProcessor', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Internal server error',
-        message: 'Parse error'
+        error: 'Internal server error'
       });
     });
   });

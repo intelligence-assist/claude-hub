@@ -195,8 +195,8 @@ export class GitHubWebhookProvider implements WebhookProvider<GitHubWebhookEvent
       updatedAt: new Date(pr.updated_at),
       sourceBranch: pr.head.ref,
       targetBranch: pr.base.ref,
-      isDraft: pr.draft ?? false,
-      isMerged: pr.merged ?? false,
+      isDraft: pr.draft || false,
+      isMerged: pr.merged || false,
       mergedAt: pr.merged_at ? new Date(pr.merged_at) : undefined
     };
   }

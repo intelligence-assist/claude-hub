@@ -35,7 +35,7 @@ export class WebhookProcessor {
       const provider = webhookRegistry.getProvider(providerName);
       if (!provider) {
         logger.error(`Provider not found: ${providerName}`);
-        res.status(404).json({ error: `Provider '${providerName}' not found` });
+        res.status(404).json({ error: 'Not found' });
         return;
       }
 
@@ -44,7 +44,7 @@ export class WebhookProcessor {
         const isValid = await provider.verifySignature(req, secret);
         if (!isValid) {
           logger.warn(`Invalid signature for ${providerName} webhook`);
-          res.status(401).json({ error: 'Invalid webhook signature' });
+          res.status(401).json({ error: 'Unauthorized' });
           return;
         }
       }
@@ -115,8 +115,7 @@ export class WebhookProcessor {
       );
 
       res.status(500).json({
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Internal server error'
       });
     }
   }

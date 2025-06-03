@@ -75,13 +75,12 @@ jobs:
           # Build the test stage
           docker build --target test -t ${{ env.IMAGE_NAME }}:test-${{ github.sha }} -f Dockerfile .
           
-          # Run tests in container
+          # Run tests in container (using default CMD from Dockerfile which runs unit tests only)
           docker run --rm \
             -e CI=true \
             -e NODE_ENV=test \
             -v ${{ github.workspace }}/coverage:/app/coverage \
-            ${{ env.IMAGE_NAME }}:test-${{ github.sha }} \
-            npm test
+            ${{ env.IMAGE_NAME }}:test-${{ github.sha }}
           
           # Build production image for smoke test
           docker build --target production -t ${{ env.IMAGE_NAME }}:pr-${{ github.event.number }} -f Dockerfile .

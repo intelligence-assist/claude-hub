@@ -1,32 +1,22 @@
 import request from 'supertest';
 import express from 'express';
+
+// Mock child_process to prevent Docker commands
+jest.mock('child_process', () => ({
+  execSync: jest.fn(() => ''),
+  spawn: jest.fn(() => ({
+    stdout: { on: jest.fn() },
+    stderr: { on: jest.fn() },
+    on: jest.fn((event, callback) => {
+      if (event === 'close') {
+        setTimeout(() => callback(0), 100);
+      }
+    })
+  }))
+}));
+
+// Now we can import the routes
 import webhookRoutes from '../../../src/routes/webhooks';
-
-// Mock the SessionManager to avoid Docker operations in tests
-jest.mock('../../../src/providers/claude/services/SessionManager', () => {
-  const sessionStore = new Map();
-
-  return {
-    SessionManager: jest.fn().mockImplementation(() => ({
-      createContainer: jest.fn().mockImplementation(session => {
-        const containerId = `mock-container-${session.id}`;
-        sessionStore.set(session.id, { ...session, containerId });
-        return Promise.resolve(containerId);
-      }),
-      getSession: jest.fn().mockImplementation(sessionId => {
-        return sessionStore.get(sessionId);
-      }),
-      getAllSessions: jest.fn().mockImplementation(() => {
-        return Array.from(sessionStore.values());
-      }),
-      getOrchestrationSessions: jest.fn().mockImplementation(orchestrationId => {
-        return Array.from(sessionStore.values()).filter(s => s.id.startsWith(orchestrationId));
-      }),
-      startSession: jest.fn().mockResolvedValue(undefined),
-      queueSession: jest.fn().mockResolvedValue(undefined)
-    }))
-  };
-});
 
 // Mock environment variables
 process.env.CLAUDE_WEBHOOK_SECRET = 'test-secret';
@@ -57,8 +47,8 @@ describe('Claude Session Integration Tests', () => {
           type: 'session.create',
           session: {
             project: {
-              repository: 'test-org/test-repo',
-              requirements: 'Implement user authentication system'
+              repository: 'owner/repo',
+              requirements: 'Test requirements'
             }
           }
         }
@@ -75,8 +65,8 @@ describe('Claude Session Integration Tests', () => {
         type: 'implementation',
         status: 'initializing',
         project: {
-          repository: 'test-org/test-repo',
-          requirements: 'Implement user authentication system'
+          repository: 'owner/repo',
+          requirements: 'Test requirements'
         }
       });
       expect(response.body.data.session.id).toBeDefined();
@@ -90,8 +80,8 @@ describe('Claude Session Integration Tests', () => {
           session: {
             type: 'analysis',
             project: {
-              repository: 'test-org/test-repo',
-              requirements: 'Analyze codebase architecture'
+              repository: 'owner/repo',
+              requirements: 'Test requirements'
             }
           }
         }
@@ -113,7 +103,7 @@ describe('Claude Session Integration Tests', () => {
           type: 'session.create',
           session: {
             project: {
-              requirements: 'Build something'
+              requirements: 'Test requirements'
             }
           }
         }
@@ -135,7 +125,7 @@ describe('Claude Session Integration Tests', () => {
           type: 'session.create',
           session: {
             project: {
-              repository: 'test-org/test-repo'
+              repository: 'owner/repo'
             }
           }
         }
@@ -158,7 +148,7 @@ describe('Claude Session Integration Tests', () => {
           type: 'session.create',
           session: {
             project: {
-              repository: 'test-org/test-repo',
+              repository: 'owner/repo',
               requirements: 'Test requirements'
             }
           }
@@ -215,7 +205,7 @@ describe('Claude Session Integration Tests', () => {
           type: 'session.create',
           session: {
             project: {
-              repository: 'test-org/test-repo',
+              repository: 'owner/repo',
               requirements: 'Test requirements'
             }
           }
@@ -254,7 +244,7 @@ describe('Claude Session Integration Tests', () => {
           type: 'session.create',
           session: {
             project: {
-              repository: 'test-org/test-repo',
+              repository: 'owner/repo',
               requirements: 'Test requirements'
             }
           }
@@ -293,7 +283,7 @@ describe('Claude Session Integration Tests', () => {
           type: 'session.create',
           session: {
             project: {
-              repository: 'test-org/test-repo',
+              repository: 'owner/repo',
               requirements: 'Test'
             }
           }
@@ -312,7 +302,7 @@ describe('Claude Session Integration Tests', () => {
           type: 'session.create',
           session: {
             project: {
-              repository: 'test-org/test-repo',
+              repository: 'owner/repo',
               requirements: 'Test'
             }
           }
@@ -335,7 +325,7 @@ describe('Claude Session Integration Tests', () => {
         data: {
           type: 'orchestrate',
           project: {
-            repository: 'test-org/test-repo',
+            repository: 'owner/repo',
             requirements: 'Build a complete e-commerce platform'
           }
         }
@@ -351,7 +341,7 @@ describe('Claude Session Integration Tests', () => {
       expect(response.body.message).toBe('Orchestration session created');
       expect(response.body.data).toMatchObject({
         status: 'initiated',
-        summary: 'Created orchestration session for test-org/test-repo'
+        summary: 'Created orchestration session for owner/repo'
       });
       expect(response.body.data.orchestrationId).toBeDefined();
       expect(response.body.data.sessions).toHaveLength(1);
@@ -364,7 +354,7 @@ describe('Claude Session Integration Tests', () => {
           type: 'orchestrate',
           autoStart: false,
           project: {
-            repository: 'test-org/test-repo',
+            repository: 'owner/repo',
             requirements: 'Analyze and plan implementation'
           }
         }

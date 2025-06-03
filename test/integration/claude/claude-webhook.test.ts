@@ -1,9 +1,22 @@
 import request from 'supertest';
 import express from 'express';
-import webhookRoutes from '../../../src/routes/webhooks';
 
-// Mock the SessionManager to avoid Docker operations in tests
-jest.mock('../../../src/providers/claude/services/SessionManager');
+// Mock child_process to prevent Docker commands
+jest.mock('child_process', () => ({
+  execSync: jest.fn(() => ''),
+  spawn: jest.fn(() => ({
+    stdout: { on: jest.fn() },
+    stderr: { on: jest.fn() },
+    on: jest.fn((event, callback) => {
+      if (event === 'close') {
+        setTimeout(() => callback(0), 100);
+      }
+    })
+  }))
+}));
+
+// Now we can import the routes
+import webhookRoutes from '../../../src/routes/webhooks';
 
 // Set environment variables for testing
 process.env.CLAUDE_WEBHOOK_SECRET = 'test-claude-secret';

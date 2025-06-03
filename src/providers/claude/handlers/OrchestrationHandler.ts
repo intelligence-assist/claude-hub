@@ -6,27 +6,24 @@ import type {
   WebhookContext
 } from '../../../types/webhook';
 import type {
-  ClaudeOrchestrationPayload,
   ClaudeSession,
   ClaudeOrchestrationResponse
 } from '../../../types/claude-orchestration';
 import type { ClaudeWebhookPayload } from '../ClaudeWebhookProvider';
 import { SessionManager } from '../services/SessionManager';
-import { TaskDecomposer } from '../services/TaskDecomposer';
 
 const logger = createLogger('OrchestrationHandler');
 
 /**
  * Handler for Claude orchestration requests
+ * Simplified to create a single session - orchestration happens via MCP tools
  */
 export class OrchestrationHandler implements WebhookEventHandler<ClaudeWebhookPayload> {
   event = 'orchestrate';
   private sessionManager: SessionManager;
-  private taskDecomposer: TaskDecomposer;
 
   constructor() {
     this.sessionManager = new SessionManager();
-    this.taskDecomposer = new TaskDecomposer();
   }
 
   /**
@@ -38,6 +35,7 @@ export class OrchestrationHandler implements WebhookEventHandler<ClaudeWebhookPa
 
   /**
    * Handle the orchestration request
+   * Creates a single session - actual orchestration is handled by MCP tools
    */
   async handle(
     payload: ClaudeWebhookPayload,
@@ -45,176 +43,63 @@ export class OrchestrationHandler implements WebhookEventHandler<ClaudeWebhookPa
   ): Promise<WebhookHandlerResponse> {
     try {
       const data = payload.data;
-      logger.info('Starting orchestration for project', {
+
+      if (!data.project) {
+        return {
+          success: false,
+          error: 'Project information is required for orchestration'
+        };
+      }
+
+      logger.info('Creating orchestration session', {
         repository: data.project.repository,
-        strategy: data.strategy
+        type: data.sessionType ?? 'coordination'
       });
 
       const orchestrationId = randomUUID();
 
-      // Decompose the task into sessions
-      const sessions = await this.decomposeTask(data, orchestrationId);
+      // Create a single coordination session
+      const session: ClaudeSession = {
+        id: `${orchestrationId}-orchestrator`,
+        type: data.sessionType ?? 'coordination',
+        status: 'pending',
+        project: data.project,
+        dependencies: [],
+        output: undefined
+      };
 
-      // Initialize sessions
-      const initializedSessions = await this.initializeSessions(sessions);
+      // Initialize the session
+      const containerId = await this.sessionManager.createContainer(session);
+      const initializedSession = {
+        ...session,
+        containerId,
+        status: 'initializing' as const
+      };
 
-      // Start sessions based on dependency mode
-      await this.startSessions(initializedSessions, data.strategy?.dependencyMode ?? 'parallel');
+      // Optionally start the session immediately
+      if (data.autoStart !== false) {
+        await this.sessionManager.startSession(initializedSession);
+      }
 
       // Prepare response
       const response: ClaudeOrchestrationResponse = {
         orchestrationId,
         status: 'initiated',
-        sessions: initializedSessions,
-        summary: `Started ${initializedSessions.length} Claude sessions for ${data.project.repository}`
+        sessions: [initializedSession],
+        summary: `Created orchestration session for ${data.project.repository}`
       };
 
       return {
         success: true,
-        message: 'Orchestration initiated successfully',
+        message: 'Orchestration session created',
         data: response
       };
     } catch (error) {
-      logger.error('Orchestration failed', { error });
+      logger.error('Failed to create orchestration session', { error });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Orchestration failed'
+        error: error instanceof Error ? error.message : 'Failed to create orchestration session'
       };
-    }
-  }
-
-  /**
-   * Decompose the task into individual sessions
-   */
-  private async decomposeTask(
-    payload: ClaudeOrchestrationPayload,
-    orchestrationId: string
-  ): Promise<ClaudeSession[]> {
-    // Use TaskDecomposer to analyze requirements and create sessions
-    const decomposition = await this.taskDecomposer.decompose(payload.project);
-
-    const sessions: ClaudeSession[] = [];
-    const sessionTypes = payload.strategy?.phases ?? [
-      'analysis',
-      'implementation',
-      'testing',
-      'review'
-    ];
-
-    // Create analysis session first
-    const analysisSession: ClaudeSession = {
-      id: `${orchestrationId}-analysis`,
-      type: 'analysis',
-      status: 'pending',
-      project: payload.project,
-      dependencies: [],
-      output: undefined
-    };
-    sessions.push(analysisSession);
-
-    // Create implementation sessions based on decomposition
-    if (sessionTypes.includes('implementation')) {
-      for (let i = 0; i < decomposition.components.length; i++) {
-        const component = decomposition.components[i];
-        const implSession: ClaudeSession = {
-          id: `${orchestrationId}-impl-${i}`,
-          type: 'implementation',
-          status: 'pending',
-          project: {
-            ...payload.project,
-            requirements: component.requirements,
-            context: component.context
-          },
-          dependencies: [analysisSession.id],
-          output: undefined
-        };
-        sessions.push(implSession);
-      }
-    }
-
-    // Create testing session
-    if (sessionTypes.includes('testing')) {
-      const testSession: ClaudeSession = {
-        id: `${orchestrationId}-testing`,
-        type: 'testing',
-        status: 'pending',
-        project: payload.project,
-        dependencies: sessions.filter(s => s.type === 'implementation').map(s => s.id),
-        output: undefined
-      };
-      sessions.push(testSession);
-    }
-
-    // Create review session
-    if (sessionTypes.includes('review')) {
-      const reviewSession: ClaudeSession = {
-        id: `${orchestrationId}-review`,
-        type: 'review',
-        status: 'pending',
-        project: payload.project,
-        dependencies: sessions
-          .filter(s => s.type === 'implementation' || s.type === 'testing')
-          .map(s => s.id),
-        output: undefined
-      };
-      sessions.push(reviewSession);
-    }
-
-    return sessions;
-  }
-
-  /**
-   * Initialize sessions
-   */
-  private async initializeSessions(sessions: ClaudeSession[]): Promise<ClaudeSession[]> {
-    const initialized = await Promise.all(
-      sessions.map(async session => {
-        const containerId = await this.sessionManager.createContainer(session);
-        return {
-          ...session,
-          status: 'initializing' as const,
-          containerId
-        };
-      })
-    );
-
-    return initialized;
-  }
-
-  /**
-   * Start sessions based on dependency mode
-   */
-  private async startSessions(sessions: ClaudeSession[], dependencyMode: string): Promise<void> {
-    switch (dependencyMode) {
-      case 'sequential': {
-        // Start sessions one by one
-        for (const session of sessions) {
-          await this.sessionManager.startSession(session);
-        }
-        break;
-      }
-
-      case 'wait_for_core': {
-        // Start analysis first, then parallel implementation, then test/review
-        const analysisSessions = sessions.filter(s => s.type === 'analysis');
-        await Promise.all(analysisSessions.map(s => this.sessionManager.startSession(s)));
-
-        const implSessions = sessions.filter(s => s.type === 'implementation');
-        await Promise.all(implSessions.map(s => this.sessionManager.startSession(s)));
-        break;
-      }
-
-      case 'parallel':
-      default: {
-        // Start all sessions that have no dependencies
-        const independentSessions = sessions.filter(s => s.dependencies.length === 0);
-        await Promise.all(independentSessions.map(s => this.sessionManager.startSession(s)));
-
-        // SessionManager will handle dependency-based starts
-        const dependentSessions = sessions.filter(s => s.dependencies.length > 0);
-        await Promise.all(dependentSessions.map(s => this.sessionManager.queueSession(s)));
-        break;
-      }
     }
   }
 }

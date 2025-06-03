@@ -26,6 +26,9 @@ export class SessionManager {
       // Get Docker image from environment
       const dockerImage = process.env.CLAUDE_CONTAINER_IMAGE ?? 'claudecode:latest';
 
+      // Set up volume mounts for persistent storage
+      const volumeName = `claude-session-${session.id.substring(0, 8)}`;
+
       // Create container without starting it
       const createCmd = [
         'docker',
@@ -33,6 +36,10 @@ export class SessionManager {
         '--name',
         containerName,
         '--rm',
+        '-v',
+        `${volumeName}:/home/user/project`,
+        '-v',
+        `${volumeName}-claude:/home/user/.claude`,
         '-e',
         `SESSION_ID=${session.id}`,
         '-e',
@@ -41,7 +48,14 @@ export class SessionManager {
         `GITHUB_TOKEN=${process.env.GITHUB_TOKEN ?? ''}`,
         '-e',
         `ANTHROPIC_API_KEY=${process.env.ANTHROPIC_API_KEY ?? ''}`,
-        dockerImage
+        '-e',
+        `REPOSITORY=${session.project.repository}`,
+        '-e',
+        `OPERATION_TYPE=session`,
+        '--workdir',
+        '/home/user/project',
+        dockerImage,
+        '/scripts/runtime/claudecode-entrypoint.sh'
       ];
 
       execSync(createCmd.join(' '), { stdio: 'pipe' });
@@ -77,14 +91,25 @@ export class SessionManager {
       // Prepare the command based on session type
       const command = this.buildSessionCommand(session);
 
-      // Start the container with the command
-      const startCmd = ['docker', 'start', '-i', session.containerId];
+      // Start the container and execute Claude
+      const execCmd = [
+        'docker',
+        'exec',
+        '-i',
+        session.containerId,
+        'claude',
+        'chat',
+        '--no-prompt',
+        '-m',
+        command
+      ];
 
-      const dockerProcess = spawn(startCmd[0], startCmd.slice(1), {
-        env: {
-          ...process.env,
-          CLAUDE_COMMAND: command
-        }
+      // First start the container
+      execSync(`docker start ${session.containerId}`, { stdio: 'pipe' });
+
+      // Then execute Claude command
+      const dockerProcess = spawn(execCmd[0], execCmd.slice(1), {
+        env: process.env
       });
 
       // Collect output
@@ -165,6 +190,13 @@ export class SessionManager {
     return Array.from(this.sessions.values()).filter(session =>
       session.id.startsWith(orchestrationId)
     );
+  }
+
+  /**
+   * Get all sessions
+   */
+  getAllSessions(): ClaudeSession[] {
+    return Array.from(this.sessions.values());
   }
 
   /**

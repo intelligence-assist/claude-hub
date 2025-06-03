@@ -1,33 +1,37 @@
 import { OrchestrationHandler } from '../../../../../src/providers/claude/handlers/OrchestrationHandler';
+import type { SessionManager } from '../../../../../src/providers/claude/services/SessionManager';
 import type { ClaudeWebhookPayload } from '../../../../../src/providers/claude/ClaudeWebhookProvider';
 import type { WebhookContext } from '../../../../../src/types/webhook';
 
 // Mock the services
 jest.mock('../../../../../src/providers/claude/services/SessionManager');
-jest.mock('../../../../../src/providers/claude/services/TaskDecomposer');
 
 describe('OrchestrationHandler', () => {
   let handler: OrchestrationHandler;
+  let mockSessionManager: jest.Mocked<SessionManager>;
+  let mockContext: WebhookContext;
 
   beforeEach(() => {
     jest.clearAllMocks();
     handler = new OrchestrationHandler();
+    mockSessionManager = (handler as any).sessionManager;
+    mockContext = {
+      provider: 'claude',
+      timestamp: new Date()
+    };
   });
 
   describe('canHandle', () => {
     it('should handle orchestrate events', () => {
       const payload: ClaudeWebhookPayload = {
-        id: 'test-id',
-        timestamp: new Date().toISOString(),
-        event: 'orchestrate',
-        source: 'claude',
         data: {
           type: 'orchestrate',
           project: {
             repository: 'owner/repo',
             requirements: 'Build API'
           }
-        }
+        },
+        metadata: {}
       };
 
       expect(handler.canHandle(payload)).toBe(true);
@@ -35,35 +39,14 @@ describe('OrchestrationHandler', () => {
 
     it('should not handle session events', () => {
       const payload: ClaudeWebhookPayload = {
-        id: 'test-id',
-        timestamp: new Date().toISOString(),
-        event: 'session',
-        source: 'claude',
         data: {
-          type: 'session',
+          type: 'session.create',
           project: {
             repository: 'owner/repo',
             requirements: 'Manage session'
           }
-        }
-      };
-
-      expect(handler.canHandle(payload)).toBe(false);
-    });
-
-    it('should not handle coordinate events', () => {
-      const payload: ClaudeWebhookPayload = {
-        id: 'test-id',
-        timestamp: new Date().toISOString(),
-        event: 'coordinate',
-        source: 'claude',
-        data: {
-          type: 'coordinate',
-          project: {
-            repository: 'owner/repo',
-            requirements: 'Coordinate'
-          }
-        }
+        } as any,
+        metadata: {}
       };
 
       expect(handler.canHandle(payload)).toBe(false);
@@ -71,94 +54,133 @@ describe('OrchestrationHandler', () => {
   });
 
   describe('handle', () => {
-    const mockContext: WebhookContext = {
-      provider: 'claude',
-      authenticated: true,
-      metadata: {
-        eventType: 'orchestrate',
-        payloadId: 'test-id',
-        timestamp: new Date().toISOString()
-      }
-    };
+    it('should create orchestration session and start it by default', async () => {
+      mockSessionManager.createContainer.mockResolvedValue('container-123');
+      mockSessionManager.startSession.mockResolvedValue();
 
-    it('should successfully orchestrate sessions', async () => {
       const payload: ClaudeWebhookPayload = {
-        id: 'test-id',
-        timestamp: new Date().toISOString(),
-        event: 'orchestrate',
-        source: 'claude',
         data: {
           type: 'orchestrate',
           project: {
             repository: 'owner/repo',
             requirements: 'Build a REST API with authentication'
-          },
-          strategy: {
-            parallelSessions: 3,
-            phases: ['analysis', 'implementation', 'testing'],
-            dependencyMode: 'parallel'
           }
-        }
+        },
+        metadata: {}
       };
 
-      const result = await handler.handle(payload, mockContext);
+      const response = await handler.handle(payload, mockContext);
 
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('Orchestration initiated successfully');
-      expect(result.data).toBeDefined();
+      expect(response.success).toBe(true);
+      expect(response.message).toBe('Orchestration session created');
+      expect(response.data).toMatchObject({
+        status: 'initiated',
+        summary: 'Created orchestration session for owner/repo'
+      });
 
-      const data = result.data as any;
-      expect(data.orchestrationId).toBeDefined();
-      expect(data.status).toBe('initiated');
-      expect(data.sessions).toBeDefined();
-      expect(Array.isArray(data.sessions)).toBe(true);
+      // Verify session creation
+      const createdSession = mockSessionManager.createContainer.mock.calls[0][0];
+      expect(createdSession).toMatchObject({
+        type: 'coordination',
+        status: 'pending',
+        project: {
+          repository: 'owner/repo',
+          requirements: 'Build a REST API with authentication'
+        },
+        dependencies: []
+      });
+
+      // Verify session was started
+      expect(mockSessionManager.startSession).toHaveBeenCalled();
     });
 
-    it('should handle orchestration without strategy', async () => {
+    it('should use custom session type when provided', async () => {
+      mockSessionManager.createContainer.mockResolvedValue('container-123');
+      mockSessionManager.startSession.mockResolvedValue();
+
       const payload: ClaudeWebhookPayload = {
-        id: 'test-id',
-        timestamp: new Date().toISOString(),
-        event: 'orchestrate',
-        source: 'claude',
         data: {
           type: 'orchestrate',
+          sessionType: 'analysis',
           project: {
             repository: 'owner/repo',
-            requirements: 'Build simple feature'
+            requirements: 'Analyze codebase structure'
           }
-        }
+        } as any,
+        metadata: {}
       };
 
-      const result = await handler.handle(payload, mockContext);
+      const response = await handler.handle(payload, mockContext);
 
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
+      expect(response.success).toBe(true);
+
+      const createdSession = mockSessionManager.createContainer.mock.calls[0][0];
+      expect(createdSession.type).toBe('analysis');
+    });
+
+    it('should not start session when autoStart is false', async () => {
+      mockSessionManager.createContainer.mockResolvedValue('container-123');
+
+      const payload: ClaudeWebhookPayload = {
+        data: {
+          type: 'orchestrate',
+          autoStart: false,
+          project: {
+            repository: 'owner/repo',
+            requirements: 'Build API'
+          }
+        } as any,
+        metadata: {}
+      };
+
+      const response = await handler.handle(payload, mockContext);
+
+      expect(response.success).toBe(true);
+      expect(mockSessionManager.createContainer).toHaveBeenCalled();
+      expect(mockSessionManager.startSession).not.toHaveBeenCalled();
     });
 
     it('should handle errors gracefully', async () => {
+      mockSessionManager.createContainer.mockRejectedValue(new Error('Docker error'));
+
       const payload: ClaudeWebhookPayload = {
-        id: 'test-id',
-        timestamp: new Date().toISOString(),
-        event: 'orchestrate',
-        source: 'claude',
         data: {
           type: 'orchestrate',
           project: {
             repository: 'owner/repo',
             requirements: 'Build API'
           }
-        }
+        },
+        metadata: {}
       };
 
-      // Mock TaskDecomposer to throw an error
-      const TaskDecomposer =
-        require('../../../../../src/providers/claude/services/TaskDecomposer').TaskDecomposer;
-      TaskDecomposer.prototype.decompose.mockRejectedValueOnce(new Error('Decomposition failed'));
+      const response = await handler.handle(payload, mockContext);
 
-      const result = await handler.handle(payload, mockContext);
+      expect(response.success).toBe(false);
+      expect(response.error).toBe('Docker error');
+    });
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Decomposition failed');
+    it('should generate unique orchestration IDs', async () => {
+      mockSessionManager.createContainer.mockResolvedValue('container-123');
+
+      const payload: ClaudeWebhookPayload = {
+        data: {
+          type: 'orchestrate',
+          autoStart: false,
+          project: {
+            repository: 'owner/repo',
+            requirements: 'Build API'
+          }
+        } as any,
+        metadata: {}
+      };
+
+      const response1 = await handler.handle(payload, mockContext);
+      const response2 = await handler.handle(payload, mockContext);
+
+      expect(response1.data?.orchestrationId).toBeDefined();
+      expect(response2.data?.orchestrationId).toBeDefined();
+      expect(response1.data?.orchestrationId).not.toBe(response2.data?.orchestrationId);
     });
   });
 });

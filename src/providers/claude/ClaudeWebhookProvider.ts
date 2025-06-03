@@ -75,11 +75,21 @@ export class ClaudeWebhookProvider implements WebhookProvider<ClaudeWebhookPaylo
     const data = payload.data;
     switch (data.type) {
       case 'orchestrate':
-        return `Orchestrate Claude sessions for ${data.project.repository}`;
+        return `Orchestrate Claude sessions for ${data.project?.repository ?? 'unknown'}`;
       case 'session':
         return `Manage Claude session ${data.sessionId ?? 'new'}`;
       case 'coordinate':
-        return `Coordinate Claude sessions for ${data.project.repository}`;
+        return `Coordinate Claude sessions for ${data.project?.repository ?? 'unknown'}`;
+      case 'session.create':
+        return `Create new Claude session`;
+      case 'session.get':
+        return `Get Claude session ${data.sessionId ?? 'unknown'}`;
+      case 'session.list':
+        return `List Claude sessions`;
+      case 'session.start':
+        return `Start Claude session ${data.sessionId ?? 'unknown'}`;
+      case 'session.output':
+        return `Get output for Claude session ${data.sessionId ?? 'unknown'}`;
       default:
         return `Unknown Claude event type: ${data.type}`;
     }

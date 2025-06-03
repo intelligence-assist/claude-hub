@@ -39,15 +39,33 @@ export interface ProjectInfo {
 }
 
 /**
+ * Base payload for all Claude operations
+ */
+export interface BaseClaudePayload {
+  type: string;
+}
+
+/**
  * Claude orchestration request payload
  */
-export interface ClaudeOrchestrationPayload {
-  type: 'orchestrate' | 'session' | 'coordinate';
-  project: ProjectInfo;
+export interface ClaudeOrchestrationPayload extends BaseClaudePayload {
+  type:
+    | 'orchestrate'
+    | 'session'
+    | 'coordinate'
+    | 'session.create'
+    | 'session.get'
+    | 'session.list'
+    | 'session.start'
+    | 'session.output';
+  project?: ProjectInfo;
   strategy?: OrchestrationStrategy;
   sessionId?: string;
   parentSessionId?: string;
   dependencies?: string[]; // Session IDs to wait for
+  sessionType?: SessionType; // Type of session to create
+  autoStart?: boolean; // Whether to start session immediately
+  session?: Partial<ClaudeSession>; // For session.create
 }
 
 /**

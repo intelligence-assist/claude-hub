@@ -58,7 +58,7 @@ describe('SessionManager', () => {
       });
     });
 
-    it('should handle errors when creating container', async () => {
+    it('should handle errors when creating container', () => {
       const session: ClaudeSession = {
         id: 'test-session-123',
         type: 'analysis',
@@ -76,7 +76,7 @@ describe('SessionManager', () => {
         throw new Error('Docker error');
       });
 
-      await expect(sessionManager.createContainer(session)).rejects.toThrow('Docker error');
+      expect(() => sessionManager.createContainer(session)).toThrow('Docker error');
     });
   });
 
@@ -115,11 +115,12 @@ describe('SessionManager', () => {
       expect(mockExecSync).toHaveBeenCalledWith('docker start container-123', { stdio: 'pipe' });
       expect(mockSpawn).toHaveBeenCalledWith(
         'docker',
-        expect.arrayContaining(['exec', '-i', 'container-123', 'claude'])
+        ['exec', '-i', 'container-123', 'claude', 'chat', '--no-prompt', '-m', expect.any(String)],
+        expect.any(Object)
       );
     });
 
-    it('should throw error if session has no container ID', async () => {
+    it('should throw error if session has no container ID', () => {
       const session: ClaudeSession = {
         id: 'test-session-123',
         type: 'testing',
@@ -133,9 +134,7 @@ describe('SessionManager', () => {
         createdAt: new Date()
       };
 
-      await expect(sessionManager.startSession(session)).rejects.toThrow(
-        'Session has no container ID'
-      );
+      expect(() => sessionManager.startSession(session)).toThrow('Session has no container ID');
     });
   });
 

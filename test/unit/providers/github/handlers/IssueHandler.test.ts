@@ -1,6 +1,4 @@
-import { IssueHandler } from '../../../../../src/providers/github/handlers/IssueHandler';
-import { WebhookProcessor } from '../../../../../src/core/webhook/WebhookProcessor';
-import type { IssuesEvent } from '@octokit/webhooks-types';
+import { IssueOpenedHandler } from '../../../../../src/providers/github/handlers/IssueHandler';
 
 // Mock dependencies
 jest.mock('../../../../../src/utils/logger', () => ({
@@ -27,105 +25,87 @@ jest.mock('../../../../../src/services/claudeService');
 jest.mock('../../../../../src/services/githubService');
 
 const claudeService = require('../../../../../src/services/claudeService');
-const githubService = require('../../../../../src/services/githubService');
 
-describe('IssueHandler', () => {
-  let handler: IssueHandler;
-  let processor: WebhookProcessor;
+describe('IssueOpenedHandler', () => {
+  let handler: IssueOpenedHandler;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    handler = new IssueHandler();
-    processor = new WebhookProcessor({
-      webhookPath: '/test',
-      secret: 'test-secret'
-    });
+    handler = new IssueOpenedHandler();
   });
 
-  describe('handleIssue', () => {
-    const mockEvent: IssuesEvent = {
-      action: 'opened',
-      issue: {
-        id: 123,
-        number: 1,
-        title: 'Test Issue',
-        body: 'This is a test issue about authentication and API integration',
-        labels: [],
-        state: 'open',
-        user: {
+  describe('handle', () => {
+    const mockPayload = {
+      event: 'issues.opened',
+      data: {
+        action: 'opened',
+        issue: {
+          id: 123,
+          number: 1,
+          title: 'Test Issue',
+          body: 'This is a test issue about authentication and API integration',
+          labels: [],
+          state: 'open',
+          user: {
+            login: 'testuser',
+            id: 1
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        repository: {
+          id: 456,
+          name: 'test-repo',
+          full_name: 'owner/test-repo',
+          owner: {
+            login: 'owner',
+            id: 2
+          },
+          private: false
+        },
+        sender: {
           login: 'testuser',
           id: 1
-        },
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      repository: {
-        id: 456,
-        name: 'test-repo',
-        full_name: 'owner/test-repo',
-        owner: {
-          login: 'owner',
-          id: 2
-        },
-        private: false
-      },
-      sender: {
-        login: 'testuser',
-        id: 1
+        }
       }
-    } as any;
+    };
+
+    const mockContext = {
+      timestamp: new Date(),
+      requestId: 'test-request-id'
+    };
 
     it('should analyze and label new issues', async () => {
-      githubService.addLabelsToIssue = jest.fn().mockResolvedValue(undefined);
-      claudeService.analyzeIssueForLabels = jest.fn().mockResolvedValue({
-        priority: 'medium',
-        type: 'feature',
-        complexity: 'moderate',
-        component: 'api,auth'
+      claudeService.processCommand = jest.fn().mockResolvedValue('Labels applied successfully');
+
+      const result = await handler.handle(mockPayload as any, mockContext);
+
+      expect(claudeService.processCommand).toHaveBeenCalledWith({
+        repoFullName: 'owner/test-repo',
+        issueNumber: 1,
+        command: expect.stringContaining('Analyze this GitHub issue'),
+        isPullRequest: false,
+        branchName: null,
+        operationType: 'auto-tagging'
       });
 
-      await handler.handleIssue(mockEvent, processor);
-
-      expect(claudeService.analyzeIssueForLabels).toHaveBeenCalledWith(
-        'owner/test-repo',
-        1,
-        'Test Issue',
-        'This is a test issue about authentication and API integration'
-      );
-
-      expect(githubService.addLabelsToIssue).toHaveBeenCalledWith('owner/test-repo', 1, [
-        'priority:medium',
-        'type:feature',
-        'complexity:moderate',
-        'component:api',
-        'component:auth'
-      ]);
+      expect(result).toEqual({
+        success: true,
+        message: 'Issue auto-tagged successfully',
+        data: {
+          repo: 'owner/test-repo',
+          issue: 1
+        }
+      });
     });
 
     it('should handle errors gracefully', async () => {
-      claudeService.analyzeIssueForLabels = jest
-        .fn()
-        .mockRejectedValue(new Error('Analysis failed'));
+      claudeService.processCommand = jest.fn().mockRejectedValue(new Error('Analysis failed'));
 
-      await expect(handler.handleIssue(mockEvent, processor)).resolves.not.toThrow();
-    });
+      const result = await handler.handle(mockPayload as any, mockContext);
 
-    it('should skip non-opened events', async () => {
-      const editEvent = { ...mockEvent, action: 'edited' } as IssuesEvent;
-
-      await handler.handleIssue(editEvent, processor);
-
-      expect(claudeService.analyzeIssueForLabels).not.toHaveBeenCalled();
-      expect(githubService.addLabelsToIssue).not.toHaveBeenCalled();
-    });
-
-    it('should handle empty label analysis', async () => {
-      claudeService.analyzeIssueForLabels = jest.fn().mockResolvedValue({});
-      githubService.addLabelsToIssue = jest.fn();
-
-      await handler.handleIssue(mockEvent, processor);
-
-      expect(githubService.addLabelsToIssue).toHaveBeenCalledWith('owner/test-repo', 1, []);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Analysis failed');
     });
   });
 });

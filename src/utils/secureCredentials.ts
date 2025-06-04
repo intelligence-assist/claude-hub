@@ -38,6 +38,10 @@ class SecureCredentials {
       GITHUB_WEBHOOK_SECRET: {
         file: process.env['GITHUB_WEBHOOK_SECRET_FILE'] ?? '/run/secrets/webhook_secret',
         env: 'GITHUB_WEBHOOK_SECRET'
+      },
+      CLAUDE_WEBHOOK_SECRET: {
+        file: process.env['CLAUDE_WEBHOOK_SECRET_FILE'] ?? '/run/secrets/claude_webhook_secret',
+        env: 'CLAUDE_WEBHOOK_SECRET'
       }
     };
 

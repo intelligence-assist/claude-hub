@@ -23,51 +23,22 @@ export class SessionManager {
       // Generate container name
       const containerName = `claude-${session.type}-${session.id.substring(0, 8)}`;
 
-      // Get Docker image from environment
-      const dockerImage = process.env.CLAUDE_CONTAINER_IMAGE ?? 'claudecode:latest';
-
       // Set up volume mounts for persistent storage
-      const volumeName = `claude-session-${session.id.substring(0, 8)}`;
+      const volumeName = `${containerName}-volume`;
 
-      // Create container without starting it
-      const createCmd = [
-        'docker',
-        'create',
-        '--name',
-        containerName,
-        '--rm',
-        '-v',
-        `${volumeName}:/home/user/project`,
-        '-v',
-        `${volumeName}-claude:/home/user/.claude`,
-        '-e',
-        `SESSION_ID=${session.id}`,
-        '-e',
-        `SESSION_TYPE=${session.type}`,
-        '-e',
-        `GITHUB_TOKEN=${process.env.GITHUB_TOKEN ?? ''}`,
-        '-e',
-        `ANTHROPIC_API_KEY=${process.env.ANTHROPIC_API_KEY ?? ''}`,
-        '-e',
-        `REPOSITORY=${session.project.repository}`,
-        '-e',
-        `OPERATION_TYPE=session`,
-        '--workdir',
-        '/home/user/project',
-        dockerImage,
-        '/scripts/runtime/claudecode-entrypoint.sh'
-      ];
+      logger.info('Creating container resources', { sessionId: session.id, containerName });
 
-      execSync(createCmd.join(' '), { stdio: 'pipe' });
+      // Create volume for workspace
+      execSync(`docker volume create ${volumeName}`, { stdio: 'pipe' });
 
-      logger.info('Container created', { sessionId: session.id, containerName });
+      logger.info('Container resources created', { sessionId: session.id, containerName });
 
       // Store session
       this.sessions.set(session.id, session);
 
       return Promise.resolve(containerName);
     } catch (error) {
-      logger.error('Failed to create container', { sessionId: session.id, error });
+      logger.error('Failed to create container resources', { sessionId: session.id, error });
       throw error;
     }
   }
@@ -91,34 +62,84 @@ export class SessionManager {
       // Prepare the command based on session type
       const command = this.buildSessionCommand(session);
 
-      // Start the container and execute Claude
+      // Get Docker image from environment
+      const dockerImage = process.env.CLAUDE_CONTAINER_IMAGE ?? 'claudecode:latest';
+
+      // Start the container and execute Claude with stream-json output
       const execCmd = [
         'docker',
-        'exec',
-        '-i',
+        'run',
+        '--rm',
+        '--name',
         session.containerId,
-        'claude',
-        'chat',
-        '--no-prompt',
-        '-m',
-        command
+        '-v',
+        `${session.containerId}-volume:/home/user/project`,
+        '-v',
+        `${process.env.CLAUDE_AUTH_HOST_DIR ?? process.env.HOME + '/.claude-hub'}:/home/node/.claude`,
+        '-e',
+        `SESSION_ID=${session.id}`,
+        '-e',
+        `SESSION_TYPE=${session.type}`,
+        '-e',
+        `GITHUB_TOKEN=${process.env.GITHUB_TOKEN ?? ''}`,
+        '-e',
+        `REPO_FULL_NAME=${session.project.repository}`,
+        '-e',
+        `COMMAND=${command}`,
+        '-e',
+        `OPERATION_TYPE=session`,
+        '-e',
+        `OUTPUT_FORMAT=stream-json`,
+        dockerImage
       ];
 
-      // First start the container
-      execSync(`docker start ${session.containerId}`, { stdio: 'pipe' });
-
-      // Then execute Claude command
+      // Start the container with Claude command
       const dockerProcess = spawn(execCmd[0], execCmd.slice(1), {
-        env: process.env
+        env: process.env,
+        detached: true
       });
 
       // Collect output
       const logs: string[] = [];
+      let firstLineProcessed = false;
 
       dockerProcess.stdout.on('data', data => {
-        const line = data.toString();
-        logs.push(line);
-        logger.debug('Session output', { sessionId: session.id, line });
+        const lines = data
+          .toString()
+          .split('\n')
+          .filter((line: string) => line.trim());
+
+        for (const line of lines) {
+          logs.push(line);
+
+          // Process first line to get Claude session ID
+          if (!firstLineProcessed && line.trim()) {
+            firstLineProcessed = true;
+            try {
+              const initData = JSON.parse(line);
+              if (
+                initData.type === 'system' &&
+                initData.subtype === 'init' &&
+                initData.session_id
+              ) {
+                session.claudeSessionId = initData.session_id;
+                this.sessions.set(session.id, session);
+                logger.info('Captured Claude session ID', {
+                  sessionId: session.id,
+                  claudeSessionId: session.claudeSessionId
+                });
+              }
+            } catch (err) {
+              logger.error('Failed to parse first line as JSON', {
+                sessionId: session.id,
+                line,
+                err
+              });
+            }
+          }
+
+          logger.debug('Session output', { sessionId: session.id, line });
+        }
       });
 
       dockerProcess.stderr.on('data', data => {
@@ -142,6 +163,9 @@ export class SessionManager {
         // Notify waiting sessions
         this.notifyWaitingSessions(session.id);
       });
+
+      // Unref the process so it can run independently
+      dockerProcess.unref();
 
       return Promise.resolve();
     } catch (error) {
@@ -181,6 +205,13 @@ export class SessionManager {
    */
   getSession(sessionId: string): ClaudeSession | undefined {
     return this.sessions.get(sessionId);
+  }
+
+  /**
+   * Update session
+   */
+  updateSession(session: ClaudeSession): void {
+    this.sessions.set(session.id, session);
   }
 
   /**

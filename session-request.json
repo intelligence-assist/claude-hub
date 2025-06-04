@@ -1,0 +1,9 @@
+{
+  "type": "session.create",
+  "session": {
+    "project": {
+      "repository": "Cheffromspace/demo-repository",
+      "requirements": "Implement a hello world program in Python that prints 'Hello, World!' to the console. Create the file as hello_world.py in the root directory. After implementing, create a pull request with the changes."
+    }
+  }
+}

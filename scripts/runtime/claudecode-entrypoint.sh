@@ -149,19 +149,37 @@ else
   echo "DEBUG: Using $CLAUDE_USER_HOME as HOME for Claude CLI (fallback)" >&2
 fi
 
-sudo -u node -E env \
-    HOME="$CLAUDE_USER_HOME" \
-    PATH="/usr/local/bin:/usr/local/share/npm-global/bin:$PATH" \
-    ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
-    GH_TOKEN="${GITHUB_TOKEN}" \
-    GITHUB_TOKEN="${GITHUB_TOKEN}" \
-    BASH_DEFAULT_TIMEOUT_MS="${BASH_DEFAULT_TIMEOUT_MS}" \
-    BASH_MAX_TIMEOUT_MS="${BASH_MAX_TIMEOUT_MS}" \
-    /usr/local/share/npm-global/bin/claude \
-    --allowedTools "${ALLOWED_TOOLS}" \
-    --verbose \
-    --print "${COMMAND}" \
-    > "${RESPONSE_FILE}" 2>&1
+if [ "${OUTPUT_FORMAT}" = "stream-json" ]; then
+  # For stream-json, output directly to stdout for real-time processing
+  exec sudo -u node -E env \
+      HOME="$CLAUDE_USER_HOME" \
+      PATH="/usr/local/bin:/usr/local/share/npm-global/bin:$PATH" \
+      ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+      GH_TOKEN="${GITHUB_TOKEN}" \
+      GITHUB_TOKEN="${GITHUB_TOKEN}" \
+      BASH_DEFAULT_TIMEOUT_MS="${BASH_DEFAULT_TIMEOUT_MS}" \
+      BASH_MAX_TIMEOUT_MS="${BASH_MAX_TIMEOUT_MS}" \
+      /usr/local/share/npm-global/bin/claude \
+      --allowedTools "${ALLOWED_TOOLS}" \
+      --output-format stream-json \
+      --verbose \
+      --print "${COMMAND}"
+else
+  # Default behavior - write to file
+  sudo -u node -E env \
+      HOME="$CLAUDE_USER_HOME" \
+      PATH="/usr/local/bin:/usr/local/share/npm-global/bin:$PATH" \
+      ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+      GH_TOKEN="${GITHUB_TOKEN}" \
+      GITHUB_TOKEN="${GITHUB_TOKEN}" \
+      BASH_DEFAULT_TIMEOUT_MS="${BASH_DEFAULT_TIMEOUT_MS}" \
+      BASH_MAX_TIMEOUT_MS="${BASH_MAX_TIMEOUT_MS}" \
+      /usr/local/share/npm-global/bin/claude \
+      --allowedTools "${ALLOWED_TOOLS}" \
+      --verbose \
+      --print "${COMMAND}" \
+      > "${RESPONSE_FILE}" 2>&1
+fi
 
 # Check for errors
 if [ $? -ne 0 ]; then

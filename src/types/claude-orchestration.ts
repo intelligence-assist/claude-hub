@@ -90,6 +90,7 @@ export interface ClaudeSession {
   type: SessionType;
   status: SessionStatus;
   containerId?: string;
+  claudeSessionId?: string; // Claude's internal session ID
   project: ProjectInfo;
   dependencies: string[];
   startedAt?: Date;

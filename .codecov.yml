@@ -1,5 +1,6 @@
 codecov:
   require_ci_to_pass: false
+  token: ${{ secrets.CODECOV_TOKEN }}
   
 coverage:
   status:

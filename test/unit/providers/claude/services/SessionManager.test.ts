@@ -53,7 +53,7 @@ describe('SessionManager', () => {
       const containerName = await sessionManager.createContainer(session);
 
       expect(containerName).toBe('claude-analysis-test-ses');
-      expect(mockExecSync).toHaveBeenCalledWith(expect.stringContaining('docker create'), {
+      expect(mockExecSync).toHaveBeenCalledWith(expect.stringContaining('docker volume create'), {
         stdio: 'pipe'
       });
     });
@@ -100,24 +100,32 @@ describe('SessionManager', () => {
       const mockProcess = {
         stdout: {
           on: jest.fn((event, cb) => {
-            if (event === 'data') cb(Buffer.from('Output line'));
+            if (event === 'data') {
+              // Simulate stream-json output with Claude session ID
+              cb(
+                Buffer.from(
+                  '{"type":"system","subtype":"init","session_id":"claude-session-123"}\n'
+                )
+              );
+            }
           })
         },
         stderr: { on: jest.fn() },
         on: jest.fn((event, cb) => {
           if (event === 'close') cb(0);
-        })
+        }),
+        unref: jest.fn()
       };
       mockSpawn.mockReturnValue(mockProcess as any);
 
       await sessionManager.startSession(session);
 
-      expect(mockExecSync).toHaveBeenCalledWith('docker start container-123', { stdio: 'pipe' });
       expect(mockSpawn).toHaveBeenCalledWith(
         'docker',
-        ['exec', '-i', 'container-123', 'claude', 'chat', '--no-prompt', '-m', expect.any(String)],
+        expect.arrayContaining(['run', '--rm', '--name', 'container-123']),
         expect.any(Object)
       );
+      expect(mockProcess.unref).toHaveBeenCalled();
     });
 
     it('should throw error if session has no container ID', () => {
@@ -271,17 +279,32 @@ describe('SessionManager', () => {
       };
 
       const mockProcess = {
-        stdout: { on: jest.fn() },
+        stdout: {
+          on: jest.fn((event, cb) => {
+            if (event === 'data') {
+              cb(
+                Buffer.from(
+                  '{"type":"system","subtype":"init","session_id":"claude-session-123"}\n'
+                )
+              );
+            }
+          })
+        },
         stderr: { on: jest.fn() },
         on: jest.fn((event, cb) => {
           if (event === 'close') cb(0);
-        })
+        }),
+        unref: jest.fn()
       };
       mockSpawn.mockReturnValue(mockProcess as any);
 
       await sessionManager.queueSession(session);
 
-      expect(mockExecSync).toHaveBeenCalledWith('docker start container-123', { stdio: 'pipe' });
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'docker',
+        expect.arrayContaining(['run', '--rm', '--name', 'container-123']),
+        expect.any(Object)
+      );
     });
 
     it('should queue session if dependencies not met', async () => {

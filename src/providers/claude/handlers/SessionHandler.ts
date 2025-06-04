@@ -48,7 +48,7 @@ type SessionPayload =
  * Provides CRUD operations for MCP integration
  */
 export class SessionHandler implements WebhookEventHandler<ClaudeWebhookPayload> {
-  event = 'session';
+  event = 'session*';
   private sessionManager: SessionManager;
 
   constructor() {
@@ -144,6 +144,9 @@ export class SessionHandler implements WebhookEventHandler<ClaudeWebhookPayload>
       containerId,
       status: 'initializing' as const
     };
+
+    // Update the session in SessionManager with containerId
+    this.sessionManager.updateSession(createdSession);
 
     logger.info('Session created', {
       sessionId: createdSession.id,

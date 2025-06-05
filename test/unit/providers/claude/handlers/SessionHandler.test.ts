@@ -108,6 +108,156 @@ describe('SessionHandler', () => {
       expect(response.success).toBe(false);
       expect(response.error).toBe('Requirements are required for session creation');
     });
+
+    it('should filter out invalid dependency values', async () => {
+      mockSessionManager.createContainer.mockResolvedValue('container-123');
+
+      const payload: ClaudeWebhookPayload = {
+        data: {
+          type: 'session.create',
+          session: {
+            project: {
+              repository: 'owner/repo',
+              requirements: 'Test requirements'
+            },
+            dependencies: ['', ' ', 'none', 'None', 'NONE', '550e8400-e29b-41d4-a716-446655440000']
+          }
+        },
+        metadata: {}
+      };
+
+      const response = await handler.handle(payload, mockContext);
+
+      expect(response.success).toBe(true);
+      // Only the valid UUID should remain
+      expect(response.data?.session.dependencies).toEqual(['550e8400-e29b-41d4-a716-446655440000']);
+    });
+
+    it('should fail with invalid UUID format in dependencies', async () => {
+      const payload: ClaudeWebhookPayload = {
+        data: {
+          type: 'session.create',
+          session: {
+            project: {
+              repository: 'owner/repo',
+              requirements: 'Test requirements'
+            },
+            dependencies: ['not-a-uuid', 'invalid-uuid-format', '12345']
+          }
+        },
+        metadata: {}
+      };
+
+      const response = await handler.handle(payload, mockContext);
+
+      expect(response.success).toBe(false);
+      expect(response.error).toBe(
+        'Invalid dependency IDs (not valid UUIDs): not-a-uuid, invalid-uuid-format, 12345'
+      );
+    });
+
+    it('should accept valid UUID dependencies', async () => {
+      mockSessionManager.createContainer.mockResolvedValue('container-123');
+
+      const validUUIDs = [
+        '550e8400-e29b-41d4-a716-446655440000',
+        'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+        '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
+      ];
+
+      const payload: ClaudeWebhookPayload = {
+        data: {
+          type: 'session.create',
+          session: {
+            project: {
+              repository: 'owner/repo',
+              requirements: 'Test requirements'
+            },
+            dependencies: validUUIDs
+          }
+        },
+        metadata: {}
+      };
+
+      const response = await handler.handle(payload, mockContext);
+
+      expect(response.success).toBe(true);
+      expect(response.data?.session.dependencies).toEqual(validUUIDs);
+    });
+
+    it('should handle mixed valid and invalid dependencies', async () => {
+      const payload: ClaudeWebhookPayload = {
+        data: {
+          type: 'session.create',
+          session: {
+            project: {
+              repository: 'owner/repo',
+              requirements: 'Test requirements'
+            },
+            dependencies: [
+              '550e8400-e29b-41d4-a716-446655440000', // valid
+              '', // empty - filtered out
+              'none', // filtered out
+              'not-a-uuid', // invalid format
+              'f47ac10b-58cc-4372-a567-0e02b2c3d479' // valid
+            ]
+          }
+        },
+        metadata: {}
+      };
+
+      const response = await handler.handle(payload, mockContext);
+
+      expect(response.success).toBe(false);
+      expect(response.error).toBe('Invalid dependency IDs (not valid UUIDs): not-a-uuid');
+    });
+
+    it('should handle empty dependencies array', async () => {
+      mockSessionManager.createContainer.mockResolvedValue('container-123');
+
+      const payload: ClaudeWebhookPayload = {
+        data: {
+          type: 'session.create',
+          session: {
+            project: {
+              repository: 'owner/repo',
+              requirements: 'Test requirements'
+            },
+            dependencies: []
+          }
+        },
+        metadata: {}
+      };
+
+      const response = await handler.handle(payload, mockContext);
+
+      expect(response.success).toBe(true);
+      expect(response.data?.session.dependencies).toEqual([]);
+    });
+
+    it('should handle dependencies with only filtered values', async () => {
+      mockSessionManager.createContainer.mockResolvedValue('container-123');
+
+      const payload: ClaudeWebhookPayload = {
+        data: {
+          type: 'session.create',
+          session: {
+            project: {
+              repository: 'owner/repo',
+              requirements: 'Test requirements'
+            },
+            dependencies: ['', ' ', 'none', 'None']
+          }
+        },
+        metadata: {}
+      };
+
+      const response = await handler.handle(payload, mockContext);
+
+      expect(response.success).toBe(true);
+      // All values filtered out, should result in empty array
+      expect(response.data?.session.dependencies).toEqual([]);
+    });
   });
 
   describe('session.get', () => {

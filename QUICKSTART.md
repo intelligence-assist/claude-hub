@@ -11,8 +11,8 @@ Get Claude responding to your GitHub issues in minutes using Cloudflare Tunnel.
 ## Step 1: Create a GitHub Bot Account
 
 1. Sign out of GitHub and create a new account for your bot (e.g., `YourProjectBot`)
-2. In your main account, create a [Personal Access Token](https://github.com/settings/tokens) with `repo` and `write` permissions
-3. Add the bot account as a collaborator to your repositories
+2. Sign in to your bot account and create a [Personal Access Token](https://github.com/settings/tokens) with `repo` and `write` permissions
+3. Add the bot account as a collaborator to your repositories from your main account
 
 ## Step 2: Clone and Configure
 
@@ -29,7 +29,7 @@ nano .env
 ```
 
 Required values:
-- `GITHUB_TOKEN`: Your GitHub Personal Access Token
+- `GITHUB_TOKEN`: Your bot account's GitHub Personal Access Token
 - `GITHUB_WEBHOOK_SECRET`: Generate with `openssl rand -hex 32`
 - `BOT_USERNAME`: Your bot's GitHub username (e.g., `@YourProjectBot`)
 - `BOT_EMAIL`: Your bot's email

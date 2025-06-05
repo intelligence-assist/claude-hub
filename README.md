@@ -77,13 +77,6 @@ That's it! Your bot is ready to use. See the **[complete quickstart guide](./QUI
 - **Context-aware**: Claude understands your entire repository structure and development patterns
 - **Stateless execution**: Each request runs in isolated Docker containers
 
-### Claude Orchestration (NEW) 🎭
-- **Parallel Claude Sessions**: Run multiple Claude containers concurrently for complex tasks
-- **Smart Task Decomposition**: Automatically breaks down projects into parallel workstreams
-- **Dependency Management**: Sessions wait for prerequisites before starting
-- **MCP Integration**: Built for the MCP hackathon to showcase super-charged Claude capabilities
-- **See [Claude Orchestration Documentation](./docs/claude-orchestration.md) for details**
-
 ### Performance Architecture ⚡
 - Parallel test execution with strategic runner distribution
 - Conditional Docker builds (only when code changes)
@@ -103,7 +96,7 @@ That's it! Your bot is ready to use. See the **[complete quickstart guide](./QUI
 **Current Setup**: You need to create your own GitHub bot account:
 
 1. **Create a dedicated GitHub account** for your bot (e.g., `MyProjectBot`)
-2. **Generate a Personal Access Token** with repository permissions
+2. **Generate a Personal Access Token** from the bot account with repository permissions
 3. **Configure the bot username** in your environment variables
 4. **Add the bot account** as a collaborator to your repositories
 
@@ -117,7 +110,7 @@ That's it! Your bot is ready to use. See the **[complete quickstart guide](./QUI
 # Core settings  
 BOT_USERNAME=YourBotName              # GitHub bot account username (create your own bot account)
 GITHUB_WEBHOOK_SECRET=<generated>     # Webhook validation
-GITHUB_TOKEN=<fine-grained-pat>       # Repository access (from your bot account)
+GITHUB_TOKEN=<fine-grained-pat>       # Repository access (PAT from your bot account)
 
 # Claude Authentication - Choose ONE method:
 

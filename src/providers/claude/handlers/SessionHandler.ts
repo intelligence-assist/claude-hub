@@ -126,6 +126,30 @@ export class SessionHandler implements WebhookEventHandler<ClaudeWebhookPayload>
       };
     }
 
+    // Validate dependencies
+    if (partialSession.dependencies && partialSession.dependencies.length > 0) {
+      // Filter out invalid dependency values
+      const validDependencies = partialSession.dependencies.filter(dep => {
+        return dep && dep.trim() !== '' && dep.toLowerCase() !== 'none';
+      });
+
+      // UUID validation regex
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+      // Check that all remaining dependencies are valid UUIDs
+      const invalidDependencies = validDependencies.filter(dep => !uuidRegex.test(dep));
+
+      if (invalidDependencies.length > 0) {
+        return {
+          success: false,
+          error: `Invalid dependency IDs (not valid UUIDs): ${invalidDependencies.join(', ')}`
+        };
+      }
+
+      // Update dependencies to only include valid ones
+      partialSession.dependencies = validDependencies;
+    }
+
     // Create full session object
     const session: ClaudeSession = {
       id: partialSession.id ?? randomUUID(),

@@ -181,6 +181,12 @@ export class SessionManager {
    * Queue a session to start when dependencies are met
    */
   async queueSession(session: ClaudeSession): Promise<void> {
+    // If session has no dependencies, start immediately
+    if (!session.dependencies || session.dependencies.length === 0) {
+      await this.startSession(session);
+      return;
+    }
+
     // Check if all dependencies are completed
     const allDependenciesMet = session.dependencies.every(depId => {
       const dep = this.sessions.get(depId);

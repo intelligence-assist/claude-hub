@@ -1,0 +1,493 @@
+openapi: 3.0.3
+info:
+  title: Claude Webhook API
+  description: |
+    API for creating and managing Claude Code sessions for automated code generation, analysis, and orchestration.
+    This API enables parallel execution of multiple Claude instances for complex software engineering tasks.
+  version: 1.0.0
+  contact:
+    name: Claude Hub Support
+    url: https://github.com/claude-hub/claude-hub
+
+servers:
+  - url: https://your-domain.com
+    description: Production server
+  - url: http://localhost:3002
+    description: Local development server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the API and its dependencies
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+
+  /api/webhooks/health:
+    get:
+      summary: Webhook health check
+      description: Check the health status of webhook providers
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: Webhook providers are healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  providers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        handlerCount:
+                          type: integer
+
+  /api/webhooks/github:
+    post:
+      summary: GitHub webhook endpoint (legacy)
+      description: Legacy endpoint for GitHub webhooks. Use /api/webhooks/github instead.
+      deprecated: true
+      tags:
+        - Webhooks
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed successfully
+        '401':
+          description: Invalid webhook signature
+        '404':
+          description: Webhook event not handled
+
+  /api/webhooks/{provider}:
+    post:
+      summary: Generic webhook endpoint
+      description: Process webhooks from various providers (github, claude)
+      tags:
+        - Webhooks
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [github, claude]
+          description: The webhook provider name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/ClaudeWebhookRequest'
+                - $ref: '#/components/schemas/GitHubWebhookPayload'
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Invalid token or signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Provider not found or session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - Session already started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Too many webhook requests
+                  message:
+                    type: string
+                    example: Too many webhook requests from this IP, please try again later.
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Use CLAUDE_WEBHOOK_SECRET as the bearer token
+
+  schemas:
+    HealthCheckResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        timestamp:
+          type: string
+          format: date-time
+        startup:
+          type: object
+          properties:
+            totalStartupTime:
+              type: integer
+            milestones:
+              type: array
+              items:
+                type: object
+        docker:
+          type: object
+          properties:
+            available:
+              type: boolean
+            error:
+              type: string
+              nullable: true
+            checkTime:
+              type: integer
+              nullable: true
+        claudeCodeImage:
+          type: object
+          properties:
+            available:
+              type: boolean
+            error:
+              type: string
+              nullable: true
+            checkTime:
+              type: integer
+              nullable: true
+        healthCheckDuration:
+          type: integer
+
+    ClaudeWebhookRequest:
+      oneOf:
+        - $ref: '#/components/schemas/SessionCreateRequest'
+        - $ref: '#/components/schemas/SessionStartRequest'
+        - $ref: '#/components/schemas/SessionGetRequest'
+        - $ref: '#/components/schemas/SessionOutputRequest'
+        - $ref: '#/components/schemas/SessionListRequest'
+        - $ref: '#/components/schemas/OrchestrateRequest'
+      discriminator:
+        propertyName: type
+        mapping:
+          session.create: '#/components/schemas/SessionCreateRequest'
+          session.start: '#/components/schemas/SessionStartRequest'
+          session.get: '#/components/schemas/SessionGetRequest'
+          session.output: '#/components/schemas/SessionOutputRequest'
+          session.list: '#/components/schemas/SessionListRequest'
+          orchestrate: '#/components/schemas/OrchestrateRequest'
+
+    SessionCreateRequest:
+      type: object
+      required:
+        - type
+        - session
+      properties:
+        type:
+          type: string
+          enum: [session.create]
+        session:
+          type: object
+          required:
+            - type
+            - project
+          properties:
+            type:
+              type: string
+              enum: [implementation, analysis, testing, review, coordination]
+              description: Type of Claude session
+            project:
+              type: object
+              required:
+                - repository
+                - requirements
+              properties:
+                repository:
+                  type: string
+                  pattern: '^[a-zA-Z0-9-]+/[a-zA-Z0-9-_.]+$'
+                  example: acme/webapp
+                  description: GitHub repository in owner/repo format
+                branch:
+                  type: string
+                  example: feature/user-auth
+                  description: Target branch name
+                requirements:
+                  type: string
+                  example: Implement JWT authentication middleware for Express.js
+                  description: Clear description of what Claude should do
+                context:
+                  type: string
+                  example: Use existing User model and bcrypt for password hashing
+                  description: Additional context about the codebase or requirements
+            dependencies:
+              type: array
+              items:
+                type: string
+                format: uuid
+              description: Array of session IDs that must complete before this session starts
+
+    SessionStartRequest:
+      type: object
+      required:
+        - type
+        - sessionId
+      properties:
+        type:
+          type: string
+          enum: [session.start]
+        sessionId:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+
+    SessionGetRequest:
+      type: object
+      required:
+        - type
+        - sessionId
+      properties:
+        type:
+          type: string
+          enum: [session.get]
+        sessionId:
+          type: string
+          format: uuid
+
+    SessionOutputRequest:
+      type: object
+      required:
+        - type
+        - sessionId
+      properties:
+        type:
+          type: string
+          enum: [session.output]
+        sessionId:
+          type: string
+          format: uuid
+
+    SessionListRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [session.list]
+        orchestrationId:
+          type: string
+          format: uuid
+          description: Filter sessions by orchestration ID
+
+    OrchestrateRequest:
+      type: object
+      required:
+        - type
+        - project
+      properties:
+        type:
+          type: string
+          enum: [orchestrate]
+        sessionType:
+          type: string
+          enum: [coordination]
+          default: coordination
+        autoStart:
+          type: boolean
+          default: false
+          description: Whether to start the session immediately
+        project:
+          type: object
+          required:
+            - repository
+            - requirements
+          properties:
+            repository:
+              type: string
+              pattern: '^[a-zA-Z0-9-]+/[a-zA-Z0-9-_.]+$'
+            branch:
+              type: string
+            requirements:
+              type: string
+            context:
+              type: string
+
+    WebhookResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: Session not found
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [implementation, analysis, testing, review, coordination]
+        status:
+          type: string
+          enum: [pending, initializing, running, completed, failed, cancelled]
+        containerId:
+          type: string
+          nullable: true
+        claudeSessionId:
+          type: string
+          nullable: true
+        project:
+          type: object
+          properties:
+            repository:
+              type: string
+            branch:
+              type: string
+            requirements:
+              type: string
+            context:
+              type: string
+        dependencies:
+          type: array
+          items:
+            type: string
+            format: uuid
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        output:
+          type: object
+          nullable: true
+        error:
+          type: string
+          nullable: true
+
+    SessionOutput:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            type: string
+        artifacts:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [file, commit, pr, issue, comment]
+              path:
+                type: string
+              content:
+                type: string
+              sha:
+                type: string
+              url:
+                type: string
+              metadata:
+                type: object
+                additionalProperties: true
+        summary:
+          type: string
+          example: Implemented JWT authentication middleware with refresh token support
+        nextSteps:
+          type: array
+          items:
+            type: string
+          example: [Add rate limiting, Implement password reset flow]
+
+    GitHubWebhookPayload:
+      type: object
+      description: GitHub webhook payload (simplified schema)
+      properties:
+        action:
+          type: string
+        repository:
+          type: object
+          properties:
+            full_name:
+              type: string
+        sender:
+          type: object
+          properties:
+            login:
+              type: string
+
+tags:
+  - name: System
+    description: System health and status endpoints
+  - name: Webhooks
+    description: Webhook processing endpoints
+  - name: Sessions
+    description: Claude session management operations

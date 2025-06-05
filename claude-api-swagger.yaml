@@ -107,6 +107,53 @@ paths:
               oneOf:
                 - $ref: '#/components/schemas/ClaudeWebhookRequest'
                 - $ref: '#/components/schemas/GitHubWebhookPayload'
+            examples:
+              createSession:
+                summary: Create a new Claude session
+                value:
+                  type: session.create
+                  session:
+                    type: implementation
+                    project:
+                      repository: acme/webapp
+                      branch: feature/user-auth
+                      requirements: Implement JWT authentication middleware for Express.js with refresh token support
+                      context: Use existing User model, bcrypt for passwords, and jsonwebtoken library
+                    dependencies: []
+              createSessionWithDependencies:
+                summary: Create a session that depends on others
+                value:
+                  type: session.create
+                  session:
+                    type: testing
+                    project:
+                      repository: acme/webapp
+                      branch: feature/user-auth
+                      requirements: Write comprehensive integration tests for the JWT authentication middleware
+                      context: Test all edge cases including token expiration, invalid tokens, and refresh flow
+                    dependencies:
+                      - 550e8400-e29b-41d4-a716-446655440000
+                      - 660e8400-e29b-41d4-a716-446655440001
+              startSession:
+                summary: Start an existing session
+                value:
+                  type: session.start
+                  sessionId: 550e8400-e29b-41d4-a716-446655440000
+              orchestrate:
+                summary: Create an orchestration with multiple sessions
+                value:
+                  type: orchestrate
+                  autoStart: true
+                  project:
+                    repository: acme/webapp
+                    branch: feature/complete-auth
+                    requirements: |
+                      Implement a complete authentication system:
+                      1. JWT middleware with refresh tokens
+                      2. User registration and login endpoints
+                      3. Password reset functionality
+                      4. Integration tests for all auth endpoints
+                    context: Use existing User model, PostgreSQL database, and follow REST API conventions
       responses:
         '200':
           description: Webhook processed successfully
@@ -114,6 +161,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WebhookResponse'
+              examples:
+                sessionCreated:
+                  summary: Session created successfully
+                  value:
+                    success: true
+                    message: Session created successfully
+                    data:
+                      session:
+                        id: 550e8400-e29b-41d4-a716-446655440000
+                        type: implementation
+                        status: initializing
+                        containerId: claude-session-550e8400
+                        project:
+                          repository: acme/webapp
+                          branch: feature/user-auth
+                          requirements: Implement JWT authentication middleware for Express.js with refresh token support
+                          context: Use existing User model, bcrypt for passwords, and jsonwebtoken library
+                        dependencies: []
+                sessionStarted:
+                  summary: Session started with dependencies
+                  value:
+                    success: true
+                    message: Session queued, waiting for dependencies
+                    data:
+                      session:
+                        id: 660e8400-e29b-41d4-a716-446655440001
+                        status: pending
+                      waitingFor:
+                        - 550e8400-e29b-41d4-a716-446655440000
         '400':
           description: Bad request
           content:

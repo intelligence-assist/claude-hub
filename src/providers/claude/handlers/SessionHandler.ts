@@ -11,6 +11,9 @@ import { randomUUID } from 'crypto';
 
 const logger = createLogger('SessionHandler');
 
+// UUID validation regex pattern
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 interface SessionCreatePayload {
   type: 'session.create';
   session: Partial<ClaudeSession>;
@@ -133,11 +136,8 @@ export class SessionHandler implements WebhookEventHandler<ClaudeWebhookPayload>
         return dep && dep.trim() !== '' && dep.toLowerCase() !== 'none';
       });
 
-      // UUID validation regex
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
       // Check that all remaining dependencies are valid UUIDs
-      const invalidDependencies = validDependencies.filter(dep => !uuidRegex.test(dep));
+      const invalidDependencies = validDependencies.filter(dep => !UUID_REGEX.test(dep));
 
       if (invalidDependencies.length > 0) {
         return {

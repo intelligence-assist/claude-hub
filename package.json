@@ -54,7 +54,7 @@
     "@types/body-parser": "^1.19.5",
     "@types/express": "^5.0.2",
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.15.23",
+    "@types/node": "^22.15.30",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.33.0",

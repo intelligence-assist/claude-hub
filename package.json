@@ -52,7 +52,7 @@
     "@babel/preset-env": "^7.27.2",
     "@jest/globals": "^30.0.0-beta.3",
     "@types/body-parser": "^1.19.5",
-    "@types/express": "^5.0.2",
+    "@types/express": "^5.0.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.15.23",
     "@types/supertest": "^6.0.3",

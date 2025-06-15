@@ -8,6 +8,7 @@
 [![Version](https://img.shields.io/github/v/release/claude-did-this/claude-hub?label=version)](https://github.com/claude-did-this/claude-hub/releases)
 [![Docker Hub](https://img.shields.io/docker/v/intelligenceassist/claude-hub?label=docker)](https://hub.docker.com/r/intelligenceassist/claude-hub)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](package.json)
+[![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 🚀 **[Quick Start Guide](./QUICKSTART.md)** | 💬 **[Discord](https://discord.com/widget?id=1377708770209304676&theme=dark)** | 📚 **[Documentation](https://claude-did-this.com/claude-hub/overview)** | 📖 **[Complete Setup](./docs/complete-workflow.md)** | 🔐 **[Authentication](./docs/claude-authentication-guide.md)**
